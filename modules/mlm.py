@@ -1,5 +1,7 @@
 import torch
 from torch import nn
+from functools import reduce
+
 
 
 class BERTWrapper(nn.Module):
@@ -8,7 +10,6 @@ class BERTWrapper(nn.Module):
         # assumes bert-style model (i.e. BERT or RoBERTa)
         self.model = model
         self.tokenizer = tokenizer
-        pass
 
     def forward(self, inputs, attn_mask, **kwargs):
         if kwargs:
@@ -33,3 +34,29 @@ class BERTWrapper(nn.Module):
 
         return outputs.loss, outputs.hidden_states
 
+class MaskedAttention(nn.Module):
+
+    def __init__(self, tokenizer):
+        self.tokenizer = tokenizer
+
+    def forward(self, encoded):
+        pass
+
+    def calculate_spans(self, encoded):
+        # taken from https://github.com/huggingface/tokenizers/issues/447
+        desired_output = []
+        for word_id in encoded.words():
+            if word_id is not None:
+                start, end = encoded.word_to_tokens(word_id)
+                desired_output.append((start, end))
+
+        return desired_output
+
+    def calculate_masks(self, spans):
+        broken_words = filter(lambda tup: abs(tup[1] - tup[0] > 1), spans)
+        masks = []
+        for span in broken_words:
+            maskless = torch.full_like(len(spans), False, dtype=torch.bool)
+            masked = maskless.index_fill(0, [i for i in range(span[0], span[1])], True)
+            masks.append(masked)
+        masks
