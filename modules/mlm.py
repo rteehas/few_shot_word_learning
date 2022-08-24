@@ -59,4 +59,4 @@ class MaskedAttention(nn.Module):
             maskless = torch.full_like(len(spans), False, dtype=torch.bool)
             masked = maskless.index_fill(0, [i for i in range(span[0], span[1])], True)
             masks.append(masked)
-        masks
+        return masks
