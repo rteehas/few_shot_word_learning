@@ -7,6 +7,7 @@ from functools import reduce
 class BERTWrapper(nn.Module):
 
     def __init__(self, model, tokenizer):
+        super(BERTWrapper, self).__init__()
         # assumes bert-style model (i.e. BERT or RoBERTa)
         self.model = model
         self.tokenizer = tokenizer
@@ -36,11 +37,19 @@ class BERTWrapper(nn.Module):
 
 class MaskedAttention(nn.Module):
 
-    def __init__(self, tokenizer):
+    def __init__(self, tokenizer, num_words, embed_dim):
         self.tokenizer = tokenizer
+        self.morph = nn.TransformerEncoderLayer(embed_dim, 1)
 
-    def forward(self, encoded):
-        pass
+    def forward(self, input, encoded):
+        spans = self.calculate_spans(encoded)
+        masks = self.calculate_masks(spans)
+        out = []
+        for mask in masks:
+            tmp_input = input.clone()
+            outputs = self.morph(tmp_input, src_mask = mask)
+            out.append(outputs)
+        return out
 
     def calculate_spans(self, encoded):
         # taken from https://github.com/huggingface/tokenizers/issues/447
