@@ -42,7 +42,7 @@ class MaskedAttention(nn.Module):
     def __init__(self, tokenizer, embed_dim):
         super(MaskedAttention, self).__init__()
         self.tokenizer = tokenizer
-        self.morph = nn.TransformerEncoderLayer(embed_dim, 1)
+        self.morph = nn.TransformerEncoder(nn.TransformerEncoderLayer(embed_dim, 1),1).to(device)
         self.d = embed_dim
 
     def forward(self, input, encoded, seq, nonce):
@@ -51,7 +51,7 @@ class MaskedAttention(nn.Module):
         tmp_input = input.clone()
         msk_dim = mask.size()[1]
         # tmp_input = tmp_input * mask
-        return self.morph(tmp_input, src_mask=torch.reshape(mask, (msk_dim, 1, 1)))
+        return self.morph(tmp_input, mask=torch.reshape(mask, (msk_dim,1,1)))
 
     # def calculate_spans(self, encoded):
     #     # taken from https://github.com/huggingface/tokenizers/issues/447
@@ -72,7 +72,8 @@ class MaskedAttention(nn.Module):
                 s, e = encoded.word_to_chars(word_id)
                 # print(seq[s:e+1])
                 if seq[s:e] == nonce:
-                    return (start, end)
+                  return (start, end)
+
 
     # def calculate_masks(self, spans):
     #     broken_words = filter(lambda tup: abs(tup[1] - tup[0] > 1), spans)
@@ -86,6 +87,6 @@ class MaskedAttention(nn.Module):
     def mask_nonce(self, span, encoded):
         maskless = torch.full_like(enc.input_ids, False, dtype=torch.bool)
         for i in range(span[0], span[1]):
-            maskless[0][i] = True
+          maskless[0][i] = True
         # masked = maskless.index_fill(0, torch.Tensor([i for i in range(span[0], span[1])]), 1)
-        return maskless
+        return ~maskless
