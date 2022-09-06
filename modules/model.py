@@ -22,7 +22,6 @@ class MorphMemoryModel(nn.Module):
         self.morph_model = MaskedAttention(tokenizer)
         self.mask_attn_linear = nn.Linear(768, len(self.tokenizer))
         self.l1 = nn.Linear(self.morph_model.d + self.firstLM.model)
-        self.opt = opt
 
 
     def forward(self, seq, input, nonce):
