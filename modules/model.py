@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 from transformers import RobertaForMaskedLM, AutoModelForCausalLM
 from prototype_memory import OnlineProtoNet
 from mlm import AttnSeq2Seq
@@ -125,6 +126,7 @@ class MorphMemoryModelAutoregressive(nn.Module):
         self.mask_attn_linear = nn.Linear(768, len(self.mlmTokenizer))  # weight shape = (len(tokenizer), 768)
 
         self.nonces = {}  # for referencing embedding location
+        self.lin = nn.Linear(768, 768, bias=False)
         for nonce in nonces:
             nonce_tok_id = (
             self.mlmTokenizer.convert_tokens_to_ids(nonce), self.autoregressiveTokenizer.convert_tokens_to_ids(nonce))
@@ -174,23 +176,14 @@ class MorphMemoryModelAutoregressive(nn.Module):
         seq_enc = self.mlmTokenizer(seq, return_tensors="pt").to(device)
 
         first_out = self.firstLM(**inputs, output_hidden_states=True)
-
+        print("first loss", first_out.loss)
         first_hidden = first_out.hidden_states
-        # print(first_hidden[-2].shape)
-
-        #         print("here", second_input["input_ids"])
-        #         print("here",second_labels)
-        #         print("here",second_input["attention_mask"])
 
         if nonce in seq:
             nonce_tok = nonce
-            # seq_to_seq_tgt = "<s> {} </s>".format(nonce_tok)
-            # print(seq_enc)
             span = self.morph_model.calc_nonce_span(nonce, seq_enc, seq)
-            # print(nonce, span, seq)
 
             combined = combine_layers(first_hidden, self.layers).unsqueeze(0)
-            # print(combined.shape)
             nonce_embeds_first = self.morph_model.extract_nonce_embeds(span, combined)
             tgt_enc = self.mlmTokenizer(nonce_tok, return_tensors="pt", padding="max_length",
                                         max_length=inputs["input_ids"].size(1)).to(device)  # batch size 1
@@ -198,47 +191,28 @@ class MorphMemoryModelAutoregressive(nn.Module):
             msk = self.morph_model.mask_nonce((0, span[1] - span[0]), tgt_enc)
             tgt_pad = tgt_enc["attention_mask"] > 0
             tgt_pad = ~tgt_pad
-            #             print("here2", second_input["input_ids"])
-            #             print("here2",second_labels)
-            #             print("here2",second_input["attention_mask"])
+
             seq_out = self.morph_model(nonce_embeds_first,
                                        tgt_enc["input_ids"],
                                        msk.view(inputs["input_ids"].size(1), 1),
                                        tgt_pad.view(inputs["input_ids"].size(1), 1))
 
-            #         seq_lin = self.morph_model.linear(seq_out)
-            #             print("here3", second_input["input_ids"])
-            #             print("here3",second_labels)
-            #             print("here3",second_input["attention_mask"])
             nonce_morph_embed = seq_out.squeeze(0)[1, :]
-            nonce_morph_embed = self.morph_model.embedding(tgt_enc["input_ids"][:, 1])
             nonce_idx = get_word_idx(seq, nonce)
-            #             print("here")
             first_lm_embed = extract_word_embeddings(first_hidden, self.layers, nonce_idx, seq_enc)
-            #             print(first_lm_embed)
             nonce_ind = self.nonces[nonce_tok][1]
-            #             self.secondLM.transformer.wte.weight[nonce_ind,:] = self.secondLM.transformer.wte.weight[nonce_ind,:] + first_lm_embed
-            #             cl = self.secondLM.transformer.wte.weight.clone()
-            #             cl[nonce_ind, :] = first_lm_embed
-            #             print(cl)
-            #             print(self.secondLM.transformer.wte.weight)
-            #             print(self.firstLM.roberta.embeddings.word_embeddings.weight)
-            # https://github.com/huggingface/transformers/issues/1458
-            #         print(second_input["input_ids"])
-            #         print(second_labels)
-            #         print(second_input["attention_mask"])
-            # todo, make this less hacky, update the embedding matrix with no grad
-            a = []
-            for s in second_inputs["input_ids"][0]:
-                if s != 50257:
-                    a.append(model.secondLM.transformer.wte(s).reshape((1, 768)))
-                else:
-                    a.append(first_lm_embed.reshape((1, 768)))
-            #             print(first_lm_embed.shape)
-            input_embeds = torch.cat(a, dim=0)
+            w = self.secondLM.transformer.wte.weight.clone()
+            msk = torch.nn.functional.one_hot(torch.LongTensor([self.nonces[nonce][1]]),
+                                              num_classes=len(self.autoregressiveTokenizer))
+
+            masked = w * (1 - msk).T
+            new_w = masked + (first_lm_embed * msk.T)
+
+            input_embeds = F.embedding_bag(new_w, second_input["input_ids"])
+
         if nonce in seq:
 
-            second_out = self.secondLM(inputs_embeds=input_embeds.unsqueeze(0),  # second_input["input_ids"],
+            second_out = self.secondLM(inputs_embeds=input_embeds,  # second_input["input_ids"],
                                        labels=second_labels,
                                        attention_mask=second_input["attention_mask"],
                                        token_type_ids=None,
@@ -249,22 +223,29 @@ class MorphMemoryModelAutoregressive(nn.Module):
                                        attention_mask=second_input["attention_mask"],
                                        token_type_ids=None,
                                        output_hidden_states=True)
-
-        second_loss = second_out.loss
+        # taken from modeling_gpt2.py
         second_hidden = second_out.hidden_states
+        logits = F.linear(second_hidden[-1], new_w)
+        shift_logits = logits[..., :-1, :].contiguous()
+        shift_labels = second_labels[..., 1:].contiguous()
+        # Flatten the tokens
+        loss_fct = nn.CrossEntropyLoss()
+        loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
 
         hiddens = (first_hidden, second_hidden)
+        hiddens = []
 
-        return second_loss, hiddens, second_out.logits
+        return loss, hiddens, logits
 
-    def generate(self, input_seq):
-        input_ids = self.autoregressiveTokenizer.encode(input_sequence, add_special_tokens=True,
+    def generate(self, input_seq, max_len, num_beams):
+        # fix generate
+        input_ids = self.autoregressiveTokenizer.encode(input_seq, add_special_tokens=True,
                                                         return_tensors='pt').to(device)
 
         beam_outputs = self.secondLM.generate(
             input_ids,
-            max_length=50,
-            num_beams=5,
+            max_length=max_len,
+            num_beams=num_beams,
             no_repeat_ngram_size=2,
             num_return_sequences=3,
             early_stopping=True
