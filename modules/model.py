@@ -67,9 +67,18 @@ class MorphMemoryModel(nn.Module):
 
         nonce_ind = self.nonces[nonce_tok]
 
-        self.secondLM.roberta.embeddings.word_embeddings.weight.data[nonce_ind, :] = first_lm_embed
+        w = self.secondLM.roberta.embeddings.word_embeddings.weight.clone()
+        msk = torch.nn.functional.one_hot(torch.LongTensor([self.nonces[nonce][1]]),
+                                          num_classes=len(self.autoregressiveTokenizer))
 
-        second_out = self.secondLM(**second_input, labels=second_labels, output_hidden_states=True)
+        masked = w * (1 - msk).T
+        new_w = masked + (first_lm_embed * msk.T)
+
+        input_embeds = F.embedding_bag(new_w, second_input["input_ids"])
+        if nonce not in seq:
+            second_out = self.secondLM(**second_input, labels=second_labels, output_hidden_states=True)
+        else:
+            second_out = self.secondLM(inputs_embeds=input_embeds, attention_mask=second_input["attention_mask"], labels=second_labels, output_hidden_states=True)
 
         second_loss = second_out.loss
         second_hidden = second_out.hidden_states
@@ -233,7 +242,6 @@ class MorphMemoryModelAutoregressive(nn.Module):
         loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
 
         hiddens = (first_hidden, second_hidden)
-        hiddens = []
 
         return loss, hiddens, logits
 
