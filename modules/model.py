@@ -7,93 +7,6 @@ from mlm import AttnSeq2Seq
 from utils import *
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-class MorphMemoryModel(nn.Module):
-
-    def __init__(self, tokenizer, nonces, device, layers):
-        super(MorphMemoryModel, self).__init__()
-
-        self.tokenizer = tokenizer
-
-        self.firstLM = RobertaForMaskedLM.from_pretrained('roberta-base').to(device)
-        self.secondLM = RobertaForMaskedLM.from_pretrained('roberta-base').to(device)
-        self.firstLM.resize_token_embeddings(len(self.tokenizer))
-        self.secondLM.resize_token_embeddings(len(self.tokenizer))
-        self.secondLM.roberta.embeddings = self.firstLM.roberta.embeddings  # share weights
-
-        self.memory = OnlineProtoNet()
-        self.morph_model = AttnSeq2Seq(self.tokenizer, 768).to(device)
-        self.mask_attn_linear = nn.Linear(768, len(self.tokenizer))  # weight shape = (len(tokenizer), 768)
-
-        self.nonces = {}  # for referencing embedding location
-        for i, val in enumerate(reversed(nonces)):
-            self.nonces[val] = -(1 + i)
-
-        self.layers = layers
-
-    def forward(self, seq, second_seq, input, second_input, second_labels, nonce):
-        seq_enc = self.tokenizer(seq, return_tensors="pt").to(device)
-
-        first_out = self.firstLM(**input, output_hidden_states=True)
-
-        first_hidden = first_out.hidden_states
-        # print(first_hidden[-2].shape)
-
-        nonce_tok = "<{}_nonce>".format(nonce)
-        # seq_to_seq_tgt = "<s> {} </s>".format(nonce_tok)
-        # print(seq_enc)
-        span = self.morph_model.calc_nonce_span(nonce, seq_enc, seq)
-        # print(nonce, span, seq)
-
-        combined = combine_layers(first_hidden, self.layers).unsqueeze(0)
-        # print(combined.shape)
-        nonce_embeds_first = self.morph_model.extract_nonce_embeds(span, combined)
-        tgt_enc = self.tokenizer(nonce_tok, return_tensors="pt", padding="max_length",
-                                 max_length=input["input_ids"].size(1)).to(device)  # batch size 1
-
-        msk = self.morph_model.mask_nonce((0, span[1] - span[0]), tgt_enc)
-        tgt_pad = tgt_enc["attention_mask"] > 0
-        tgt_pad = ~tgt_pad
-
-        seq_out = self.morph_model(nonce_embeds_first,
-                                   tgt_enc["input_ids"],
-                                   msk.view(input["input_ids"].size(1), 1),
-                                   tgt_pad.view(input["input_ids"].size(1), 1))
-
-        seq_lin = self.morph_model.linear(seq_out)
-
-        nonce_morph_embed = self.morph_model.embedding(tgt_enc["input_ids"][:, 1])
-        nonce_idx = get_word_idx(seq, nonce)
-        first_lm_embed = extract_word_embeddings(first_hidden, self.layers, nonce_idx, seq_enc)
-
-        nonce_ind = self.nonces[nonce_tok]
-
-        w = self.secondLM.roberta.embeddings.word_embeddings.weight.clone()
-        msk = torch.nn.functional.one_hot(torch.LongTensor([self.nonces[nonce][1]]),
-                                          num_classes=len(self.autoregressiveTokenizer))
-
-        masked = w * (1 - msk).T
-        new_w = masked + (first_lm_embed * msk.T)
-
-        input_embeds = F.embedding_bag(new_w, second_input["input_ids"])
-        if nonce not in seq:
-            second_out = self.secondLM(**second_input, labels=second_labels, output_hidden_states=True)
-        else:
-            second_out = self.secondLM(inputs_embeds=input_embeds, attention_mask=second_input["attention_mask"], labels=second_labels, output_hidden_states=True)
-
-        second_loss = second_out.loss
-        second_hidden = second_out.hidden_states
-
-        hiddens = (first_hidden, second_hidden)
-
-        return second_loss, hiddens, second_out.logits
-
-    def initialize_with_def(self, nonce, definition):
-        with torch.no_grad():
-            toks = self.tokenizer(definition, return_tensors="pt").to(device)
-            outs = self.firstLM(**toks, output_hidden_states=True)
-
-
-
 class OnlineProtoNet(nn.Module):
 
     def __init__(self):
@@ -245,18 +158,150 @@ class MorphMemoryModelAutoregressive(nn.Module):
 
         return loss, hiddens, logits
 
-    def generate(self, input_seq, max_len, num_beams):
-        # fix generate
-        input_ids = self.autoregressiveTokenizer.encode(input_seq, add_special_tokens=True,
-                                                        return_tensors='pt').to(device)
 
-        beam_outputs = self.secondLM.generate(
-            input_ids,
-            max_length=max_len,
-            num_beams=num_beams,
-            no_repeat_ngram_size=2,
-            num_return_sequences=3,
-            early_stopping=True
-            # pad_token_id = tokenizer.pad_token_id
-        )
-        return beam_outputs
+class MorphMemoryModel(nn.Module):
+
+    def __init__(self, tokenizer, nonces, device, layers, agg="mean"):
+        super(MorphMemoryModel, self).__init__()
+
+        self.tokenizer = tokenizer
+
+        self.firstLM = RobertaForMaskedLM.from_pretrained('roberta-base').to(device)
+        self.secondLM = AutoModelForSequenceClassification.from_pretrained('cross-encoder/nli-roberta-base').to(device)
+        #         self.firstLM.resize_token_embeddings(len(self.tokenizer))
+        #         self.secondLM.resize_token_embeddings(len(self.tokenizer))
+        self.freeze_roberta()
+
+        #         self.secondLM.roberta.embeddings.word_embeddings = self.firstLM.roberta.embeddings.word_embeddings  # share weights
+
+        self.memory = OnlineProtoNet(agg=agg)
+        self.morph_model = AttnSeq2Seq(self.tokenizer, 768).to(device)
+        #         self.mask_attn_linear = nn.Linear(768, len(self.tokenizer))  # weight shape = (len(tokenizer), 768)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=768, nhead=1)
+        self.lin = nn.TransformerEncoder(encoder_layer, num_layers=1)
+        self.lin2 = nn.Linear(768, 768, bias=False)
+        self.nonces = {}  # for referencing embedding location
+        for nonce in nonces:
+            nonce_tok_id = self.tokenizer.convert_tokens_to_ids(nonce)
+            self.nonces[nonce] = nonce_tok_id
+
+        #         initialize with mean embedding
+        #         indices = self.get_zero_grads_idx()
+        #         m = torch.mean(self.secondLM.roberta.embeddings.word_embeddings.weight[indices, :], dim=0)
+        #         for nonce in nonces:
+        #             with torch.no_grad():
+        #                 self.secondLM.roberta.embeddings.word_embeddings.weight[self.nonces[nonce],:] = m
+        #                 self.firstLM.roberta.embeddings.word_embeddings.weight[self.nonces[nonce],:] = m
+
+        #         with torch.no_grad():
+        #             self.morph_model.embedding.weight = self.secondLM.roberta.embeddings.word_embeddings.weight
+        #             self.morph_model.embedding.weight = torch.nn.parameter.Parameter(model.secondLM.roberta.embeddings.word_embeddings.weight.clone())
+
+        self.layers = layers
+        self.morph_decoder = nn.Linear(768, len(self.tokenizer), bias=False)
+
+    def freeze_roberta(self):
+        for parameter in self.firstLM.parameters():
+            parameter.requires_grad = False
+
+        for parameter in self.secondLM.parameters():
+            parameter.requires_grad = False
+
+    #         self.firstLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
+    #         self.secondLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
+    def build_memory(self, seq, inputs, nonce):
+        seq_enc = self.tokenizer(seq, return_tensors="pt").to(device)
+
+        first_out = self.firstLM(**inputs, output_hidden_states=True)
+        first_hidden = first_out.hidden_states
+
+        combined = combine_layers(first_hidden, self.layers).unsqueeze(0)
+
+        if nonce != "":
+            nonce_tok = nonce
+            # seq_to_seq_tgt = "<s> {} </s>".format(nonce_tok)
+            # print(seq_enc)
+            if nonce in seq:
+                span = self.morph_model.calc_nonce_span(nonce, seq_enc, seq)
+
+                selects = (inputs["input_ids"] == self.nonces[nonce]).nonzero(as_tuple=True)
+                #                 print(selects, selects[0])
+                first_lm_embed = combined[:, selects[0], :]
+                #                 print(first_lm_embed.shape)
+                first_lm_embed = first_lm_embed.sum(1)
+                #                 print(first_lm_embed.shape)
+                self.memory.store(nonce, self.lin(first_lm_embed).clone().reshape((1, 768)))
+
+                #             print(first_lm_embed.shape)
+
+    #                 input_embeds = torch.cat(a, dim=0).unsqueeze(0)
+
+    def forward(self, seq, second_seq, inputs, second_input, label, nonce):
+        seq_enc = self.tokenizer(seq, return_tensors="pt").to(device)
+        #         print(self.firstLM(**inputs, output_hidden_states=True))
+        first_out = self.firstLM(**inputs, output_hidden_states=True)
+        #         print("first loss", first_out.loss)
+        first_hidden = first_out.hidden_states
+        combined = combine_layers(first_hidden, self.layers).unsqueeze(0)
+        #         print(combined.shape)
+        #         print(combined.shape)
+        # print(first_hidden[-2].shape)
+        if nonce != "":
+            nonce_tok = nonce
+            # seq_to_seq_tgt = "<s> {} </s>".format(nonce_tok)
+            # print(seq_enc)
+            if nonce in seq:
+                span = self.morph_model.calc_nonce_span(nonce, seq_enc, seq)
+
+                selects = (inputs["input_ids"] == self.nonces[nonce]).nonzero(as_tuple=True)
+                #                 print(selects, selects[0])
+                first_lm_embed = combined[:, selects[0], :]
+                #                 print(first_lm_embed.shape)
+                first_lm_embed = first_lm_embed.sum(1)
+
+                self.memory.store(nonce, self.lin(first_lm_embed).clone().reshape((1, 768)))
+
+                nonce_token_id = self.nonces[nonce]
+
+                # Create a boolean mask indicating where the input token ids match the nonce token id
+                nonce_mask = (second_input["input_ids"] == nonce_token_id)
+
+                # Get embeddings from the secondLM model (using dynamic attribute access if necessary)
+
+                all_embeddings = self.secondLM.roberta.embeddings.word_embeddings(second_input["input_ids"])
+
+                # Use the mask to replace embeddings corresponding to the nonce with the memory retrieval
+                retrieved_nonce_embed = self.memory.retrieve(nonce).expand_as(all_embeddings)
+                input_embeds = torch.where(nonce_mask.unsqueeze(-1), retrieved_nonce_embed, all_embeddings)
+
+
+        else:
+            input_embeds = self.lin(combined)
+
+        if nonce not in seq and nonce != "":
+            raise Exception("Nonce Not in Sequence")
+        else:
+            second_out = self.secondLM(inputs_embeds=input_embeds, attention_mask=second_input["attention_mask"],
+                                       labels=label, output_hidden_states=True)
+
+        second_loss = second_out.loss
+        #         print(second_loss)
+        second_hidden = second_out.hidden_states
+
+        #         hiddens = (first_hidden, second_hidden)
+        #         hiddens = []
+        #         print(second_loss, hiddens)
+        return second_loss, second_out
+
+    def get_zero_grads_idx(self):
+        index_grads_to_zero = torch.empty(len(self.tokenizer), dtype=torch.bool).fill_(True)
+        for nonce in self.nonces:
+            idx = self.nonces[nonce]
+            index_grads_to_zero = index_grads_to_zero & (torch.arange(len(self.tokenizer)) != idx)
+        return index_grads_to_zero
+
+    def initialize_with_def(self, nonce, definition):
+        with torch.no_grad():
+            toks = self.tokenizer(definition, return_tensors="pt").to(device)
+            outs = self.firstLM(**toks, output_hidden_states=True)
+
