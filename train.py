@@ -1,5 +1,5 @@
 from transformers import DataCollatorForLanguageModeling
-from argparse import ArgumentParser
+
 import wandb
 import torch
 import torch.nn as nn
@@ -21,6 +21,7 @@ def get_arguments():
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--load_checkpoint", type=bool, default=False)
     parser.add_argument("--mlm_prob", type=float, default=0.15)
+    parser.add_argument("--autoregressive", type=bool, default=False)
     return parser
 
 def get_grad_norm(model):
@@ -39,6 +40,7 @@ def train(model, train_set, config, tokenizer, device):
     epochs = config.epochs
 
     mlm_collator = DataCollatorForLanguageModeling(tokenizer, mlm=True, mlm_probability=mlm_prob)
+
     accuracy_metric = evaluate.load("accuracy")
 
     wandb.init(project="initial-fewshot-run")
@@ -116,6 +118,79 @@ def train(model, train_set, config, tokenizer, device):
 
     run.finish()
 
+def train_auto(model, train_set, config, mlmTokenizer, autoTokenizer, device):
+    lr = config.lr
+    mlm_prob = config.mlm_prob
+    weight_decay = config.weight_decay
+    epochs = config.epochs
+
+    mlm_collator = DataCollatorForLanguageModeling(mlmTokenizer, mlm=True, mlm_probability=mlm_prob)
+    auto_collator = DataCollatorForLanguageModeling(autoTokenizer, mlm=False)
+
+    accuracy_metric = evaluate.load("accuracy")
+
+    wandb.init(project="initial-fewshot-run")
+    run = wandb.init(project="initial-fewshot-run", reinit=True)
+    wandb.run.name = "run_lr={0}_mlm={1}_norm_clipping_1.0_layer4_weightdecay".format(lr, mlm_prob)
+    opt = torch.optim.AdamW(model.params(), lr=lr, betas=(0.9, 0.999), weight_decay=weight_decay)
+    k = 5
+    accs = []
+    topk_accs = []
+    for i in range(epochs):
+        for j, row in enumerate(train_set):
+            opt.zero_grad()
+            seq = row[1]
+            second_seq = row[2]
+            nonce = row[-1]
+
+            seq_toks = mlmTokenizer(seq, return_tensors="pt")
+            second_seq_toks = autoTokenizer(second_seq, return_tensors="pt")
+            # print(seq_toks)
+            # seq_ids, seq_labels = mlm_collator.torch_mask_tokens(seq_toks["input_ids"])
+            second_inputs = auto_collator(second_seq_toks["input_ids"])
+
+            # seq_inputs = {"input_ids": seq_ids.to(device), "attention_mask": seq_toks["attention_mask"].to(device)}
+            seq_inputs = seq_toks.to(device)
+
+            loss, hiddens, logits = model(seq, second_seq, seq_inputs, second_inputs, nonce)
+
+            loss.backward()
+            first_norm = get_grad_norm(model)
+            wandb.log({"Grad Norm before clip": first_norm})
+
+            nn.utils.clip_grad_value_(model.parameters(), clip_value=1)
+            post_clip = get_grad_norm(model)
+            wandb.log({"Grad Norm after clipping": post_clip})
+
+            opt.step()
+            # loss_log = {"first_lm_loss": losses[0], "masked_step_loss": losses[1], "second_lm_loss": losses[2]}
+            # print(loss_log)
+            print(loss)
+            wandb.log({"Loss": loss})
+
+    run.finish()
+
+def train_episode(meta_learner, episode, method):
+
+    examples = episode["examples"]
+    task = episode["task"]
+    label = episode["label"]
+    nonce = episode["nonce"]
+
+    for example in examples:
+        out = meta_learner.forward_example(example, nonce)
+        out.loss.backward()
+
+    if method == "simple":
+        return
+    elif method == "meta":
+        for example in examples:
+            meta_learner.base_model.build_memory(example, nonce)
+        out = meta_learner.forward_task(task["seq"], task["seq"], task["inputs"], task["inputs"], label, nonce)
+        out.loss.backward()
+
+
+
 if __name__ == "__main__":
     parser = get_arguments()
     args, _ = parser.parse_known_args()
@@ -135,3 +210,6 @@ if __name__ == "__main__":
     model = MorphMemoryModel(tokenizer, nonce_toks, device, layers=layers).to(device)
 
     train(model,train_set, config, tokenizer, device)
+
+
+
