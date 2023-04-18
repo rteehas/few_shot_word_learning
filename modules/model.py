@@ -305,3 +305,20 @@ class MorphMemoryModel(nn.Module):
             toks = self.tokenizer(definition, return_tensors="pt").to(device)
             outs = self.firstLM(**toks, output_hidden_states=True)
 
+
+class MetaLearner(nn.Module):
+    def __init__(self, base_model):
+
+        self.base_model = base_model
+
+    def forward_example(self, inputs, nonce):
+        nonce_token_id = self.base_model.nonces[nonce]
+        nonce_mask = (inputs["input_ids"] == nonce_token_id)
+        all_embeddings = self.base_model.secondLM.roberta.embeddings.word_embeddings(inputs["input_ids"])
+        retrieved_nonce_embed = self.base_model.memory.retrieve(nonce).expand_as(all_embeddings)
+        input_embeds = torch.where(nonce_mask.unsqueeze(-1), retrieved_nonce_embed, all_embeddings)
+        second_out = self.base_model.secondLM(inputs_embeds=input_embeds, attention_mask=inputs["attention_mask"])
+        return second_out
+
+    def forward_task(self, seq, second_seq, inputs, second_input, label, nonce):
+        return self.base_model.forward(seq, second_seq, inputs, second_input, label, nonce)
