@@ -131,8 +131,6 @@ class MorphMemoryModel(nn.Module):
         nonceTask = batch['nonceTask']
         ratings = batch['ratings']
 
-        memory_embed = self.memory.retrieve(nonceMLM.item())
-
         if self.secondLM.config.model_type == "roberta":
             w = self.secondLM.roberta.embeddings.word_embeddings.weight.clone()
 
