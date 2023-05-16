@@ -4,7 +4,7 @@ from transformers import DataCollatorForLanguageModeling
 from datasets import Dataset
 from modules.utils import get_word_idx
 
-from data_utils import *
+from data.data_utils import *
 
 class ChimerasDataset(Dataset):
     def __init__(self, data, tokenizerMLM, tokenizerTask, n_samples, trial):
