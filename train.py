@@ -115,11 +115,12 @@ if __name__ == "__main__":
                 eps=epsilon
                 )
 
+    intermediate = args.intermediate_loss
 
     run = wandb.init(project="fewshot_model_testing_redone", reinit=True)
-    wandb.run.name = "{}_{}_{}".format(dataset_name, lr, memory_config.agg_method)
+    wandb.run.name = "{}_{}_{}_intermediate=".format(dataset_name, lr, memory_config.agg_method, intermediate)
 
-    intermediate = args.intermediate_loss
+    
 
     best_corr = 0
     for epoch in range(epochs):
