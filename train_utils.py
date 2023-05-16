@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import numpy as np
 
 def get_grad_norm(model):
     total_norm = 0
@@ -10,12 +11,11 @@ def get_grad_norm(model):
     total_norm = total_norm ** 0.5
     return total_norm
 
-def save(model, opt, scheduler, model_name_chkpt):
+def save(model, opt, model_name_chkpt):
     # save
     torch.save({
         'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': opt.state_dict(),
-        
+        'optimizer_state_dict': opt.state_dict()},
         "/scratch/rst306/few_shot_word_learning/checkpoints/{}.pth".format(model_name_chkpt))
 
 
@@ -60,6 +60,13 @@ def get_nonce_loss(batch, out, vocab_size, device):
     else:
         return None
 
-
 def get_model_name_checkpoint(epoch, dataset_name, model):
     return "{}_{}_epoch={}".format(dataset_name, epoch, model.model_name)
+
+def get_word_idx(sent, word):
+    return sent.split(" ").index(word)
+
+def get_locs(sent, idx, tokenizer):
+    encoded = tokenizer.encode_plus(sent, return_tensors="pt")
+    token_ids_word = np.where(np.array(encoded.word_ids()) == idx)
+    return token_ids_word
