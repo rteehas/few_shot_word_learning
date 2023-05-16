@@ -1,45 +1,45 @@
+from datasets import load_from_disk
+import torch
+import random
+import functools
+
+def collate_fn_replace_corrupted(batch, dataset):
+    """Collate function that allows to replace corrupted examples in the
+    dataloader. It expect that the dataloader returns 'None' when that occurs.
+    The 'None's in the batch are replaced with another examples sampled randomly.
+
+    Args:
+        batch (torch.Tensor): batch from the DataLoader.
+        dataset (torch.utils.data.Dataset): dataset which the DataLoader is loading.
+            Specify it with functools.partial and pass the resulting partial function that only
+            requires 'batch' argument to DataLoader's 'collate_fn' option.
+
+    Returns:
+        torch.Tensor: batch with new examples instead of corrupted ones.
+    """
+    # Idea from https://stackoverflow.com/a/57882783
+
+    original_batch_len = len(batch)
+    # Filter out all the Nones (corrupted examples)
+    batch = list(filter(lambda x: x is not None, batch))
+    filtered_batch_len = len(batch)
+    # Num of corrupted examples
+    diff = original_batch_len - filtered_batch_len
+    if diff > 0:
+        # Replace corrupted examples with another examples randomly
+        batch.extend([dataset[random.randint(0, len(dataset)-1)] for _ in range(diff)])
+        # Recursive call to replace the replacements if they are corrupted
+        return collate_fn_replace_corrupted(batch, dataset)
+    # Finally, when the whole batch is fine, return it
+    return torch.utils.data.dataloader.default_collate(batch)
+
+def make_collate(dataset):
+    return functools.partial(collate_fn_replace_corrupted, dataset=dataset)
 
 
-def get_nonces(fname):
-    lines = []
-    with open(fname, 'r', encoding='latin-1') as f:
-        # correct = {line[:3]: line for line in f}
-        for line in f:
-            lines.append(line)
-    nonce_toks = []
-    for line in lines:
-        tok = "<{}_nonce>".format(line[1].lower())
-        nonce_toks.append(tok)
+def make_nonce(num):
+    return "<nonce_{}>".format(num)
 
-    return nonce_toks
-
-def get_basic_dataset(src_name, tgt_fname):
-    lines = []
-    with open(src_name, 'r', encoding='latin-1') as f:
-        # correct = {line[:3]: line for line in f}
-        for line in f:
-            lines.append(line)
-
-    tgt_lines = []
-    with open(tgt_fname, 'r', encoding='latin-1') as f:
-        # correct = {line[:3]: line for line in f}
-        for line in f:
-            tgt_lines.append(line)
-
-    tgt_lines = [l.strip("\n").split("\t") for l in tgt_lines]
-    lines = [l.strip("\n").split("\t") for l in lines]
-
-    dataset_dict = {}
-    for l in lines[1:]:
-        if l[0]:
-            trial = l[0].split("_")
-            # print(trial)
-            # if trial[0] == "100":
-            #   print(trial[0], trial[1].lower())
-            if trial[0] not in dataset_dict:
-                dataset_dict[trial[0]] = {}
-            if trial[1].lower() not in dataset_dict[trial[0]]:
-                dataset_dict[trial[0]][trial[1].lower()] = {}
-            dataset_dict[trial[0]][trial[1].lower()][trial[2]] = l[1]
-
-    return dataset_dict
+def load_chimera(trial):
+    fname = "chimeras_{}".format(trial)
+    return load_from_disk(fname)
