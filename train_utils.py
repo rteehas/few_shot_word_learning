@@ -60,8 +60,8 @@ def get_nonce_loss(batch, out, vocab_size, device):
     else:
         return None
 
-def get_model_name_checkpoint(epoch, dataset_name, model):
-    return "{}_{}_epoch={}".format(dataset_name, epoch, model.model_name)
+def get_model_name_checkpoint(epoch, run_name):
+    return "{}_{}_epoch={}".format(run_name, epoch)
 
 def get_word_idx(sent, word):
     return sent.split(" ").index(word)

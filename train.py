@@ -187,6 +187,6 @@ if __name__ == "__main__":
         wandb.log({'Correlation on Test': avg_corr})
 
         if avg_corr > best_corr:
-            chkpt_name = get_model_name_checkpoint(epoch, dataset_name, test_model)
+            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
             save(test_model, opt, chkpt_name)
             best_corr = avg_corr
