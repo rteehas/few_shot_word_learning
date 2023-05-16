@@ -1,19 +1,28 @@
-from transformers import DataCollatorForLanguageModeling
+import math
+from argparse import ArgumentParser
+from functools import reduce
+import os
+from copy import deepcopy
+from scipy import stats
 
 import wandb
 import torch
 import torch.nn as nn
-import math
-import evaluate
-from transformers import AutoTokenizer, RobertaTokenizerFast
-from configs.config import Config
+from torch.utils.data import DataLoader
+from transformers import AutoTokenizer, RobertaForMaskedLM, GPT2Model
+from transformers import AdamW, get_linear_schedule_with_warmup
+from datasets import load_from_disk
+
+from configs.config import *
 from modules.model import MorphMemoryModel
-from data.data_utils import get_nonces, get_basic_dataset
+from data.data_utils import *
+from train_utils import *
+from data.few_shot_datasets import *
 
 def get_arguments():
     parser = ArgumentParser()
-    parser.add_argument("--momentum", type=float)
-    parser.add_argument("--lr_weight_decay", type=float, default=0.0)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    # parser.add_argument("--warmup", type=int, default=1e2)
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--data_path", type=str)
     parser.add_argument("--tgt_data_path", type=str)
@@ -21,195 +30,163 @@ def get_arguments():
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--load_checkpoint", type=bool, default=False)
     parser.add_argument("--mlm_prob", type=float, default=0.15)
-    parser.add_argument("--autoregressive", type=bool, default=False)
+    parser.add_argument("--taskName", type=str, default='mlm')
+    parser.add_argument("--memory", type=str, default="mean")
+    parser.add_argument("--num_examples", type=int, default=2)
+    parser.add_argument("--intermediate_loss", type=bool, default=False)
+    parser.add_argument("--chimera_trial", type=str, default='l2')
     return parser
-
-def get_grad_norm(model):
-    total_norm = 0
-    parameters = [p for p in model.parameters() if p.grad is not None and p.requires_grad]
-    for p in parameters:
-        param_norm = p.grad.detach().data.norm(2)
-        total_norm += param_norm.item() ** 2
-    total_norm = total_norm ** 0.5
-    return total_norm
-
-def train(model, train_set, config, tokenizer, device):
-    lr = config.lr
-    mlm_prob = config.mlm_prob
-    weight_decay = config.weight_decay
-    epochs = config.epochs
-
-    mlm_collator = DataCollatorForLanguageModeling(tokenizer, mlm=True, mlm_probability=mlm_prob)
-
-    accuracy_metric = evaluate.load("accuracy")
-
-    wandb.init(project="initial-fewshot-run")
-    run = wandb.init(project="initial-fewshot-run", reinit=True)
-    wandb.run.name = "run_lr={0}_mlm={1}_norm_clipping_1.0_layer4_weightdecay".format(lr, mlm_prob)
-    opt = torch.optim.AdamW(model.params(), lr=lr, betas=(0.9, 0.999), weight_decay=weight_decay)
-    k = 5
-    accs = []
-    topk_accs = []
-    for i in range(epochs):
-        for j, row in enumerate(train_set):
-            opt.zero_grad()
-            seq = row[1]
-            second_seq = row[2]
-            nonce = row[-1]
-
-            seq_toks = tokenizer(seq, return_tensors="pt")
-            second_seq_toks = tokenizer(second_seq, return_tensors="pt")
-            # print(seq_toks)
-            # seq_ids, seq_labels = mlm_collator.torch_mask_tokens(seq_toks["input_ids"])
-            second_ids, second_labels = mlm_collator.torch_mask_tokens(second_seq_toks["input_ids"])
-
-            # seq_inputs = {"input_ids": seq_ids.to(device), "attention_mask": seq_toks["attention_mask"].to(device)}
-            seq_inputs = seq_toks.to(device)
-            second_inputs = {"input_ids": second_ids.to(device),
-                             "attention_mask": second_seq_toks["attention_mask"].to(device)}
-
-            loss, hiddens, logits = model(seq, second_seq, seq_inputs, second_inputs, second_labels.to(device), nonce)
-
-            preds = torch.argmax(logits, dim=-1)
-            msk_idx = torch.where(second_inputs["input_ids"] == model.tokenizer.mask_token_id)[1]
-            true_labels = second_labels.to(device)[:, msk_idx].tolist()
-            pred_labels = preds[:, msk_idx].tolist()
-            acc = accuracy_metric.compute(references=true_labels[0], predictions=pred_labels[0])
-            if not math.isnan(acc["accuracy"]):
-                accs.append(acc["accuracy"])
-                wandb.log({"Accuracy": acc["accuracy"]})
-
-            topk_preds = torch.topk(logits[:, msk_idx, :], k, dim=-1).indices[0].tolist()
-            top_pred = []
-            for true, tpk in zip(true_labels[0], topk_preds):
-                if true in tpk:
-                    top_pred.append(true)
-                else:
-                    top_pred.append(-100)
-
-            topk_acc = accuracy_metric.compute(references=true_labels[0], predictions=top_pred)
-            if not math.isnan(topk_acc["accuracy"]):
-                topk_accs.append(topk_acc["accuracy"])
-                wandb.log({"Top {} Accuracy".format(k): topk_acc["accuracy"]})
-
-            loss.backward()
-            first_norm = get_grad_norm(model)
-            wandb.log({"Grad Norm before clip": first_norm})
-
-            nn.utils.clip_grad_value_(model.parameters(), clip_value=1)
-            post_clip = get_grad_norm(model)
-            wandb.log({"Grad Norm after clipping": post_clip})
-
-            opt.step()
-            # loss_log = {"first_lm_loss": losses[0], "masked_step_loss": losses[1], "second_lm_loss": losses[2]}
-            # print(loss_log)
-            print(loss)
-            wandb.log({"Loss": loss})
-            if ((i + 1) * (j + 1)) % 100 == 0:
-
-                if len(accs) > 0:
-                    # val_accs = accs[-100:]
-                    avg_acc = sum(accs[-100:]) / len(accs[-100:])
-                    avg_topk = sum(topk_accs[-100:]) / len(topk_accs[-100:])
-                    # print(accs)
-                    # print(topk_accs)
-                    wandb.log({"Average MLM Accuracy": avg_acc})
-                    wandb.log({"Average Top {} Accuracy".format(k): avg_topk})
-
-    run.finish()
-
-def train_auto(model, train_set, config, mlmTokenizer, autoTokenizer, device):
-    lr = config.lr
-    mlm_prob = config.mlm_prob
-    weight_decay = config.weight_decay
-    epochs = config.epochs
-
-    mlm_collator = DataCollatorForLanguageModeling(mlmTokenizer, mlm=True, mlm_probability=mlm_prob)
-    auto_collator = DataCollatorForLanguageModeling(autoTokenizer, mlm=False)
-
-    accuracy_metric = evaluate.load("accuracy")
-
-    wandb.init(project="initial-fewshot-run")
-    run = wandb.init(project="initial-fewshot-run", reinit=True)
-    wandb.run.name = "run_lr={0}_mlm={1}_norm_clipping_1.0_layer4_weightdecay".format(lr, mlm_prob)
-    opt = torch.optim.AdamW(model.params(), lr=lr, betas=(0.9, 0.999), weight_decay=weight_decay)
-    k = 5
-    accs = []
-    topk_accs = []
-    for i in range(epochs):
-        for j, row in enumerate(train_set):
-            opt.zero_grad()
-            seq = row[1]
-            second_seq = row[2]
-            nonce = row[-1]
-
-            seq_toks = mlmTokenizer(seq, return_tensors="pt")
-            second_seq_toks = autoTokenizer(second_seq, return_tensors="pt")
-            # print(seq_toks)
-            # seq_ids, seq_labels = mlm_collator.torch_mask_tokens(seq_toks["input_ids"])
-            second_inputs = auto_collator(second_seq_toks["input_ids"])
-
-            # seq_inputs = {"input_ids": seq_ids.to(device), "attention_mask": seq_toks["attention_mask"].to(device)}
-            seq_inputs = seq_toks.to(device)
-
-            loss, hiddens, logits = model(seq, second_seq, seq_inputs, second_inputs, nonce)
-
-            loss.backward()
-            first_norm = get_grad_norm(model)
-            wandb.log({"Grad Norm before clip": first_norm})
-
-            nn.utils.clip_grad_value_(model.parameters(), clip_value=1)
-            post_clip = get_grad_norm(model)
-            wandb.log({"Grad Norm after clipping": post_clip})
-
-            opt.step()
-            # loss_log = {"first_lm_loss": losses[0], "masked_step_loss": losses[1], "second_lm_loss": losses[2]}
-            # print(loss_log)
-            print(loss)
-            wandb.log({"Loss": loss})
-
-    run.finish()
-
-def train_episode(meta_learner, episode, method):
-
-    examples = episode["examples"]
-    task = episode["task"]
-    label = episode["label"]
-    nonce = episode["nonce"]
-
-    for example in examples:
-        out = meta_learner.forward_example(example, nonce)
-        out.loss.backward()
-
-    if method == "simple":
-        return
-    elif method == "meta":
-        for example in examples:
-            meta_learner.base_model.build_memory(example, nonce)
-        out = meta_learner.forward_task(task["seq"], task["seq"], task["inputs"], task["inputs"], label, nonce)
-        out.loss.backward()
-
 
 
 if __name__ == "__main__":
-    parser = get_arguments()
-    args, _ = parser.parse_known_args()
-    config = Config
-    config.lr = args.lr
-    config.weight_decay = args.weight_decay
-    device = args.device
+    args = get_arguments().parse_args()
 
-    nonce_toks = get_nonces(args.data_path)
+    print("Arguments: ", args)
 
-    train_set = get_basic_dataset(args.data_path, args.tgt_data_path)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    layers = [-1] # add arg to pass this
 
-    layers = [-4, -3, -2, -1]
-    tokenizer = AutoTokenizer.from_pretrained("roberta-large", use_fast=True)
-    tokenizer.add_tokens(nonce_toks)
+    tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
+    firstLM = RobertaForMaskedLM.from_pretrained('roberta-base')
 
-    model = MorphMemoryModel(tokenizer, nonce_toks, device, layers=layers).to(device)
+    # change these to accept model names
+    if args.taskName == "mlm":
+        tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
+        secondLM = RobertaForMaskedLM.from_pretrained('roberta-base')
 
-    train(model,train_set, config, tokenizer, device)
+    if args.taskName == "autoregressive":
+        tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
+        secondLM = GPT2Model.from_pretrained("gpt2")
+
+    dataset = load_from_disk(args.data_path)
+
+    if "chimera" in args.data_path:
+        nonces = list(map(make_nonce, list(set(dataset["train"]['id'] + dataset["test"]['id']))))
+        dataset_name = "chimera{}".format(args.num_examples)
+
+    # add support for other datasets
+
+    # expand tokenizer
+    tokenizerMLM.add_tokens(nonces)
+    tokenizerTask.add_tokens(nonces)
+
+    # resize models
+    firstLM.resize_token_embeddings(len(tokenizerMLM))
+    secondLM.resize_token_embeddings(len(tokenizerTask))
+
+    # memory
+    if args.memory == "mean":
+        memory_config = AggregatorConfig()
+    elif args.memory == "rnn":
+        memory_config = RNNAggConfig()
+    elif args.memory == "cls":
+        memory_config = TransformerCLSConfig()
+
+    mask_token_id = tokenizerTask.mask_token_id
+
+    if "chimera" in args.data_path:
+
+        cos = nn.CosineSimilarity(dim=-1)
+
+        split = dataset["train"].train_test_split(test_size=0.2)
+        mlm_dataset = ChimeraMLMDataset(split["train"], tokenizerMLM, tokenizerTask, args.num_examples, args.trial)
+
+        mlm_dataloader = DataLoader(mlm_dataset, batch_size=1, shuffle=True)
+
+        test_dataset = ChimeraTestDataset(split["test"], tokenizerMLM, tokenizerTask, args.num_examples, args.trial)
+
+        collate = make_collate(test_dataset)
+
+        test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate)
 
 
+    nonces = tokenizerTask.convert_tokens_to_ids(nonces)
 
+
+    epochs = args.epochs
+    lr = args.lr
+    epsilon = 1e-8
+
+    test_model = MorphMemoryModel(firstLM, secondLM, nonces,
+                                  device, layers, mask_token_id, memory_config).to(device)
+
+    opt = AdamW(filter(lambda p: p.requires_grad, test_model.parameters()),
+                lr=lr,
+                eps=epsilon
+                )
+
+
+    run = wandb.init(project="fewshot_model_testing_redone", reinit=True)
+    wandb.run.name = "{}_{}_{}".format(dataset_name, lr, memory_config.agg_method)
+
+    intermediate = args.intermediate_loss
+
+    best_corr = 0
+    for epoch in range(epochs):
+        train_corr = []
+        for i, batch in enumerate(mlm_dataloader):
+            #         print(i)
+            test_model.train()
+
+            test_model.zero_grad()
+            opt.zero_grad()
+            out, losses = test_model(batch)
+
+            loss = out.loss
+
+            wandb.log({'train mlm loss': loss.item()})
+
+            nonce_loss = get_nonce_loss(batch, out, test_model.secondLM.vocab_size, device)
+            if nonce_loss:
+                wandb.log({"new token loss": nonce_loss.item()})
+
+            if intermediate:
+                intermediate_loss = torch.sum(torch.Tensor([losses]))
+                wandb.log({"emb generator loss": intermediate_loss.item()})
+                final_loss = loss + intermediate_loss
+            else:
+                final_loss = loss
+
+            final_loss.backward()
+            opt.step()
+            test_model.memory.detach_past()
+
+        test_model.eval()
+        corrs = []
+        for b in test_dataloader:
+            t_out, _ = test_model.forward(b)
+            new_w = test_model.get_new_weights(batch, task="MLM").to(device)
+
+            indices = b['eval_indices']
+            sims = []
+            for probe in b['probe_inputs']:
+                p_sims = []
+                p_s = b['probe_inputs'][probe]['sentences']
+
+                for p_idx, s in enumerate(p_s):
+                    enc = tokenizerTask.encode_plus(s[0], return_tensors='pt').to(device)
+                    p_ind = indices[p_idx]
+                    locs = get_locs(s[0], p_ind.item(), tokenizerTask)
+
+                    p_emb = get_hidden_states(enc, locs, test_model.secondLM, [-1])
+                    n_emb = get_emb(t_out.hidden_states, locs, [-1], p_idx)
+                    p_sims.append(cos(n_emb, p_emb).item())
+
+                sim = sum(p_sims) / len(p_sims)
+                sims.append(sim)
+
+            ratings = [float(v) for v in b['ratings'][0].split(',')]
+            corr = stats.spearmanr(sims, ratings)
+            wandb.log({'test_point_correlation': corr.correlation})
+            corrs.append(corr.correlation)
+
+        test_model.memory.detach_past()
+        test_model.memory.memory = {}
+
+        avg_corr = sum(corrs) / len(corrs)
+        wandb.log({'Correlation on Test': avg_corr})
+
+        if avg_corr > best_corr:
+            chkpt_name = get_model_name_checkpoint(epoch, dataset_name, test_model)
+            save(test_model, opt, chkpt_name)
+            best_corr = avg_corr
