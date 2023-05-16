@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from aggregators import *
+from modules.aggregators import *
 
 class OnlineProtoNet(nn.Module):
 

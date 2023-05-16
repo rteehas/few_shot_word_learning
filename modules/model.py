@@ -1,8 +1,8 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from memory import OnlineProtoNet
-from utils import combine_layers
+from modules.memory import OnlineProtoNet
+from modules.utils import combine_layers
 
 
 class MorphMemoryModel(nn.Module):
