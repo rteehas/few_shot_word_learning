@@ -34,7 +34,7 @@ def get_arguments():
     parser.add_argument("--memory", type=str, default="mean")
     parser.add_argument("--num_examples", type=int, default=2)
     parser.add_argument("--intermediate_loss", type=bool, default=False)
-    parser.add_argument("--chimera_trial", type=str, default='l2')
+    parser.add_argument("--trial", type=str, default='l2')
     return parser
 
 
