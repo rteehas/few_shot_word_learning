@@ -218,7 +218,11 @@ class MorphMemoryModel(nn.Module):
 
         new_w = w * (1 - weight_mask).T
 
-        for nonce in nonceMLM:
+        for i, nonce in enumerate(nonceMLM):
+            weight_mask = torch.nn.functional.one_hot(torch.LongTensor(nonces[i]),
+                                                      num_classes=self.secondLM.config.vocab_size).to(self.device).sum(
+                0).unsqueeze(0)
+
             nonce_embed = self.memory.retrieve(nonce.item())
 
             new_w = new_w + (nonce_embed * weight_mask.T)
