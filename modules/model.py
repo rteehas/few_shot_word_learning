@@ -56,7 +56,8 @@ class MorphMemoryModel(nn.Module):
     def forward(self, batch):
 
         mlm_inputs = batch["mlm_inputs"].to(self.device)
-        task_inputs = batch["task_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
         nonceMLM = batch["nonceMLM"]
         nonceTask = batch["nonceTask"]
         if 'task_labels' in batch:
@@ -119,7 +120,11 @@ class MorphMemoryModel(nn.Module):
 
         new_w = w * (1 - weight_mask).T
 
-        for nonce in nonceMLM:
+        for i, nonce in enumerate(nonceMLM):
+            weight_mask = torch.nn.functional.one_hot(torch.LongTensor(nonceTask[i]),
+                                                      num_classes=self.secondLM.config.vocab_size).to(self.device).sum(
+                0).unsqueeze(0)
+
             nonce_embed = self.memory.retrieve(nonce.item())
 
             new_w = new_w + (nonce_embed * weight_mask.T)
