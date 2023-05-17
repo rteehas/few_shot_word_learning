@@ -64,6 +64,9 @@ if __name__ == "__main__":
         nonces = list(map(make_nonce, list(set(dataset["train"]['id'] + dataset["test"]['id']))))
         dataset_name = "chimera{}".format(args.num_examples)
 
+    if "sanity" in args.data_path:
+        nonces = list(map(make_sanity_nonce, list(set(dataset['word']))))
+        dataset_name = "sanity"
     # add support for other datasets
 
     # expand tokenizer
@@ -101,12 +104,9 @@ if __name__ == "__main__":
 
     if "sanity" in args.data_path:
         split = dataset.train_test_split(test_size=0.2)
-        tokenizerMLM = AutoTokenizer.from_pretrained("roberta-large", use_fast=True)
-        tokenizerTask = AutoTokenizer.from_pretrained('roberta-large', use_fast=True)
-
         n = args.num_examples
 
-        nonces = list(map(make_sanity_nonce, list(set(split["train"]['word'] + split["test"]['word']))))
+
 
         tokenizerMLM.add_tokens(nonces)
         tokenizerTask.add_tokens(nonces)
