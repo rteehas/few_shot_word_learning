@@ -271,11 +271,10 @@ class ChimeraTestDataset(Dataset):
 
 class SimpleBaselineDataset(Dataset):
     def __init__(self, data, tokenizerMLM, tokenizerTask, n_samples):
-        super(SimpleBaselineDataset, self).__init__()
+        #super(SimpleBaselineDataset, self).__init__()
         self.words = data["word"]
         self.texts = data["sentences"]
         self.n_samples = n_samples
-        self.device = device
 
         self.tokenizerMLM = tokenizerMLM
         self.tokenizerTask = tokenizerTask
