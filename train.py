@@ -99,6 +99,29 @@ if __name__ == "__main__":
 
         test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate)
 
+    if "sanity" in args.data_path:
+        split = dataset.train_test_split(test_size=0.2)
+        tokenizerMLM = AutoTokenizer.from_pretrained("roberta-large", use_fast=True)
+        tokenizerTask = AutoTokenizer.from_pretrained('roberta-large', use_fast=True)
+
+        n = args.num_examples
+
+        nonces = list(map(make_sanity_nonce, list(set(split["train"]['word'] + split["test"]['word']))))
+
+        tokenizerMLM.add_tokens(nonces)
+        tokenizerTask.add_tokens(nonces)
+
+        mlm_dataset = SimpleMLMDataset(split["train"], tokenizerMLM, tokenizerTask, n)
+
+        mlm_dataloader = DataLoader(mlm_dataset, batch_size=1, shuffle=True)
+
+        # train_eval = ChimeraTestDataset(chimera["train"], tokenizerMLM, tokenizerTask, n, trial)
+
+        test_dataset = SimpleMLMDataset(split["test"], tokenizerMLM, tokenizerTask, n)
+
+        # collate = make_collate(test_dataset)
+
+        test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
     nonces = tokenizerTask.convert_tokens_to_ids(nonces)
 
@@ -120,9 +143,10 @@ if __name__ == "__main__":
     run = wandb.init(project="fewshot_model_testing_redone", reinit=True)
     wandb.run.name = "{}_{}_{}_intermediate=".format(dataset_name, lr, memory_config.agg_method, intermediate)
 
-    
+
 
     best_corr = 0
+    best_loss = 10000
     for epoch in range(epochs):
         train_corr = []
         for i, batch in enumerate(mlm_dataloader):
@@ -153,41 +177,68 @@ if __name__ == "__main__":
             test_model.memory.detach_past()
 
         test_model.eval()
-        corrs = []
-        for b in test_dataloader:
-            t_out, _ = test_model.forward(b)
-            new_w = test_model.get_new_weights(batch, task="MLM").to(device)
+        if "chimera" in args.data_path:
+            corrs = []
+            for b in test_dataloader:
+                t_out, _ = test_model.forward(b)
+                new_w = test_model.get_new_weights(batch, task="MLM").to(device)
 
-            indices = b['eval_indices']
-            sims = []
-            for probe in b['probe_inputs']:
-                p_sims = []
-                p_s = b['probe_inputs'][probe]['sentences']
+                indices = b['eval_indices']
+                sims = []
+                for probe in b['probe_inputs']:
+                    p_sims = []
+                    p_s = b['probe_inputs'][probe]['sentences']
 
-                for p_idx, s in enumerate(p_s):
-                    enc = tokenizerTask.encode_plus(s[0], return_tensors='pt').to(device)
-                    p_ind = indices[p_idx]
-                    locs = get_locs(s[0], p_ind.item(), tokenizerTask)
+                    for p_idx, s in enumerate(p_s):
+                        enc = tokenizerTask.encode_plus(s[0], return_tensors='pt').to(device)
+                        p_ind = indices[p_idx]
+                        locs = get_locs(s[0], p_ind.item(), tokenizerTask)
 
-                    p_emb = get_hidden_states(enc, locs, test_model.secondLM, [-1])
-                    n_emb = get_emb(t_out.hidden_states, locs, [-1], p_idx)
-                    p_sims.append(cos(n_emb, p_emb).item())
+                        p_emb = get_hidden_states(enc, locs, test_model.secondLM, [-1])
+                        n_emb = get_emb(t_out.hidden_states, locs, [-1], p_idx)
+                        p_sims.append(cos(n_emb, p_emb).item())
 
-                sim = sum(p_sims) / len(p_sims)
-                sims.append(sim)
+                    sim = sum(p_sims) / len(p_sims)
+                    sims.append(sim)
 
-            ratings = [float(v) for v in b['ratings'][0].split(',')]
-            corr = stats.spearmanr(sims, ratings)
-            wandb.log({'test_point_correlation': corr.correlation})
-            corrs.append(corr.correlation)
+                ratings = [float(v) for v in b['ratings'][0].split(',')]
+                corr = stats.spearmanr(sims, ratings)
+                wandb.log({'test_point_correlation': corr.correlation})
+                corrs.append(corr.correlation)
 
-        test_model.memory.detach_past()
-        test_model.memory.memory = {}
+            test_model.memory.detach_past()
+            test_model.memory.memory = {}
 
-        avg_corr = sum(corrs) / len(corrs)
-        wandb.log({'Correlation on Test': avg_corr})
+            avg_corr = sum(corrs) / len(corrs)
+            wandb.log({'Correlation on Test': avg_corr})
 
-        if avg_corr > best_corr:
-            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
-            save(test_model, opt, chkpt_name)
-            best_corr = avg_corr
+            if avg_corr > best_corr:
+                chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                save(test_model, opt, chkpt_name)
+                best_corr = avg_corr
+
+        if "sanity" in args.data_path:
+            test_model.eval()
+            test_losses = []
+            test_nonce_losses = []
+            for b in test_dataloader:
+                t_out, _ = test_model.forward(b)
+                wandb.log({'test point loss': t_out.loss.item()})
+                test_nonce_loss = get_nonce_loss(b, t_out, test_model.secondLM.vocab_size, device)
+                wandb.log({"test loss on nonce tokens": test_nonce_loss.item()})
+                test_nonce_losses.append(test_nonce_loss.item())
+
+                test_losses.append(t_out.loss.item())
+
+            wandb.log({'average test loss': sum(test_losses) / len(test_losses)})
+            wandb.log({'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
+            n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
+
+            if n_loss < best_loss:
+                chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                save(test_model, opt, chkpt_name)
+                best_loss = n_loss
+
+            test_model.memory.detach_past()
+            test_model.memory.memory = {}
+

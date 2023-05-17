@@ -43,3 +43,6 @@ def make_nonce(num):
 def load_chimera(trial):
     fname = "chimeras_{}".format(trial)
     return load_from_disk(fname)
+
+def make_sanity_nonce(word):
+    return "<{}>".format(word)

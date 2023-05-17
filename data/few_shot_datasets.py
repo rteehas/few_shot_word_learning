@@ -268,3 +268,100 @@ class ChimeraTestDataset(Dataset):
             #             'nonce_locs': nonce_locs
         }
 
+
+class SimpleBaselineDataset(Dataset):
+    def __init__(self, data, tokenizerMLM, tokenizerTask, n_samples):
+        super(SimpleBaselineDataset, self).__init__()
+        self.words = data["word"]
+        self.texts = data["sentences"]
+        self.n_samples = n_samples
+        self.device = device
+
+        self.tokenizerMLM = tokenizerMLM
+        self.tokenizerTask = tokenizerTask
+
+        if not self.tokenizerTask.pad_token:
+            self.tokenizerTask.pad_token = self.tokenizerTask.eos_token
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        text = self.texts[idx]
+        word = self.words[idx]
+        nonce = "<{}>".format(word)
+
+        text = text.replace(word, nonce)
+
+        nonceMLM = self.tokenizerMLM.convert_tokens_to_ids(nonce)
+        nonceTask = self.tokenizerTask.convert_tokens_to_ids(nonce)
+
+        do_sample = True
+
+        if self.tokenizerMLM.model_max_length:
+            mlm_length = self.tokenizerMLM.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for MLM")
+
+        if self.tokenizerTask.model_max_length:
+            task_length = self.tokenizerTask.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for TaskLM")
+
+        sentences = text.split("[SEN]")
+        sentences = [s.strip() for s in sentences]
+        if do_sample:
+            sentences = np.random.choice(sentences, size=self.n_samples).tolist()
+
+        tokensMLM = self.tokenizerMLM(sentences,
+                                      max_length=mlm_length,
+                                      padding='max_length',
+                                      truncation=True,
+                                      return_tensors='pt')
+
+        tokensTask = self.tokenizerTask(sentences,
+                                        max_length=task_length,
+                                        padding='max_length',
+                                        truncation=True,
+                                        return_tensors='pt',
+                                        return_special_tokens_mask=True)
+
+        return {
+            'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'task_inputs': tokensTask,
+            'nonceMLM': nonceMLM,
+            'nonceTask': nonceTask
+        }
+
+
+class SimpleMLMDataset(SimpleBaselineDataset):
+    def __init__(self, data, tokenizerMLM, tokenizerTask, n_samples):
+        super(SimpleMLMDataset, self).__init__(data, tokenizerMLM, tokenizerTask, n_samples)
+        self.data_collator = DataCollatorForLanguageModeling(self.tokenizerTask, mlm=True, mlm_probability=0.15)
+
+    #         self.eval_set = ChimeraTestDataset(data, tokenizerMLM, tokenizerTask, n_samples)
+
+    def __getitem__(self, idx):
+        item = super().__getitem__(idx)
+
+        # apply data collator to the task inputs
+        #         task_ids, task_labels = self.data_collator.torch_mask_tokens(inputs = item['task_inputs']['input_ids'],
+        #                                                                     special_tokens_mask=item['task_inputs']["special_tokens_mask"])
+        task_labels = item['task_inputs']['input_ids'].detach().clone()
+        task_ids = item['task_inputs']['input_ids'].detach().clone()
+        # make sure new token is masked so we get loss on it
+        task_ids[item['task_inputs']['input_ids'] == item['nonceTask']] = self.tokenizerTask.mask_token_id
+        task_labels[task_ids != self.tokenizerTask.mask_token_id] = -100
+
+        #         masked_task = deepcopy(item['task_inputs'])
+
+        masked_task = {"input_ids": task_ids, "attention_mask": item["task_inputs"]['attention_mask']}
+
+        return {
+            'mlm_inputs': item['mlm_inputs'],  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'original_task_inputs': item['task_inputs'],
+            'task_inputs': masked_task,
+            'nonceMLM': item['nonceMLM'],
+            'nonceTask': item['nonceTask'],
+            'task_labels': task_labels,
+        }

@@ -61,7 +61,7 @@ def get_nonce_loss(batch, out, vocab_size, device):
         return None
 
 def get_model_name_checkpoint(epoch, run_name):
-    return "{}_{}_epoch={}".format(run_name, epoch)
+    return "{}_epoch={}".format(run_name, epoch)
 
 def get_word_idx(sent, word):
     return sent.split(" ").index(word)
