@@ -345,13 +345,15 @@ class SimpleMLMDataset(SimpleBaselineDataset):
         item = super().__getitem__(idx)
 
         # apply data collator to the task inputs
-        #         task_ids, task_labels = self.data_collator.torch_mask_tokens(inputs = item['task_inputs']['input_ids'],
-        #                                                                     special_tokens_mask=item['task_inputs']["special_tokens_mask"])
-        task_labels = item['task_inputs']['input_ids'].detach().clone()
+        task_ids, task_labels = self.data_collator.torch_mask_tokens(inputs=item['task_inputs']['input_ids'],
+                                                                     special_tokens_mask=item['task_inputs'][
+                                                                         "special_tokens_mask"])
+        inputs = item['task_inputs']['input_ids'].detach().clone()
         task_ids = item['task_inputs']['input_ids'].detach().clone()
         # make sure new token is masked so we get loss on it
-        task_ids[item['task_inputs']['input_ids'] == item['nonceTask']] = self.tokenizerTask.mask_token_id
+        task_ids[inputs == item['nonceTask']] = self.tokenizerTask.mask_token_id
         task_labels[task_ids != self.tokenizerTask.mask_token_id] = -100
+        task_labels[inputs == item['nonceTask']] = item['nonceTask']
 
         #         masked_task = deepcopy(item['task_inputs'])
 
