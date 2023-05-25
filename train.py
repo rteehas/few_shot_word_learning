@@ -21,7 +21,7 @@ from data.few_shot_datasets import *
 
 def get_arguments():
     parser = ArgumentParser()
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--lr", type=float, default=1e-6)
     # parser.add_argument("--warmup", type=int, default=1e2)
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--data_path", type=str)
@@ -35,6 +35,8 @@ def get_arguments():
     parser.add_argument("--num_examples", type=int, default=2)
     parser.add_argument("--intermediate_loss", type=bool, default=False)
     parser.add_argument("--trial", type=str, default='l2')
+    parser.add_argument("--emb_gen", type=str, default='mlp')
+    parser.add_argument("--strategy", type=str, default='mask')
     return parser
 
 
@@ -173,8 +175,10 @@ if __name__ == "__main__":
                 final_loss = loss
 
             final_loss.backward()
+            torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 2.0)
             opt.step()
             test_model.memory.detach_past()
+            test_model.update_weights()
 
         test_model.eval()
         if "chimera" in args.data_path:
@@ -210,7 +214,7 @@ if __name__ == "__main__":
             test_model.memory.memory = {}
 
             avg_corr = sum(corrs) / len(corrs)
-            wandb.log({'Correlation on Test': avg_corr})
+            wandb.log({'epoch': epoch, 'Correlation on Test': avg_corr})
 
             if avg_corr > best_corr:
                 chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
@@ -230,8 +234,8 @@ if __name__ == "__main__":
 
                 test_losses.append(t_out.loss.item())
 
-            wandb.log({'average test loss': sum(test_losses) / len(test_losses)})
-            wandb.log({'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
+            wandb.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses)})
+            wandb.log({'epoch': epoch, 'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
             n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
 
             if n_loss < best_loss:
