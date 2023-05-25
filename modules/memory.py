@@ -43,7 +43,7 @@ class OnlineProtoNet(nn.Module):
 
         ctx = torch.cat(self.memory[word], dim=0)
         if self.agg_method == "mean":
-            return torch.mean(ctx, dim=0)
+            return torch.mean(ctx, dim=0).unsqueeze(0)
         else:
             return self.agg(ctx.unsqueeze(0))
 
