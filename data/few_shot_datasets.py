@@ -2,6 +2,8 @@ import numpy as np
 from copy import deepcopy
 from transformers import DataCollatorForLanguageModeling
 from datasets import Dataset
+import re
+
 from modules.utils import get_word_idx
 
 from data.data_utils import *
@@ -365,4 +367,84 @@ class SimpleMLMDataset(SimpleBaselineDataset):
             'nonceMLM': item['nonceMLM'],
             'nonceTask': item['nonceTask'],
             'task_labels': task_labels,
+        }
+
+
+class SimpleSNLIDataset(Dataset):
+    def __init__(self, data, tokenizerMLM, tokenizerTask, sentences, n_samples):
+        super(SimpleSNLIDataset, self).__init__()
+        self.premises = data["premise"]
+        self.hypotheses = data["hypothesis"]
+        self.sentences_dict = sentences
+        self.replacements = data['to_replace']
+        self.labels = data['label']
+        self.n_samples = n_samples
+
+        self.tokenizerMLM = tokenizerMLM
+        self.tokenizerTask = tokenizerTask
+
+        if not self.tokenizerTask.pad_token:
+            self.tokenizerTask.pad_token = self.tokenizerTask.eos_token
+
+    def __len__(self):
+        return len(self.premises)
+
+    def __getitem__(self, idx):
+        premise = self.premises[idx]
+        hypothesis = self.hypotheses[idx]
+        replaced = self.replacements[idx]
+        label = self.labels[idx]
+
+        if label == -1:
+            return None
+
+        nonce = "<{}>".format(replaced)
+
+        premise = re.sub(r"\b({})\b".format(replaced), nonce, premise, flags=re.I)
+        hypothesis = re.sub(r"\b({})\b".format(replaced), nonce, hypothesis, flags=re.I)
+
+        if replaced.lower() not in self.sentences_dict:
+            return None
+
+        sentences = self.sentences_dict[replaced.lower()]
+
+        nonceMLM = self.tokenizerMLM.convert_tokens_to_ids(nonce)
+        nonceTask = self.tokenizerTask.convert_tokens_to_ids(nonce)
+
+        do_sample = True
+
+        if self.tokenizerMLM.model_max_length:
+            mlm_length = self.tokenizerMLM.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for MLM")
+
+        if self.tokenizerTask.model_max_length:
+            task_length = self.tokenizerTask.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for TaskLM")
+
+        sentences = [s.strip() for s in sentences]
+        if do_sample:
+            sentences = np.random.choice(sentences, size=self.n_samples).tolist()
+
+        tokensMLM = self.tokenizerMLM(sentences,
+                                      max_length=mlm_length,
+                                      padding='max_length',
+                                      truncation=True,
+                                      return_tensors='pt')
+
+        tokensTask = self.tokenizerTask(premise,
+                                        hypothesis,
+                                        max_length=task_length,
+                                        padding='max_length',
+                                        truncation=True,
+                                        return_tensors='pt',
+                                        return_special_tokens_mask=True)
+
+        return {
+            'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'task_inputs': tokensTask,
+            'nonceMLM': nonceMLM,
+            'nonceTask': nonceTask,
+            'task_label': torch.LongTensor([label])
         }
