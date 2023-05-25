@@ -1,13 +1,16 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from transformers.modeling_outputs import MaskedLMOutput
+
 from modules.memory import OnlineProtoNet
 from modules.utils import combine_layers
-
+from modules.embedding_generators import MLP
+from transformers.activations import gelu
 
 class MorphMemoryModel(nn.Module):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type="MLP"):
         super(MorphMemoryModel, self).__init__()
 
         self.layers = layers
@@ -21,30 +24,28 @@ class MorphMemoryModel(nn.Module):
         self.freeze_roberta()
 
         self.memory = OnlineProtoNet(memory_config, self.device)
+        self.emb_type = emb_type
 
-        encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=1).to(self.device)
-        self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
+        if self.emb_type == "MLP":
+            self.emb_gen = MLP(self.firstLM.config.hidden_size, 384, self.secondLM.config.hidden_size)
+
+        elif self.emb_type == "Transformer":
+            encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=1).to(self.device)
+            self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
+
+
 
         self.nonces = nonces  # for referencing embedding location
 
         self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
                                                                 self.secondLM.config.model_type,
                                                                 memory_config.agg_method)
-
-        # initialize with mean embedding
-        indices = self.get_zero_grads_idx()
-        m = torch.mean(self.secondLM.roberta.embeddings.word_embeddings.weight[indices, :], dim=0)
-        for nonce in nonces:
-            with torch.no_grad():
-                self.secondLM.roberta.embeddings.word_embeddings.weight[nonce, :] = m
-                self.firstLM.roberta.embeddings.word_embeddings.weight[nonce, :] = m
-
     def freeze_roberta(self, tune_tok=False):
         for parameter in self.firstLM.parameters():
             parameter.requires_grad = False
 
-        if tune_tok:
-            self.firstLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
+        #         if tune_tok:
+        #             self.firstLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
 
         if self.secondLM.config.model_type == "roberta":  # check if secondLM is roberta
             for parameter in self.secondLM.parameters():
@@ -52,6 +53,9 @@ class MorphMemoryModel(nn.Module):
 
             if tune_tok:
                 self.secondLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
+
+    #         self.secondLM.lm_head.bias.requires_grad=True
+    #         self.secondLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
 
     def forward(self, batch):
 
@@ -86,12 +90,17 @@ class MorphMemoryModel(nn.Module):
         for i, chunk in enumerate(chunked):
             msk = (mlm_inputs['input_ids'][i] == self.mask_token_id)  # mask all but the outputs for the mask
 
-            generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=msk).permute(1, 0,
-                                                                                                      2)  # permute for shape, mask, permute back
+            if self.emb_type == "Transformer":
+                generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=msk).permute(1, 0,
+                                                                                                    2)  # permute for shape, mask, permute back
 
             embed_ids = msk.nonzero(as_tuple=True)
 
-            nonce_embeds = generated_embeds[embed_ids[0], embed_ids[1], :]
+            if self.emb_type == "Transformer":
+                nonce_embeds = generated_embeds[embed_ids[0], embed_ids[1], :]
+
+            elif self.emb_type == "MLP":
+                nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
 
             preds = self.emb_decoder(nonce_embeds)
             labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
@@ -111,30 +120,38 @@ class MorphMemoryModel(nn.Module):
         if 'task_labels' in batch:
             task_labels = task_labels.reshape((b_task * k_task, l_task))
 
-        if self.secondLM.config.model_type == "roberta":
-            w = self.secondLM.roberta.embeddings.word_embeddings.weight.clone()
+        new_w = self.get_new_weights(task="Task")
+        input_embeds = F.embedding(task_ids, new_w)
 
-        weight_mask = torch.nn.functional.one_hot(torch.LongTensor(nonceTask),
-                                                  num_classes=self.secondLM.config.vocab_size).to(self.device).sum(
-            0).unsqueeze(0)  # get one hot for nonces
+        #         out_vals = self.secondLM(inputs_embeds=input_embeds, attention_mask=task_attn, labels=task_labels,
+        #                                    output_hidden_states=True)
 
-        new_w = w * (1 - weight_mask).T
+        #         l2 = out_vals.loss
+        outputs = self.secondLM.roberta(
+            inputs_embeds=input_embeds,
+            attention_mask=task_attn,
+            output_hidden_states=True
+        )
 
-        for i, nonce in enumerate(nonceMLM):
-            weight_mask = torch.nn.functional.one_hot(torch.LongTensor(nonceTask[i]),
-                                                      num_classes=self.secondLM.config.vocab_size).to(self.device).sum(
-                0).unsqueeze(0)
+        preds = self.calc_second_lmhead(new_w, outputs[0])
+        loss_fct = nn.CrossEntropyLoss()
+        lm_loss = loss_fct(preds.view(-1, self.secondLM.config.vocab_size), task_labels.view(-1))
+        # #         l = nn.CrossEntropyLoss(reduction="none")
 
-            nonce_embed = self.memory.retrieve(nonce.item())
+        out_vals = MaskedLMOutput(
+            loss=lm_loss,
+            logits=preds,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions
+        )
+        return out_vals, losses
 
-            new_w = new_w + (nonce_embed * weight_mask.T)
-
-        input_embeds = torch.nn.functional.embedding(task_ids, new_w)
-
-        second_out = self.secondLM(inputs_embeds=input_embeds, attention_mask=task_attn, labels=task_labels,
-                                   output_hidden_states=True)
-
-        return second_out, losses
+    def calc_second_lmhead(self, new_w, last_hidden):
+        x = self.secondLM.lm_head.dense(last_hidden)
+        x = gelu(x)
+        x = self.secondLM.lm_head.layer_norm(x)
+        x = F.linear(x, new_w, bias=self.secondLM.lm_head.bias)
+        return x
 
     def eval_batch(self, batch):
         self.forward(batch)
@@ -147,32 +164,24 @@ class MorphMemoryModel(nn.Module):
         nonceTask = batch['nonceTask']
         ratings = batch['ratings']
 
-        memory_embed = self.memory.retrieve(nonceMLM.item())
-
-        if self.secondLM.config.model_type == "roberta":
-            w = self.secondLM.roberta.embeddings.word_embeddings.weight.clone()
-
-        weight_mask = torch.nn.functional.one_hot(torch.LongTensor(nonceTask),
-                                                  num_classes=self.secondLM.config.vocab_size).to(self.device).sum(
-            0).unsqueeze(0)  # get one hot for nonces
-
-        new_w = w * (1 - weight_mask).T
-
-        for nonce in nonceMLM:
-            nonce_embed = self.memory.retrieve(nonce.item())
-
-            new_w = new_w + (nonce_embed * weight_mask.T)
+        new_w = self.get_new_weights("Task")
 
         input_embeds = torch.nn.functional.embedding(eval_nonce['input_ids'].squeeze(0), new_w)
         attn = eval_nonce['attention_mask'].squeeze(0)
-        nonce_out = self.secondLM(inputs_embeds=input_embeds, attention_mask=attn, output_hidden_states=True)
+        nonce_out = self.secondLM.roberta(
+            inputs_embeds=input_embeds,
+            attention_mask=attn,
+            output_hidden_states=True
+        )
         nonce_embed = nonce_out.hidden_states[-1].sum(1)
 
         probe_embeds = []
         for probe in probe_inputs:
             probe_task = probe_inputs[probe]['task'].to(self.device)
-            probe_out = self.secondLM(input_ids=probe_task['input_ids'].squeeze(0),
-                                      attention_mask=probe_task['attention_mask'].squeeze(0), output_hidden_states=True)
+            probe_input_embeds = F.embedding(probe_task['input_ids'].squeeze(0), new_w)
+            probe_out = self.secondLM.roberta(inputs_embeds = probe_input_embeds,
+                                      attention_mask=probe_task['attention_mask'].squeeze(0),
+                                      output_hidden_states=True)
             probe_embed = probe_out.hidden_states[-1].sum(1)
             probe_embeds.append(probe_embed)
         return nonce_embed, probe_embeds
@@ -195,13 +204,7 @@ class MorphMemoryModel(nn.Module):
             toks = self.tokenizer(definition, return_tensors="pt").to(self.device)
             outs = self.firstLM(**toks, output_hidden_states=True)
 
-    def get_new_weights(self, batch, task="MLM"):
-
-        key = "nonce{}".format(task)
-
-        nonces = batch[key]
-
-        nonceMLM = batch['nonceMLM']
+    def get_new_weights(self, task="MLM"):
 
         if task == 'MLM':
             ref_model = self.firstLM
@@ -212,22 +215,24 @@ class MorphMemoryModel(nn.Module):
         if ref_model.config.model_type == "roberta":
             w = ref_model.roberta.embeddings.word_embeddings.weight.clone()
 
-        weight_mask = torch.nn.functional.one_hot(torch.LongTensor(nonces),
-                                                  num_classes=ref_model.config.vocab_size).to(self.device).sum(
-            0).unsqueeze(0)  # get one hot for nonces
+        a = []
+        for i in range(w.shape[0]):
+            if i in self.memory.memory:
+                a.append(self.memory.retrieve(i))
+            else:
+                a.append(w[i, :].unsqueeze(0))
+        return torch.cat(a, dim=0)
 
-        new_w = w * (1 - weight_mask).T
+    def update_weights(self):
+        first_wt = nn.Embedding(self.firstLM.config.vocab_size,
+                                self.firstLM.config.hidden_size).from_pretrained(self.get_new_weights(task='MLM'))
+        second_wt = nn.Embedding(self.secondLM.config.vocab_size,
+                                 self.secondLM.config.hidden_size).from_pretrained(self.get_new_weights(task='Task'))
+        with torch.no_grad():
+            self.firstLM.set_input_embeddings(first_wt)
 
-        for i, nonce in enumerate(nonceMLM):
-            weight_mask = torch.nn.functional.one_hot(torch.LongTensor(nonces[i]),
-                                                      num_classes=self.secondLM.config.vocab_size).to(self.device).sum(
-                0).unsqueeze(0)
-
-            nonce_embed = self.memory.retrieve(nonce.item())
-
-            new_w = new_w + (nonce_embed * weight_mask.T)
-
-        return new_w
+            self.secondLM.set_input_embeddings(second_wt)
+        self.freeze_roberta()
 
     def re_encode(self, input_ids, w):
 
