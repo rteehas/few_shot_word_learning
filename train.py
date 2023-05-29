@@ -155,7 +155,8 @@ if __name__ == "__main__":
     for epoch in range(epochs):
         train_corr = []
         for i, batch in enumerate(mlm_dataloader):
-            #         print(i)
+            log_dict = {}
+
             test_model.train()
 
             test_model.zero_grad()
@@ -164,24 +165,24 @@ if __name__ == "__main__":
 
             loss = out.loss
 
-            wandb.log({'train mlm loss': loss.item()})
+            log_dict['train mlm loss'] = loss.item()
 
             nonce_loss = get_nonce_loss(batch, out, test_model.secondLM.vocab_size, device)
             if nonce_loss:
-                wandb.log({"new token loss": nonce_loss.item()})
+                log_dict["new token loss"] = nonce_loss.item()
 
             if intermediate:
                 intermediate_loss = torch.sum(torch.Tensor([losses]))
-                wandb.log({"emb generator loss": intermediate_loss.item()})
+                log_dict["emb generator loss"] = intermediate_loss.item()
                 final_loss = loss + intermediate_loss
             else:
                 final_loss = loss
 
             final_loss.backward()
-            torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 2.0)
+            torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
             opt.step()
-            test_model.memory.detach_past()
-            test_model.update_weights()
+            test_model.memory.memory = {}
+            wandb.log(log_dict)
 
         test_model.eval()
         if "chimera" in args.data_path:
@@ -237,8 +238,8 @@ if __name__ == "__main__":
 
                 test_losses.append(t_out.loss.item())
 
-            wandb.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses)})
-            wandb.log({'epoch': epoch, 'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
+            wandb.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses),
+                       'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
             n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
 
             if n_loss < best_loss:
@@ -246,6 +247,5 @@ if __name__ == "__main__":
                 save(test_model, opt, chkpt_name)
                 best_loss = n_loss
 
-            test_model.memory.detach_past()
             test_model.memory.memory = {}
 
