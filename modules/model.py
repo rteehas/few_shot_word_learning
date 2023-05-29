@@ -8,6 +8,7 @@ from modules.utils import combine_layers
 from modules.embedding_generators import MLP
 from transformers.activations import gelu
 
+
 class MorphMemoryModel(nn.Module):
 
     def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type="MLP"):
@@ -33,13 +34,21 @@ class MorphMemoryModel(nn.Module):
             encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=1).to(self.device)
             self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
 
-
-
         self.nonces = nonces  # for referencing embedding location
+
+        initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+        m_first = torch.mean(self.firstLM.roberta.embeddings.word_embeddings.weight[:initial_first_ind, :], dim=0)
+        m_second = torch.mean(self.secondLM.roberta.embeddings.word_embeddings.weight[:initial_second_ind, :], dim=0)
+        for nonce in nonces:
+            with torch.no_grad():
+                self.secondLM.roberta.embeddings.word_embeddings.weight[nonce, :] = m_second
+                self.firstLM.roberta.embeddings.word_embeddings.weight[nonce, :] = m_first
 
         self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
                                                                 self.secondLM.config.model_type,
                                                                 memory_config.agg_method)
+
     def freeze_roberta(self, tune_tok=False):
         for parameter in self.firstLM.parameters():
             parameter.requires_grad = False
@@ -63,7 +72,6 @@ class MorphMemoryModel(nn.Module):
         task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
                        'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
         nonceMLM = batch["nonceMLM"]
-        nonceTask = batch["nonceTask"]
         if 'task_labels' in batch:
             task_labels = batch["task_labels"].to(self.device)
 
@@ -72,9 +80,9 @@ class MorphMemoryModel(nn.Module):
 
         b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
 
-        mlm_inputs["input_ids"] = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
+        new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
 
-        mlm_ids = mlm_inputs["input_ids"].reshape((b * k, l))  # reshape so we have n x seq_len
+        mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
         mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
 
         first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
@@ -88,11 +96,12 @@ class MorphMemoryModel(nn.Module):
         # embedding generator + store in memory
         losses = []
         for i, chunk in enumerate(chunked):
-            msk = (mlm_inputs['input_ids'][i] == self.mask_token_id)  # mask all but the outputs for the mask
-
+            msk = (new_inputs[i] == self.mask_token_id)  # mask all but the outputs for the mask
+            #             print(msk.nonzero())
+            #             print(~msk.nonzero())
             if self.emb_type == "Transformer":
-                generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=msk).permute(1, 0,
-                                                                                                    2)  # permute for shape, mask, permute back
+                generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
+                                                                                                           2)  # permute for shape, mask, permute back
 
             embed_ids = msk.nonzero(as_tuple=True)
 
@@ -123,10 +132,6 @@ class MorphMemoryModel(nn.Module):
         new_w = self.get_new_weights(task="Task")
         input_embeds = F.embedding(task_ids, new_w)
 
-        #         out_vals = self.secondLM(inputs_embeds=input_embeds, attention_mask=task_attn, labels=task_labels,
-        #                                    output_hidden_states=True)
-
-        #         l2 = out_vals.loss
         outputs = self.secondLM.roberta(
             inputs_embeds=input_embeds,
             attention_mask=task_attn,
@@ -179,19 +184,21 @@ class MorphMemoryModel(nn.Module):
         for probe in probe_inputs:
             probe_task = probe_inputs[probe]['task'].to(self.device)
             probe_input_embeds = F.embedding(probe_task['input_ids'].squeeze(0), new_w)
-            probe_out = self.secondLM.roberta(inputs_embeds = probe_input_embeds,
-                                      attention_mask=probe_task['attention_mask'].squeeze(0),
-                                      output_hidden_states=True)
+            probe_out = self.secondLM.roberta(inputs_embeds=probe_input_embeds,
+                                              attention_mask=probe_task['attention_mask'].squeeze(0),
+                                              output_hidden_states=True)
             probe_embed = probe_out.hidden_states[-1].sum(1)
             probe_embeds.append(probe_embed)
         return nonce_embed, probe_embeds
 
     def swap_with_mask(self, inputs, k_examples, nonces):
+        inp = inputs.clone()
         exp = torch.Tensor(nonces).unsqueeze(1).expand_as(inputs[:, 0, :]).to(
             self.device)  # expand for a set of sentences across batches
         exp = exp.unsqueeze(1).repeat(1, k_examples, 1)  # repeat for k sentences
-        inputs[inputs == exp] = self.mask_token_id
-        return inputs
+        inp[inp == exp] = self.mask_token_id
+
+        return inp
 
     def get_zero_grads_idx(self):
         index_grads_to_zero = torch.empty(self.firstLM.config.vocab_size, dtype=torch.bool).fill_(True)
