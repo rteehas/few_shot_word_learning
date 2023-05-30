@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from transformers.modeling_outputs import MaskedLMOutput
+from transformers.modeling_outputs import MaskedLMOutput, QuestionAnsweringModelOutput
 
 from modules.memory import OnlineProtoNet
 from modules.utils import combine_layers
@@ -316,6 +316,113 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
             attention_mask=task_attn,
             labels=task_labels.squeeze(1),
             output_hidden_states=True
+        )
+
+        return out_vals, losses
+
+
+class MorphMemoryModelSQuAD(MorphMemoryModel):
+
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen='MLP'):
+        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
+                         memory_config, emb_gen)
+
+    def forward(self, batch):
+
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        nonceMLM = batch["nonceMLM"]
+        nonceTask = batch["nonceTask"]
+        start_positions = batch['task_start'][0].to(self.device)
+        end_positions = batch['task_end'][0].to(self.device)
+
+        b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
+
+        new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
+
+        mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
+        mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
+
+        first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
+
+        first_hidden = first_out.hidden_states
+
+        combined = combine_layers(first_hidden, self.layers)
+
+        chunked = torch.chunk(combined, b)  # get different embeds per nonce, shape = k x max_len x hidden
+
+        # embedding generator + store in memory
+        losses = []
+        for i, chunk in enumerate(chunked):
+            msk = (new_inputs[i] == self.mask_token_id)  # mask all but the outputs for the mask
+            if self.emb_type == "Transformer":
+                generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
+                                                                                                           2)  # permute for shape, mask, permute back
+
+            embed_ids = msk.nonzero(as_tuple=True)
+
+            if self.emb_type == "Transformer":
+                nonce_embeds = generated_embeds[embed_ids[0], embed_ids[1], :]
+
+            elif self.emb_type == "MLP":
+                nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
+
+            preds = self.emb_decoder(nonce_embeds)
+            labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
+            l_fct = nn.CrossEntropyLoss()
+            inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
+            losses.append(inter_loss)
+
+            self.memory.store(nonceMLM[i].item(), nonce_embeds)
+
+        b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
+
+        task_ids = task_inputs["input_ids"].reshape((b_task * k_task, l_task))  # reshape so we have n x seq_len
+        task_attn = task_inputs["attention_mask"].reshape((b_task * k_task, l_task))
+
+        new_w = self.get_new_weights(task="Task")
+
+        input_embeds = F.embedding(task_ids, new_w)
+
+        outputs = self.secondLM.roberta(
+            inputs_embeds=input_embeds,
+            attention_mask=task_attn,
+            output_hidden_states=True
+        )
+        print(outputs)
+
+        sequence_output = outputs[0]
+
+        logits = self.secondLM.qa_outputs(sequence_output)
+        start_logits, end_logits = logits.split(1, dim=-1)
+        start_logits = start_logits.squeeze(-1).contiguous()
+        end_logits = end_logits.squeeze(-1).contiguous()
+
+        total_loss = None
+
+        if start_positions is not None and end_positions is not None:
+            if len(start_positions.size()) > 1:
+                start_positions = start_positions.squeeze(-1)
+            if len(end_positions.size()) > 1:
+                end_positions = end_positions.squeeze(-1)
+
+            # sometimes the start/end positions are outside our model inputs, we ignore these terms
+            ignored_index = start_logits.size(1)
+            start_positions = start_positions.clamp(0, ignored_index)
+            end_positions = end_positions.clamp(0, ignored_index)
+
+            loss_fct = nn.CrossEntropyLoss(ignore_index=ignored_index)
+            start_loss = loss_fct(start_logits, start_positions)
+            end_loss = loss_fct(end_logits, end_positions)
+            total_loss = (start_loss + end_loss) / 2
+
+        out_vals = QuestionAnsweringModelOutput(
+            loss=total_loss,
+            start_logits=start_logits,
+            end_logits=end_logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
         )
 
         return out_vals, losses
