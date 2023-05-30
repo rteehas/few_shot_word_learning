@@ -448,3 +448,138 @@ class SimpleSNLIDataset(Dataset):
             'nonceTask': nonceTask,
             'task_label': torch.LongTensor([label])
         }
+
+
+class SimpleSQuADDataset(Dataset):
+    def __init__(self, data, tokenizerMLM, tokenizerTask, n_samples):
+        #         super(SimpleSQuADDataset, self).__init__()
+        self.ids = data['id']
+        self.contexts = data['context']
+        self.questions = data['question']
+        self.answers = data['answers']
+        self.replace = data['replace']
+        self.sentences = data['sentences']
+
+        self.tokenizerMLM = tokenizerMLM
+        self.tokenizerTask = tokenizerTask
+
+        self.n_samples = n_samples
+
+    def __len__(self):
+        return len(self.questions)
+
+    def __getitem__(self, idx):
+        question = self.questions[idx]
+        answer = self.answers[idx]
+        replace = self.replace[idx].lower()
+        sentences = self.sentences[idx]
+        context = self.contexts[idx]
+
+        nonce = "<{}_nonce>".format(replace.lower())
+
+        # do mlm stuff
+        sentences = [s.strip() for s in sentences]
+        sentences = [s.replace('\n', " ") for s in sentences]
+        sents = []
+        for s in sentences:
+            if not re.search(r"\b({})\b".format(replace), s, flags=re.I):
+                continue
+            else:
+                sents.append(re.sub(r"\b({})\b".format(replace), nonce, s, flags=re.I))
+
+        sentences = sents
+
+        nonceMLM = self.tokenizerMLM.convert_tokens_to_ids(nonce)
+        nonceTask = self.tokenizerTask.convert_tokens_to_ids(nonce)
+
+        do_sample = True
+
+        if self.tokenizerMLM.model_max_length:
+            mlm_length = self.tokenizerMLM.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for MLM")
+
+        if self.tokenizerTask.model_max_length:
+            task_length = self.tokenizerTask.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for TaskLM")
+
+        if len(sentences) == 0:
+            return None
+
+        if do_sample:
+            sentences = np.random.choice(sentences, size=self.n_samples).tolist()
+
+        tokensMLM = self.tokenizerMLM(sentences,
+                                      max_length=mlm_length,
+                                      padding='max_length',
+                                      truncation=True,
+                                      return_tensors='pt')
+
+        new_question = re.sub(r"\b({})\b".format(replace), nonce, question, flags=re.I)
+        new_context = re.sub(r"\b({})\b".format(replace), nonce, context, flags=re.I)
+
+        new_answer_text = [re.sub(r"\b({})\b".format(replace), nonce, a, flags=re.I) for a in answer['text']]
+        new_answer_start = [new_context.find(a) for a in new_answer_text]
+
+        new_answer = {'text': new_answer_text, 'answer_start': new_answer_start}
+
+        # do task stuff
+        task_inputs = self.tokenizerTask(
+            new_question,
+            new_context,
+            max_length=384,
+            truncation="only_second",
+            return_offsets_mapping=True,
+            padding="max_length"
+        )
+
+        offset = task_inputs.pop("offset_mapping")
+        start_positions = []
+        end_positions = []
+
+        start_char = new_answer["answer_start"][0]
+        end_char = new_answer["answer_start"][0] + len(new_answer["text"][0])
+
+        # Find the start and end of the context
+        sequence_ids = task_inputs.sequence_ids(0)
+        idx = 0
+        while sequence_ids[idx] != 1:
+            idx += 1
+        context_start = idx
+        while sequence_ids[idx] == 1:
+            idx += 1
+        context_end = idx - 1
+
+        # If the answer is not fully inside the context, label it (0, 0)
+        if offset[context_start][0] > end_char or offset[context_end][1] < start_char:
+            start_positions.append(0)
+            end_positions.append(0)
+        else:
+            # Otherwise it's the start and end token positions
+            idx = context_start
+            while idx <= context_end and offset[idx][0] <= start_char:
+                idx += 1
+            start_positions.append(idx - 1)
+
+            idx = context_end
+            while idx >= context_start and offset[idx][1] >= end_char:
+                idx -= 1
+            end_positions.append(idx + 1)
+
+        task_inputs = self.tokenizerTask(
+            new_question,
+            new_context,
+            max_length=384,
+            truncation="only_second",
+            padding="max_length",
+            return_tensors='pt'
+        )
+        return {
+            'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'task_inputs': task_inputs,
+            'nonceMLM': nonceMLM,
+            'nonceTask': nonceTask,
+            'task_start': start_positions,
+            'task_end': end_positions
+        }
