@@ -15,7 +15,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from datasets import load_from_disk
 
 from configs.config import *
-from modules.model import MorphMemoryModel
+from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI
 from data.data_utils import *
 from train_utils import *
 from data.few_shot_datasets import *
@@ -162,8 +162,12 @@ if __name__ == "__main__":
     lr = args.lr
     epsilon = 1e-8
 
-    test_model = MorphMemoryModel(firstLM, secondLM, nonces,
-                                  device, layers, mask_token_id, memory_config).to(device)
+    if "squad" in args.data_path:
+        test_model = MorphMemoryModelSQuAD(firstLM, secondLM, nonces,
+                                      device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
+    else:
+        test_model = MorphMemoryModel(firstLM, secondLM, nonces,
+                                  device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
 
     opt = AdamW(filter(lambda p: p.requires_grad, test_model.parameters()),
                 lr=lr,
