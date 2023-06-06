@@ -146,9 +146,9 @@ if __name__ == "__main__":
 
         split = dataset.train_test_split(0.2)
 
-        train = SimpleSQuADDataset(split['train'], tokenizerMLM, tokenizerTask, n)
+        train = SimpleSQuADDataset(split['train'], tokenizerMLM, tokenizerTask, args.num_examples)
 
-        test = SimpleSQuADDataset(split['test'], tokenizerMLM, tokenizerTask, n)
+        test = SimpleSQuADDataset(split['test'], tokenizerMLM, tokenizerTask, args.num_examples)
 
         mlm_dataloader = DataLoader(train, batch_size=5, collate_fn=make_collate(train), shuffle=True)
 
