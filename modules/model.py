@@ -326,6 +326,61 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
     def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen='MLP'):
         super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
                          memory_config, emb_gen)
+        if self.emb_type == "MLP":
+            self.emb_gen = MLP(self.firstLM.config.hidden_size, 384, self.secondLM.config.hidden_size)
+
+        elif self.emb_type == "Transformer":
+            encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=2).to(self.device)
+            self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
+
+    #         for param in self.secondLM.qa_outputs.parameters():
+    #             param.requires_grad=True
+
+    def forward_inner(self, batch):
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        nonceMLM = batch["nonceMLM"]
+        nonceTask = batch["nonceTask"]
+
+        b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
+
+        new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
+
+        new_labels = new_inputs.clone()
+        new_labels[new_inputs != self.mask_token_id] = -100
+
+        mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
+        mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
+
+        new_w = self.get_new_weights('Task')
+
+        embs = F.embedding(mlm_ids, new_w)
+
+        outputs = self.secondLM.roberta(
+            inputs_embeds=embs,
+            attention_mask=mlm_attn,
+            output_hidden_states=True
+        )
+
+        preds = self.calc_first_lmhead(new_w, outputs[0])
+        loss_fct = nn.CrossEntropyLoss()
+        lm_loss = loss_fct(preds.view(-1, self.firstLM.config.vocab_size), new_labels.view(-1))
+        out_vals = MaskedLMOutput(
+            loss=lm_loss,
+            logits=preds,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions
+        )
+
+        return out_vals
+
+    def calc_first_lmhead(self, new_w, last_hidden):
+        x = self.firstLM.lm_head.dense(last_hidden)
+        x = gelu(x)
+        x = self.firstLM.lm_head.layer_norm(x)
+        x = F.linear(x, new_w, bias=self.firstLM.lm_head.bias)
+        return x
 
     def forward(self, batch):
 
@@ -356,14 +411,15 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
         losses = []
         for i, chunk in enumerate(chunked):
             msk = (new_inputs[i] == self.mask_token_id)  # mask all but the outputs for the mask
-            if self.emb_type == "Transformer":
-                generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
-                                                                                                           2)  # permute for shape, mask, permute back
+            #             if self.emb_type == "Transformer":
+            #                 generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
+            #                                                                                                            2)  # permute for shape, mask, permute back
 
             embed_ids = msk.nonzero(as_tuple=True)
 
             if self.emb_type == "Transformer":
-                nonce_embeds = generated_embeds[embed_ids[0], embed_ids[1], :]
+                #                 nonce_embeds = generated_embeds[embed_ids[0], embed_ids[1], :]
+                nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
 
             elif self.emb_type == "MLP":
                 nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
@@ -373,7 +429,13 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
             l_fct = nn.CrossEntropyLoss()
             inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
             losses.append(inter_loss)
-
+            #             print((~msk).nonzero()[:,0].tolist())
+            #             if nonce_embeds.shape[0] > 2:
+            #                 print(batch['mlm_inputs']['input_ids'])
+            #                 print(embed_ids)
+            #                 print('shape', batch['mlm_inputs']['input_ids'].shape)
+            #                 print('nonce shape', nonce_embeds.shape)
+            #                 raise Exception()
             self.memory.store(nonceMLM[i].item(), nonce_embeds)
 
         b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
@@ -390,11 +452,11 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
             attention_mask=task_attn,
             output_hidden_states=True
         )
-        print(outputs)
 
         sequence_output = outputs[0]
 
         logits = self.secondLM.qa_outputs(sequence_output)
+        #         print(logits)
         start_logits, end_logits = logits.split(1, dim=-1)
         start_logits = start_logits.squeeze(-1).contiguous()
         end_logits = end_logits.squeeze(-1).contiguous()

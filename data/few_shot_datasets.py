@@ -485,7 +485,7 @@ class SimpleSQuADDataset(Dataset):
             if not re.search(r"\b({})\b".format(replace), s, flags=re.I):
                 continue
             else:
-                sents.append(re.sub(r"\b({})\b".format(replace), nonce, s, flags=re.I))
+                sents.append(re.sub(r"\b({})\b".format(replace), nonce, s, flags=re.I, count=1))
 
         sentences = sents
 
@@ -504,7 +504,7 @@ class SimpleSQuADDataset(Dataset):
         else:
             raise Exception("Model Max Length does not exist for TaskLM")
 
-        if len(sentences) == 0:
+        if len(sentences) < self.n_samples:
             return None
 
         if do_sample:
@@ -533,6 +533,7 @@ class SimpleSQuADDataset(Dataset):
             return_offsets_mapping=True,
             padding="max_length"
         )
+        #         print(task_inputs.sequence_ids(0))
 
         offset = task_inputs.pop("offset_mapping")
         start_positions = []
