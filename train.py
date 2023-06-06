@@ -4,12 +4,13 @@ from functools import reduce
 import os
 from copy import deepcopy
 from scipy import stats
+import json
 
 import wandb
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, RobertaForMaskedLM, GPT2Model
+from transformers import AutoTokenizer, RobertaForMaskedLM, GPT2Model, RobertaForQuestionAnswering
 from transformers import AdamW, get_linear_schedule_with_warmup
 from datasets import load_from_disk
 
@@ -60,6 +61,11 @@ if __name__ == "__main__":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
         secondLM = GPT2Model.from_pretrained("gpt2")
 
+    if args.taskName == "squad":
+        tokenizerTask = AutoTokenizer.from_pretrained('deepset/tinyroberta-squad2', use_fast=True)
+        secondLM = RobertaForQuestionAnswering.from_pretrained("deepset/tinyroberta-squad2")
+
+
     dataset = load_from_disk(args.data_path)
 
     if "chimera" in args.data_path:
@@ -69,6 +75,12 @@ if __name__ == "__main__":
     if "sanity" in args.data_path:
         nonces = list(map(make_sanity_nonce, list(set(dataset['word']))))
         dataset_name = "sanity"
+
+    if "squad" in args.data_path:
+        dataset = dataset.filter(lambda ex: ex['replace'] != '')
+        nonces = list(set(map(lambda e: "<{}_nonce>".format(e.lower()), dataset['replace'])))
+        dataset_name = "squad"
+
     # add support for other datasets
 
     # expand tokenizer
@@ -81,7 +93,9 @@ if __name__ == "__main__":
 
     # memory
     if args.memory == "mean":
+        nonces = list(set(map(lambda e: "<{}_nonce>".format(e.lower()), dataset['replace'])))
         memory_config = AggregatorConfig()
+
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
     elif args.memory == "cls":
@@ -125,6 +139,22 @@ if __name__ == "__main__":
 
         test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
+    if "squad" in args.data_path:
+
+        tokenizerMLM.add_tokens(nonces)
+        tokenizerTask.add_tokens(nonces)
+
+        split = dataset.train_test_split(0.2)
+
+        train = SimpleSQuADDataset(split['train'], tokenizerMLM, tokenizerTask, n)
+
+        test = SimpleSQuADDataset(split['test'], tokenizerMLM, tokenizerTask, n)
+
+        mlm_dataloader = DataLoader(train, batch_size=5, collate_fn=make_collate(train), shuffle=True)
+
+        test_dataloader = DataLoader(test, batch_size=5, collate_fn=make_collate(test))
+
+
     nonces = tokenizerTask.convert_tokens_to_ids(nonces)
 
 
@@ -140,6 +170,9 @@ if __name__ == "__main__":
                 eps=epsilon
                 )
 
+    warmup_steps = 3e2
+    eval_ind = len(mlm_dataloader) // 2
+    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(mlm_dataloader))
     intermediate = args.intermediate_loss
 
     run = wandb.init(project="fewshot_model_testing_redone", reinit=True)
@@ -154,6 +187,7 @@ if __name__ == "__main__":
     best_loss = 10000
     for epoch in range(epochs):
         train_corr = []
+        train_losses = []
         for i, batch in enumerate(mlm_dataloader):
             log_dict = {}
 
@@ -165,11 +199,12 @@ if __name__ == "__main__":
 
             loss = out.loss
 
-            log_dict['train mlm loss'] = loss.item()
-
-            nonce_loss = get_nonce_loss(batch, out, test_model.secondLM.vocab_size, device)
-            if nonce_loss:
-                log_dict["new token loss"] = nonce_loss.item()
+            log_dict['train loss'] = loss.item()
+            train_losses.append(loss.item())
+            if "sanity" in args.data_path:
+                nonce_loss = get_nonce_loss(batch, out, test_model.secondLM.vocab_size, device)
+                if nonce_loss:
+                    log_dict["new token loss"] = nonce_loss.item()
 
             if intermediate:
                 intermediate_loss = torch.sum(torch.Tensor([losses]))
@@ -181,71 +216,91 @@ if __name__ == "__main__":
             final_loss.backward()
             torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
             opt.step()
+            scheduler.step()
             test_model.memory.memory = {}
             wandb.log(log_dict)
 
-        test_model.eval()
-        if "chimera" in args.data_path:
-            corrs = []
-            for b in test_dataloader:
-                t_out, _ = test_model.forward(b)
-                new_w = test_model.get_new_weights(batch, task="MLM").to(device)
+            if i % eval_ind == 0:
+                test_model.eval()
+                if "chimera" in args.data_path:
+                    corrs = []
+                    for b in test_dataloader:
+                        t_out, _ = test_model.forward(b)
+                        new_w = test_model.get_new_weights(batch, task="MLM").to(device)
 
-                indices = b['eval_indices']
-                sims = []
-                for probe in b['probe_inputs']:
-                    p_sims = []
-                    p_s = b['probe_inputs'][probe]['sentences']
+                        indices = b['eval_indices']
+                        sims = []
+                        for probe in b['probe_inputs']:
+                            p_sims = []
+                            p_s = b['probe_inputs'][probe]['sentences']
 
-                    for p_idx, s in enumerate(p_s):
-                        enc = tokenizerTask.encode_plus(s[0], return_tensors='pt').to(device)
-                        p_ind = indices[p_idx]
-                        locs = get_locs(s[0], p_ind.item(), tokenizerTask)
+                            for p_idx, s in enumerate(p_s):
+                                enc = tokenizerTask.encode_plus(s[0], return_tensors='pt').to(device)
+                                p_ind = indices[p_idx]
+                                locs = get_locs(s[0], p_ind.item(), tokenizerTask)
 
-                        p_emb = get_hidden_states(enc, locs, test_model.secondLM, [-1])
-                        n_emb = get_emb(t_out.hidden_states, locs, [-1], p_idx)
-                        p_sims.append(cos(n_emb, p_emb).item())
+                                p_emb = get_hidden_states(enc, locs, test_model.secondLM, [-1])
+                                n_emb = get_emb(t_out.hidden_states, locs, [-1], p_idx)
+                                p_sims.append(cos(n_emb, p_emb).item())
 
-                    sim = sum(p_sims) / len(p_sims)
-                    sims.append(sim)
+                            sim = sum(p_sims) / len(p_sims)
+                            sims.append(sim)
 
-                ratings = [float(v) for v in b['ratings'][0].split(',')]
-                corr = stats.spearmanr(sims, ratings)
-                wandb.log({'test_point_correlation': corr.correlation})
-                corrs.append(corr.correlation)
+                        ratings = [float(v) for v in b['ratings'][0].split(',')]
+                        corr = stats.spearmanr(sims, ratings)
+                        wandb.log({'test_point_correlation': corr.correlation})
+                        corrs.append(corr.correlation)
 
-            test_model.memory.detach_past()
-            test_model.memory.memory = {}
+                    test_model.memory.detach_past()
+                    test_model.memory.memory = {}
 
-            avg_corr = sum(corrs) / len(corrs)
-            wandb.log({'epoch': epoch, 'Correlation on Test': avg_corr})
+                    avg_corr = sum(corrs) / len(corrs)
+                    wandb.log({'epoch': epoch, 'Correlation on Test': avg_corr})
 
-            if avg_corr > best_corr:
-                chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
-                save(test_model, opt, chkpt_name)
-                best_corr = avg_corr
+                    if avg_corr > best_corr:
+                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                        save(test_model, opt, chkpt_name)
+                        best_corr = avg_corr
 
-        if "sanity" in args.data_path:
-            test_model.eval()
-            test_losses = []
-            test_nonce_losses = []
-            for b in test_dataloader:
-                t_out, _ = test_model.forward(b)
-                wandb.log({'test point loss': t_out.loss.item()})
-                test_nonce_loss = get_nonce_loss(b, t_out, test_model.secondLM.vocab_size, device)
-                wandb.log({"test loss on nonce tokens": test_nonce_loss.item()})
-                test_nonce_losses.append(test_nonce_loss.item())
+                if "sanity" in args.data_path:
+                    test_model.eval()
+                    test_losses = []
+                    test_nonce_losses = []
+                    for b in test_dataloader:
+                        t_out, _ = test_model.forward(b)
+                        wandb.log({'test point loss': t_out.loss.item()})
+                        test_nonce_loss = get_nonce_loss(b, t_out, test_model.secondLM.vocab_size, device)
+                        wandb.log({"test loss on nonce tokens": test_nonce_loss.item()})
+                        test_nonce_losses.append(test_nonce_loss.item())
 
-                test_losses.append(t_out.loss.item())
+                        test_losses.append(t_out.loss.item())
 
-            wandb.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses),
-                       'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
-            n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
+                    wandb.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses),
+                               'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
+                    n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
 
-            if n_loss < best_loss:
-                chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
-                save(test_model, opt, chkpt_name)
-                best_loss = n_loss
+                    if n_loss < best_loss:
+                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                        save(test_model, opt, chkpt_name)
+                        best_loss = n_loss
 
-            test_model.memory.memory = {}
+                if "squad" in args.data_path:
+                    test_model.eval()
+                    test_losses = []
+                    for b in test_dataloader:
+                        t_out, _ = test_model.forward(b)
+
+                        test_losses.append(t_out.loss.item())
+                        test_model.memory.memory = {}
+
+                    avg_test = sum(test_losses) / len(test_losses)
+                    if avg_test < best_loss:
+                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                        save(test_model, opt, chkpt_name)
+                        best_loss = avg_test
+
+                    wandb.log({'epoch': epoch, 'average test loss': avg_test})
+            wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
+
+
 
