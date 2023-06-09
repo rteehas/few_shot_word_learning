@@ -11,7 +11,7 @@ from transformers.activations import gelu
 
 class MorphMemoryModel(nn.Module):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type="MLP"):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
         super(MorphMemoryModel, self).__init__()
 
         self.layers = layers
@@ -248,9 +248,9 @@ class MorphMemoryModel(nn.Module):
 
 class MorphMemoryModelSNLI(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen='MLP'):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
         super(MorphMemoryModelSNLI, self).__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
-                                                   memory_config, emb_gen)
+                                                   memory_config, emb_type)
 
     def forward(self, batch):
 
@@ -323,9 +323,9 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
 
 class MorphMemoryModelSQuAD(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen='MLP'):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
         super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
-                         memory_config, emb_gen)
+                         memory_config, emb_type)
         if self.emb_type == "MLP":
             self.emb_gen = MLP(self.firstLM.config.hidden_size, 384, self.secondLM.config.hidden_size)
 
