@@ -22,7 +22,7 @@ class MorphMemoryModel(nn.Module):
 
         self.emb_decoder = nn.Linear(self.firstLM.config.hidden_size, self.firstLM.config.vocab_size).to(device)
 
-        self.freeze_roberta()
+        self.freeze()
 
         self.memory = OnlineProtoNet(memory_config, self.device)
         self.emb_type = emb_type
@@ -36,35 +36,28 @@ class MorphMemoryModel(nn.Module):
 
         self.nonces = nonces  # for referencing embedding location
 
+        # new tokens always at the end
         initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
         initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
         m_first = torch.mean(self.firstLM.roberta.embeddings.word_embeddings.weight[:initial_first_ind, :], dim=0)
         m_second = torch.mean(self.secondLM.roberta.embeddings.word_embeddings.weight[:initial_second_ind, :], dim=0)
-        for nonce in nonces:
+        first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
+        second_list = list(range(initial_first_ind, self.secondLM.config.vocab_size))
+        for n_first, n_second in zip(first_list, second_list):
             with torch.no_grad():
-                self.secondLM.roberta.embeddings.word_embeddings.weight[nonce, :] = m_second
-                self.firstLM.roberta.embeddings.word_embeddings.weight[nonce, :] = m_first
+                self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
+                self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
 
         self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
                                                                 self.secondLM.config.model_type,
                                                                 memory_config.agg_method)
 
-    def freeze_roberta(self, tune_tok=False):
+    def freeze(self):
         for parameter in self.firstLM.parameters():
             parameter.requires_grad = False
 
-        #         if tune_tok:
-        #             self.firstLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
-
-        if self.secondLM.config.model_type == "roberta":  # check if secondLM is roberta
-            for parameter in self.secondLM.parameters():
-                parameter.requires_grad = False
-
-            if tune_tok:
-                self.secondLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
-
-    #         self.secondLM.lm_head.bias.requires_grad=True
-    #         self.secondLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
+        for parameter in self.secondLM.parameters():
+            parameter.requires_grad = False
 
     def forward(self, batch):
 
@@ -72,6 +65,7 @@ class MorphMemoryModel(nn.Module):
         task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
                        'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
         nonceMLM = batch["nonceMLM"]
+        nonceTask = batch['nonceTask']
         if 'task_labels' in batch:
             task_labels = batch["task_labels"].to(self.device)
 
@@ -97,8 +91,6 @@ class MorphMemoryModel(nn.Module):
         losses = []
         for i, chunk in enumerate(chunked):
             msk = (new_inputs[i] == self.mask_token_id)  # mask all but the outputs for the mask
-            #             print(msk.nonzero())
-            #             print(~msk.nonzero())
             if self.emb_type == "Transformer":
                 generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
                                                                                                            2)  # permute for shape, mask, permute back
@@ -118,7 +110,7 @@ class MorphMemoryModel(nn.Module):
             inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
             losses.append(inter_loss)
 
-            self.memory.store(nonceMLM[i].item(), nonce_embeds)
+            self.memory.store(nonceTask[i].item(), nonce_embeds)
 
         # now do task specific stuff
         b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
@@ -215,20 +207,21 @@ class MorphMemoryModel(nn.Module):
 
         if task == 'MLM':
             ref_model = self.firstLM
-
         elif task == "Task":
             ref_model = self.secondLM
+        else:
+            raise NotImplementedError
 
-        if ref_model.config.model_type == "roberta":
-            w = ref_model.roberta.embeddings.word_embeddings.weight.clone()
+        w = ref_model.get_input_embeddings().weight.clone()
+        w.requires_grad = True
 
-        a = []
-        for i in range(w.shape[0]):
-            if i in self.memory.memory:
-                a.append(self.memory.retrieve(i))
-            else:
-                a.append(w[i, :].unsqueeze(0))
-        return torch.cat(a, dim=0)
+        memory_indices = [i for i in range(w.shape[0]) if i in self.memory.memory]
+        non_memory_indices = [i for i in range(w.shape[0]) if i not in self.memory.memory]
+        memory_replacements = torch.stack([self.memory.retrieve(i).squeeze(0) for i in memory_indices])
+        non_memory_weights = w[non_memory_indices, :]
+        new_weights = torch.cat([non_memory_weights, memory_replacements], dim=0)
+
+        return new_weights
 
     def update_weights(self):
         first_wt = nn.Embedding(self.firstLM.config.vocab_size,
@@ -239,7 +232,7 @@ class MorphMemoryModel(nn.Module):
             self.firstLM.set_input_embeddings(first_wt)
 
             self.secondLM.set_input_embeddings(second_wt)
-        self.freeze_roberta()
+        self.freeze()
 
     def re_encode(self, input_ids, w):
 
