@@ -295,7 +295,7 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
             inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
             losses.append(inter_loss)
 
-            self.memory.store(nonceMLM[i].item(), nonce_embeds)
+            self.memory.store(nonceTask[i].item(), nonce_embeds)
 
         b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
 
@@ -325,9 +325,6 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
         elif self.emb_type == "Transformer":
             encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=2).to(self.device)
             self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
-
-    #         for param in self.secondLM.qa_outputs.parameters():
-    #             param.requires_grad=True
 
     def forward_inner(self, batch):
         mlm_inputs = batch["mlm_inputs"].to(self.device)
