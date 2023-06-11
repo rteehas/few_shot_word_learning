@@ -90,6 +90,7 @@ if __name__ == "__main__":
         dataset_name = "squad"
     elif "snli" in args.data_path:
         nonces = list(map(snli_nonce, list(set(dataset['replace']))))
+        dataset_name = "snli"
 
     else:
         raise NotImplementedError("Not implemented for this dataset")
@@ -188,7 +189,7 @@ if __name__ == "__main__":
     elif "snli" in args.data_path:
         new_toks = tokenizerMLM.convert_tokens_to_ids(nonces)
         test_model = MorphMemoryModelSNLI(firstLM, secondLM, new_toks, device, [-1],
-                                   tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(device)
+                                   tokenizerMLM.mask_token_id, memory_config, args.emb_gen).to(device)
     elif "sanity" in args.data_path:
         test_model = MorphMemoryModel(firstLM, secondLM, nonces,
                                   device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
