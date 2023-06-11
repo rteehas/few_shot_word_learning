@@ -41,7 +41,7 @@ class MorphMemoryModel(nn.Module):
         initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
         m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:initial_first_ind, :], dim=0)
         m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
-        
+
         first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         second_list = list(range(initial_first_ind, self.secondLM.config.vocab_size))
         for n_first, n_second in zip(first_list, second_list):
@@ -242,9 +242,9 @@ class MorphMemoryModel(nn.Module):
 
 class MorphMemoryModelSNLI(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen='MLP'):
         super(MorphMemoryModelSNLI, self).__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
-                                                   memory_config, emb_type)
+                                                   memory_config, emb_gen)
 
     def forward(self, batch):
 
@@ -296,7 +296,7 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
             inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
             losses.append(inter_loss)
 
-            self.memory.store(nonceTask[i].item(), nonce_embeds)
+            self.memory.store(nonceMLM[i].item(), nonce_embeds)
 
         b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
 

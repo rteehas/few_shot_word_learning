@@ -371,12 +371,12 @@ class SimpleMLMDataset(SimpleBaselineDataset):
 
 
 class SimpleSNLIDataset(Dataset):
-    def __init__(self, data, tokenizerMLM, tokenizerTask, sentences, n_samples):
-        super(SimpleSNLIDataset, self).__init__()
+    def __init__(self, data, tokenizerMLM, tokenizerTask, n_samples):
+        #         super(SimpleSNLIDataset, self).__init__()
         self.premises = data["premise"]
         self.hypotheses = data["hypothesis"]
-        self.sentences_dict = sentences
-        self.replacements = data['to_replace']
+        self.sentences = data['sentences']
+        self.replacements = data['replace']
         self.labels = data['label']
         self.n_samples = n_samples
 
@@ -394,19 +394,15 @@ class SimpleSNLIDataset(Dataset):
         hypothesis = self.hypotheses[idx]
         replaced = self.replacements[idx]
         label = self.labels[idx]
+        sentences = self.sentences[idx]
 
         if label == -1:
             return None
 
-        nonce = "<{}>".format(replaced)
+        nonce = snli_nonce(replaced.lower())
 
         premise = re.sub(r"\b({})\b".format(replaced), nonce, premise, flags=re.I)
         hypothesis = re.sub(r"\b({})\b".format(replaced), nonce, hypothesis, flags=re.I)
-
-        if replaced.lower() not in self.sentences_dict:
-            return None
-
-        sentences = self.sentences_dict[replaced.lower()]
 
         nonceMLM = self.tokenizerMLM.convert_tokens_to_ids(nonce)
         nonceTask = self.tokenizerTask.convert_tokens_to_ids(nonce)
@@ -423,9 +419,34 @@ class SimpleSNLIDataset(Dataset):
         else:
             raise Exception("Model Max Length does not exist for TaskLM")
 
+        #         sentences = [s.strip() for s in sentences]
+        #         sentences = [s.replace('\n', ' ') for s in sentences]
+        # #         print(replaced)
+        # #         print(sentences)
+        #         for s in sentences:
+        #             if not re.search(r"\b({})\b".format(replaced), s):
+        #                 return None
+
         sentences = [s.strip() for s in sentences]
-        if do_sample:
-            sentences = np.random.choice(sentences, size=self.n_samples).tolist()
+        sentences = [s.replace('\n', " ") for s in sentences]
+        sents = []
+
+        if len(sentences) < self.n_samples:
+            return None
+
+        for s in sentences:
+            if not re.search(r"\b({})\b".format(replaced), s, flags=re.I):
+                continue
+            else:
+                sents.append(re.sub(r"\b({})\b".format(replaced), nonce, s, flags=re.I, count=1))
+
+        sentences = sents
+
+        try:
+            if do_sample:
+                sentences = np.random.choice(sentences, size=self.n_samples).tolist()
+        except:
+            return None
 
         tokensMLM = self.tokenizerMLM(sentences,
                                       max_length=mlm_length,
@@ -446,7 +467,7 @@ class SimpleSNLIDataset(Dataset):
             'task_inputs': tokensTask,
             'nonceMLM': nonceMLM,
             'nonceTask': nonceTask,
-            'task_label': torch.LongTensor([label])
+            'task_labels': torch.LongTensor([label])
         }
 
 

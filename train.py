@@ -9,6 +9,7 @@ import json
 import wandb
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, RobertaForMaskedLM, GPT2Model, RobertaForQuestionAnswering, \
     AutoModelForSequenceClassification
@@ -87,6 +88,8 @@ if __name__ == "__main__":
         dataset = dataset.filter(lambda ex: ex['replace'] != '')
         nonces = list(set(map(lambda e: "<{}_nonce>".format(e.lower()), dataset['replace'])))
         dataset_name = "squad"
+    elif "snli" in args.data_path:
+        nonces = list(map(snli_nonce, list(set(dataset['replace']))))
 
     else:
         raise NotImplementedError("Not implemented for this dataset")
@@ -133,9 +136,6 @@ if __name__ == "__main__":
     if "sanity" in args.data_path:
         split = dataset.train_test_split(test_size=0.2)
         n = args.num_examples
-
-
-
         tokenizerMLM.add_tokens(nonces)
         tokenizerTask.add_tokens(nonces)
 
@@ -166,6 +166,14 @@ if __name__ == "__main__":
 
         test_dataloader = DataLoader(test, batch_size=5, collate_fn=make_collate(test))
 
+    if "snli" in args.data_path:
+        n=args.num_examples
+        split = dataset.train_test_split(0.2)
+        train = SimpleSNLIDataset(split["train"], tokenizerMLM, tokenizerTask, n)
+        test = SimpleSNLIDataset(split["test"], tokenizerMLM, tokenizerTask, n)
+
+        train_dl = DataLoader(train, batch_size=5, collate_fn=make_collate(train), shuffle=True)
+        test_dl = DataLoader(test, batch_size=5, collate_fn=make_collate(test))
 
     nonces = tokenizerTask.convert_tokens_to_ids(nonces)
 
@@ -177,9 +185,15 @@ if __name__ == "__main__":
     if "squad" in args.data_path:
         test_model = MorphMemoryModelSQuAD(firstLM, secondLM, nonces,
                                       device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
-    else:
+    elif "snli" in args.data_path:
+        new_toks = tokenizerMLM.convert_tokens_to_ids(nonces)
+        test_model = MorphMemoryModelSNLI(firstLM, secondLM, new_toks, device, [-1],
+                                   tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(device)
+    elif "sanity" in args.data_path:
         test_model = MorphMemoryModel(firstLM, secondLM, nonces,
                                   device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
+    else:
+        raise NotImplementedError
 
     opt = AdamW(filter(lambda p: p.requires_grad, test_model.parameters()),
                 lr=lr,
@@ -200,10 +214,13 @@ if __name__ == "__main__":
 
 
     best_corr = 0
+    best_acc = 0
     best_loss = 10000
     for epoch in range(epochs):
         train_corr = []
         train_losses = []
+        train_correct = 0
+        train_total = 0
         for i, batch in enumerate(mlm_dataloader):
             log_dict = {}
 
@@ -221,6 +238,13 @@ if __name__ == "__main__":
                 nonce_loss = get_nonce_loss(batch, out, test_model.secondLM.vocab_size, device)
                 if nonce_loss:
                     log_dict["new token loss"] = nonce_loss.item()
+            elif "snli" in args.data_path:
+                preds = out.logits
+                preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
+                true_ans = batch['task_labels'].to(device).view(-1)
+                num_correct = (preds == true_ans).sum()
+                train_correct += num_correct
+                train_total += batch['task_labels'].shape[0]
 
             if intermediate:
                 intermediate_loss = torch.sum(torch.Tensor([losses]))
@@ -236,7 +260,7 @@ if __name__ == "__main__":
             test_model.memory.memory = {}
             wandb.log(log_dict)
 
-            if i % eval_ind == 0:
+            if (i + 1) % eval_ind == 0:
                 test_model.eval()
                 if "chimera" in args.data_path:
                     corrs = []
@@ -278,7 +302,7 @@ if __name__ == "__main__":
                         save(test_model, opt, chkpt_name)
                         best_corr = avg_corr
 
-                if "sanity" in args.data_path:
+                elif "sanity" in args.data_path:
                     test_model.eval()
                     test_losses = []
                     test_nonce_losses = []
@@ -300,7 +324,7 @@ if __name__ == "__main__":
                         save(test_model, opt, chkpt_name)
                         best_loss = n_loss
 
-                if "squad" in args.data_path:
+                elif "squad" in args.data_path:
                     test_model.eval()
                     test_losses = []
                     for b in test_dataloader:
@@ -316,7 +340,33 @@ if __name__ == "__main__":
                         best_loss = avg_test
 
                     wandb.log({'epoch': epoch, 'average test loss': avg_test})
+
+                elif "snli" in args.data_path:
+                    test_model.eval()
+                    total_correct = 0
+                    total = 0
+                    for b in test_dl:
+                        t_out, _ = test_model.forward(b)
+                        preds = t_out.logits
+                        preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
+                        true_ans = b['task_labels'].to(device).view(-1)
+                        num_correct = (preds == true_ans).sum()
+                        total_correct += num_correct
+                        total += b['task_labels'].shape[0]
+                        test_model.memory.memory = {}
+                    acc = total_correct / total
+                    wandb.log({'epoch': epoch, 'average test accuracy': acc})
+                    if best_acc < acc:
+                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                        save(test_model, opt, chkpt_name)
+                        print("Saved {}".format(chkpt_name))
+                        best_acc = acc
+
+
+
             wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
+            if "snli" in args.data_path:
+                wandb.log({"epoch": epoch, 'average train acc': train_correct / train_total})
 
 
 

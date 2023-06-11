@@ -70,3 +70,6 @@ def get_locs(sent, idx, tokenizer):
     encoded = tokenizer.encode_plus(sent, return_tensors="pt")
     token_ids_word = np.where(np.array(encoded.word_ids()) == idx)
     return token_ids_word
+
+def snli_nonce(word):
+    return "<{}_nonce>".format(word)
