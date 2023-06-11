@@ -31,7 +31,7 @@ class MorphMemoryModel(nn.Module):
             self.emb_gen = MLP(self.firstLM.config.hidden_size, 384, self.secondLM.config.hidden_size)
 
         elif self.emb_type == "Transformer":
-            encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=1).to(self.device)
+            encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=12).to(self.device)
             self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
 
         self.nonces = nonces  # for referencing embedding location
@@ -39,8 +39,9 @@ class MorphMemoryModel(nn.Module):
         # new tokens always at the end
         initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
         initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
-        m_first = torch.mean(self.firstLM.roberta.embeddings.word_embeddings.weight[:initial_first_ind, :], dim=0)
-        m_second = torch.mean(self.secondLM.roberta.embeddings.word_embeddings.weight[:initial_second_ind, :], dim=0)
+        m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:initial_first_ind, :], dim=0)
+        m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
+        
         first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         second_list = list(range(initial_first_ind, self.secondLM.config.vocab_size))
         for n_first, n_second in zip(first_list, second_list):
