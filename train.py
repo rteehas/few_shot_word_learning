@@ -254,6 +254,10 @@ if __name__ == "__main__":
 
             final_loss.backward()
             torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
+            for name, param in test_model.emb_gen.named_parameters():
+                log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
+                if torch.isnan(torch.norm(param.grad.view(-1))):
+                    raise Exception("Nan Gradient")
             opt.step()
             scheduler.step()
             test_model.memory.memory = {}
