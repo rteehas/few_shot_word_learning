@@ -40,6 +40,7 @@ def get_arguments():
     parser.add_argument("--trial", type=str, default='l2')
     parser.add_argument("--emb_gen", type=str, default='mlp')
     parser.add_argument("--strategy", type=str, default='mask')
+    parser.add_argument("--batch_size", type=int, default=5)
     return parser
 
 
@@ -125,13 +126,13 @@ if __name__ == "__main__":
         split = dataset["train"].train_test_split(test_size=0.2)
         mlm_dataset = ChimeraMLMDataset(split["train"], tokenizerMLM, tokenizerTask, args.num_examples, args.trial)
 
-        train_dl = DataLoader(mlm_dataset, batch_size=1, shuffle=True)
+        train_dl = DataLoader(mlm_dataset, batch_size=args.batch_size, shuffle=True)
 
         test_dataset = ChimeraTestDataset(split["test"], tokenizerMLM, tokenizerTask, args.num_examples, args.trial)
 
         collate = make_collate(test_dataset)
 
-        test_dl = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate)
+        test_dl = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate)
 
     if "sanity" in args.data_path:
         split = dataset.train_test_split(test_size=0.2)
@@ -141,7 +142,7 @@ if __name__ == "__main__":
 
         mlm_dataset = SimpleMLMDataset(split["train"], tokenizerMLM, tokenizerTask, n)
 
-        train_dl = DataLoader(mlm_dataset, batch_size=1, shuffle=True)
+        train_dl = DataLoader(mlm_dataset, batch_size=args.batch_size, shuffle=True)
 
         # train_eval = ChimeraTestDataset(chimera["train"], tokenizerMLM, tokenizerTask, n, trial)
 
@@ -149,7 +150,7 @@ if __name__ == "__main__":
 
         # collate = make_collate(test_dataset)
 
-        test_dl = DataLoader(test_dataset, batch_size=1, shuffle=True)
+        test_dl = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
 
     if "squad" in args.data_path:
 
@@ -162,18 +163,18 @@ if __name__ == "__main__":
 
         test = SimpleSQuADDataset(split['test'], tokenizerMLM, tokenizerTask, args.num_examples)
 
-        train_dl = DataLoader(train, batch_size=5, collate_fn=make_collate(train), shuffle=True)
+        train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
 
-        test_dl = DataLoader(test, batch_size=5, collate_fn=make_collate(test))
+        test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
 
     if "snli" in args.data_path:
-        n=args.num_examples
+        n = args.num_examples
         split = dataset.train_test_split(0.2)
         train = SimpleSNLIDataset(split["train"], tokenizerMLM, tokenizerTask, n)
         test = SimpleSNLIDataset(split["test"], tokenizerMLM, tokenizerTask, n)
 
-        train_dl = DataLoader(train, batch_size=5, collate_fn=make_collate(train), shuffle=True)
-        test_dl = DataLoader(test, batch_size=5, collate_fn=make_collate(test))
+        train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
+        test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
 
     new_toks = tokenizerTask.convert_tokens_to_ids(nonces)
 
