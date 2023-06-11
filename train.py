@@ -10,7 +10,8 @@ import wandb
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, RobertaForMaskedLM, GPT2Model, RobertaForQuestionAnswering
+from transformers import AutoTokenizer, RobertaForMaskedLM, GPT2Model, RobertaForQuestionAnswering, \
+    AutoModelForSequenceClassification
 from transformers import AdamW, get_linear_schedule_with_warmup
 from datasets import load_from_disk
 
@@ -57,14 +58,20 @@ if __name__ == "__main__":
         tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
         secondLM = RobertaForMaskedLM.from_pretrained('roberta-base')
 
-    if args.taskName == "autoregressive":
+    elif args.taskName == "autoregressive":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
         secondLM = GPT2Model.from_pretrained("gpt2")
 
-    if args.taskName == "squad":
+    elif args.taskName == "squad":
         tokenizerTask = AutoTokenizer.from_pretrained('deepset/tinyroberta-squad2', use_fast=True)
         secondLM = RobertaForQuestionAnswering.from_pretrained("deepset/tinyroberta-squad2")
 
+    elif args.taskName == "snli":
+        tokenizerTask = AutoTokenizer.from_pretrained('cross-encoder/nli-roberta-base', use_fast=True)
+        secondLM = AutoModelForSequenceClassification.from_pretrained('cross-encoder/nli-roberta-base').to(device)
+
+    else:
+        raise NotImplementedError("{} not implemented".format(args.taskName))
 
     dataset = load_from_disk(args.data_path)
 
@@ -72,14 +79,17 @@ if __name__ == "__main__":
         nonces = list(map(make_nonce, list(set(dataset["train"]['id'] + dataset["test"]['id']))))
         dataset_name = "chimera{}".format(args.num_examples)
 
-    if "sanity" in args.data_path:
+    elif "sanity" in args.data_path:
         nonces = list(map(make_sanity_nonce, list(set(dataset['word']))))
         dataset_name = "sanity"
 
-    if "squad" in args.data_path:
+    elif "squad" in args.data_path:
         dataset = dataset.filter(lambda ex: ex['replace'] != '')
         nonces = list(set(map(lambda e: "<{}_nonce>".format(e.lower()), dataset['replace'])))
         dataset_name = "squad"
+
+    else:
+        raise NotImplementedError("Not implemented for this dataset")
 
     # add support for other datasets
 
@@ -100,8 +110,10 @@ if __name__ == "__main__":
         memory_config = RNNAggConfig()
     elif args.memory == "cls":
         memory_config = TransformerCLSConfig()
+    else:
+        raise NotImplementedError("This memory aggregation is not implemented")
 
-    mask_token_id = tokenizerTask.mask_token_id
+    mask_token_id = tokenizerMLM.mask_token_id
 
     if "chimera" in args.data_path:
 
