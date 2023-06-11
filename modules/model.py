@@ -204,25 +204,24 @@ class MorphMemoryModel(nn.Module):
             toks = self.tokenizer(definition, return_tensors="pt").to(self.device)
             outs = self.firstLM(**toks, output_hidden_states=True)
 
-    def get_new_weights(self, task="MLM"):
+    def get_new_weights(self, task):
 
         if task == 'MLM':
             ref_model = self.firstLM
+
         elif task == "Task":
             ref_model = self.secondLM
-        else:
-            raise NotImplementedError
 
-        w = ref_model.get_input_embeddings().weight.clone()
-        w.requires_grad = True
+        if ref_model.config.model_type == "roberta":
+            w = ref_model.roberta.embeddings.word_embeddings.weight.clone()
 
-        memory_indices = [i for i in range(w.shape[0]) if i in self.memory.memory]
-        non_memory_indices = [i for i in range(w.shape[0]) if i not in self.memory.memory]
-        memory_replacements = torch.stack([self.memory.retrieve(i).squeeze(0) for i in memory_indices])
-        non_memory_weights = w[non_memory_indices, :]
-        new_weights = torch.cat([non_memory_weights, memory_replacements], dim=0)
-
-        return new_weights
+        a = []
+        for i in range(w.shape[0]):
+            if i in self.memory.memory:
+                a.append(self.memory.retrieve(i))
+            else:
+                a.append(w[i, :].unsqueeze(0))
+        return torch.cat(a, dim=0)
 
     def update_weights(self):
         first_wt = nn.Embedding(self.firstLM.config.vocab_size,
