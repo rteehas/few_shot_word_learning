@@ -363,9 +363,9 @@ if __name__ == "__main__":
 
 
 
-            wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
-            if "snli" in args.data_path:
-                wandb.log({"epoch": epoch, 'average train acc': train_correct / train_total})
+        wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
+        if "snli" in args.data_path:
+            wandb.log({"epoch": epoch, 'average train acc': train_correct / train_total})
 
 
 
