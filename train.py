@@ -205,7 +205,7 @@ if __name__ == "__main__":
     intermediate = args.intermediate_loss
 
     run = wandb.init(project="fewshot_model_testing_redone", reinit=True)
-    wandb.run.name = "{}_{}_{}_{}".format(dataset_name, lr, memory_config.agg_method, args.emb_gen)
+    wandb.run.name = "{}_{}examples_{}_{}_{}".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen)
 
     if intermediate:
         wandb.run.name = wandb.run.name + "_intermediate"
