@@ -7,6 +7,7 @@ import re
 from modules.utils import get_word_idx
 
 from data.data_utils import *
+from train_utils import snli_nonce
 
 class ChimerasDataset(Dataset):
     def __init__(self, data, tokenizerMLM, tokenizerTask, n_samples, trial):
