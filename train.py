@@ -125,13 +125,13 @@ if __name__ == "__main__":
         split = dataset["train"].train_test_split(test_size=0.2)
         mlm_dataset = ChimeraMLMDataset(split["train"], tokenizerMLM, tokenizerTask, args.num_examples, args.trial)
 
-        mlm_dataloader = DataLoader(mlm_dataset, batch_size=1, shuffle=True)
+        train_dl = DataLoader(mlm_dataset, batch_size=1, shuffle=True)
 
         test_dataset = ChimeraTestDataset(split["test"], tokenizerMLM, tokenizerTask, args.num_examples, args.trial)
 
         collate = make_collate(test_dataset)
 
-        test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate)
+        test_dl = DataLoader(test_dataset, batch_size=1, shuffle=True, collate_fn=collate)
 
     if "sanity" in args.data_path:
         split = dataset.train_test_split(test_size=0.2)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
         mlm_dataset = SimpleMLMDataset(split["train"], tokenizerMLM, tokenizerTask, n)
 
-        mlm_dataloader = DataLoader(mlm_dataset, batch_size=1, shuffle=True)
+        train_dl = DataLoader(mlm_dataset, batch_size=1, shuffle=True)
 
         # train_eval = ChimeraTestDataset(chimera["train"], tokenizerMLM, tokenizerTask, n, trial)
 
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
         # collate = make_collate(test_dataset)
 
-        test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+        test_dl = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
     if "squad" in args.data_path:
 
@@ -162,9 +162,9 @@ if __name__ == "__main__":
 
         test = SimpleSQuADDataset(split['test'], tokenizerMLM, tokenizerTask, args.num_examples)
 
-        mlm_dataloader = DataLoader(train, batch_size=5, collate_fn=make_collate(train), shuffle=True)
+        train_dl = DataLoader(train, batch_size=5, collate_fn=make_collate(train), shuffle=True)
 
-        test_dataloader = DataLoader(test, batch_size=5, collate_fn=make_collate(test))
+        test_dl = DataLoader(test, batch_size=5, collate_fn=make_collate(test))
 
     if "snli" in args.data_path:
         n=args.num_examples
@@ -200,8 +200,8 @@ if __name__ == "__main__":
                 )
 
     warmup_steps = 3e2
-    eval_ind = len(mlm_dataloader) // 2
-    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(mlm_dataloader))
+    eval_ind = len(train_dl) // 2
+    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
     intermediate = args.intermediate_loss
 
     run = wandb.init(project="fewshot_model_testing_redone", reinit=True)
@@ -220,7 +220,7 @@ if __name__ == "__main__":
         train_losses = []
         train_correct = 0
         train_total = 0
-        for i, batch in enumerate(mlm_dataloader):
+        for i, batch in enumerate(train_dl):
             log_dict = {}
 
             test_model.train()
@@ -263,7 +263,7 @@ if __name__ == "__main__":
                 test_model.eval()
                 if "chimera" in args.data_path:
                     corrs = []
-                    for b in test_dataloader:
+                    for b in test_dl:
                         t_out, _ = test_model.forward(b)
                         new_w = test_model.get_new_weights(batch, task="MLM").to(device)
 
@@ -305,7 +305,7 @@ if __name__ == "__main__":
                     test_model.eval()
                     test_losses = []
                     test_nonce_losses = []
-                    for b in test_dataloader:
+                    for b in test_dl:
                         t_out, _ = test_model.forward(b)
                         wandb.log({'test point loss': t_out.loss.item()})
                         test_nonce_loss = get_nonce_loss(b, t_out, test_model.secondLM.vocab_size, device)
@@ -326,7 +326,7 @@ if __name__ == "__main__":
                 elif "squad" in args.data_path:
                     test_model.eval()
                     test_losses = []
-                    for b in test_dataloader:
+                    for b in test_dl:
                         t_out, _ = test_model.forward(b)
 
                         test_losses.append(t_out.loss.item())
