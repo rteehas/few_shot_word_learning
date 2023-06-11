@@ -107,7 +107,6 @@ if __name__ == "__main__":
 
     # memory
     if args.memory == "mean":
-        nonces = list(set(map(lambda e: "<{}_nonce>".format(e.lower()), dataset['replace'])))
         memory_config = AggregatorConfig()
 
     elif args.memory == "rnn":
@@ -176,7 +175,7 @@ if __name__ == "__main__":
         train_dl = DataLoader(train, batch_size=5, collate_fn=make_collate(train), shuffle=True)
         test_dl = DataLoader(test, batch_size=5, collate_fn=make_collate(test))
 
-    nonces = tokenizerTask.convert_tokens_to_ids(nonces)
+    new_toks = tokenizerTask.convert_tokens_to_ids(nonces)
 
 
     epochs = args.epochs
@@ -184,14 +183,13 @@ if __name__ == "__main__":
     epsilon = 1e-8
 
     if "squad" in args.data_path:
-        test_model = MorphMemoryModelSQuAD(firstLM, secondLM, nonces,
+        test_model = MorphMemoryModelSQuAD(firstLM, secondLM, new_toks,
                                       device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
     elif "snli" in args.data_path:
-        new_toks = tokenizerMLM.convert_tokens_to_ids(nonces)
         test_model = MorphMemoryModelSNLI(firstLM, secondLM, new_toks, device, [-1],
                                    tokenizerMLM.mask_token_id, memory_config, args.emb_gen).to(device)
     elif "sanity" in args.data_path:
-        test_model = MorphMemoryModel(firstLM, secondLM, nonces,
+        test_model = MorphMemoryModel(firstLM, secondLM, new_toks,
                                   device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
     else:
         raise NotImplementedError
