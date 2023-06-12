@@ -109,11 +109,14 @@ if __name__ == "__main__":
     # memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
+        weight_decay = 0.1
 
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
+        weight_decay = 0.15
     elif args.memory == "cls":
         memory_config = TransformerCLSConfig()
+        weight_decay = 0.15
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
@@ -197,16 +200,17 @@ if __name__ == "__main__":
 
     opt = AdamW(filter(lambda p: p.requires_grad, test_model.parameters()),
                 lr=lr,
-                eps=epsilon
+                eps=epsilon,
+                weight_decay=weight_decay
                 )
 
     warmup_steps = 3e2
-    eval_ind = len(train_dl) // 2
+    eval_ind = len(train_dl) // 10
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
     intermediate = args.intermediate_loss
 
     run = wandb.init(project="fewshot_model_testing_redone", reinit=True)
-    wandb.run.name = "{}_{}examples_{}_{}_{}".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen)
+    wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}2layers_weight_decay_modified".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen, args.batch_size)
 
     if intermediate:
         wandb.run.name = wandb.run.name + "_intermediate"
@@ -264,7 +268,7 @@ if __name__ == "__main__":
             test_model.memory.memory = {}
             wandb.log(log_dict)
 
-            if (i + 1) % eval_ind == 0:
+            if (i + 1) % eval_ind == 0 or (i+1) % len(train_dl) == 0:
                 test_model.eval()
                 if "chimera" in args.data_path:
                     corrs = []
