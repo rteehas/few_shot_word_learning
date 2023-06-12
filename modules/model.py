@@ -213,8 +213,7 @@ class MorphMemoryModel(nn.Module):
         elif task == "Task":
             ref_model = self.secondLM
 
-        if ref_model.config.model_type == "roberta":
-            w = ref_model.roberta.embeddings.word_embeddings.weight.clone()
+        w = ref_model.get_input_embeddings().weight.clone()
 
         a = []
         for i in range(w.shape[0]):
@@ -479,10 +478,10 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
         return out_vals, losses
 
 
-class MorphMemoryModelGPT(nn.Module):
+class MorphMemoryModelGPT(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type="MLP"):
-        super().__init__()
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
+        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
 
         self.layers = layers
         self.device = device

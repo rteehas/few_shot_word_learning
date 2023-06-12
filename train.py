@@ -28,7 +28,7 @@ def get_arguments():
     parser.add_argument("--lr", type=float, default=1e-6)
     # parser.add_argument("--warmup", type=int, default=1e2)
     parser.add_argument("--epochs", type=int)
-    parser.add_argument("--data_path", type=str)
+    parser.add_argument("--data_path", type=str, default="")
     parser.add_argument("--tgt_data_path", type=str)
     parser.add_argument("--model_dir", type=str)
     parser.add_argument("--device", default="cuda")
@@ -100,9 +100,9 @@ if __name__ == "__main__":
     elif "snli" in args.data_path:
         nonces = list(map(snli_nonce, list(set(dataset['replace']))))
         dataset_name = "snli"
-
     else:
-        raise NotImplementedError("Not implemented for this dataset")
+        if args.taskName != "addition":
+            raise NotImplementedError("Not implemented for this dataset")
 
     # add support for other datasets
 
@@ -235,7 +235,8 @@ if __name__ == "__main__":
             test_model = MorphMemoryModelGPT(firstLM, secondLM, new_toks, device, [-1],
                                              tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
                 device)
-        raise NotImplementedError
+        else:
+            raise NotImplementedError
 
     opt = AdamW(filter(lambda p: p.requires_grad, test_model.parameters()),
                 lr=lr,
@@ -313,7 +314,7 @@ if __name__ == "__main__":
                     gen_ans = test_model.generate(idx, 10)
                     gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
                                                    clean_up_tokenization_spaces=True)
-                    true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][i, 0, :], skip_special_tokens=True,
+                    true_ans = tokenizerTask.decode(batch['task_inputs']['input_ids'][i, 0, :], skip_special_tokens=True,
                                                     clean_up_tokenization_spaces=True)
                     train_total += 1
                     train_correct += compute_exact_match(gen_ans, true_ans)
