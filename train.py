@@ -12,12 +12,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, RobertaForMaskedLM, GPT2Model, RobertaForQuestionAnswering, \
-    AutoModelForSequenceClassification
+    AutoModelForSequenceClassification, AutoModelForCausalLM
 from transformers import AdamW, get_linear_schedule_with_warmup
 from datasets import load_from_disk
 
 from configs.config import *
-from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI
+from eval_utils import compute_exact_match
+from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI, MorphMemoryModelGPT
 from data.data_utils import *
 from train_utils import *
 from data.few_shot_datasets import *
@@ -71,11 +72,18 @@ if __name__ == "__main__":
     elif args.taskName == "snli":
         tokenizerTask = AutoTokenizer.from_pretrained('cross-encoder/nli-roberta-base', use_fast=True)
         secondLM = AutoModelForSequenceClassification.from_pretrained('cross-encoder/nli-roberta-base').to(device)
-
+    elif args.taskName == "addition":
+        tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
+        tokenizerTask.pad_token = tokenizerTask.unk_token
+        secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
+        nonces = ["<OP>"]
+        dataset_name = "addition"
     else:
         raise NotImplementedError("{} not implemented".format(args.taskName))
 
-    dataset = load_from_disk(args.data_path)
+    if args.taskName != "addition":
+        dataset = load_from_disk(args.data_path)
+
 
     if "chimera" in args.data_path:
         nonces = list(map(make_nonce, list(set(dataset["train"]['id'] + dataset["test"]['id']))))
@@ -137,7 +145,7 @@ if __name__ == "__main__":
 
         test_dl = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate)
 
-    if "sanity" in args.data_path:
+    elif "sanity" in args.data_path:
         split = dataset.train_test_split(test_size=0.2)
         n = args.num_examples
         tokenizerMLM.add_tokens(nonces)
@@ -155,7 +163,7 @@ if __name__ == "__main__":
 
         test_dl = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
 
-    if "squad" in args.data_path:
+    elif "squad" in args.data_path:
 
         tokenizerMLM.add_tokens(nonces)
         tokenizerTask.add_tokens(nonces)
@@ -170,7 +178,7 @@ if __name__ == "__main__":
 
         test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
 
-    if "snli" in args.data_path:
+    elif "snli" in args.data_path:
         n = args.num_examples
         split = dataset.train_test_split(0.2)
         train = SimpleSNLIDataset(split["train"], tokenizerMLM, tokenizerTask, n)
@@ -178,6 +186,33 @@ if __name__ == "__main__":
 
         train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
         test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
+    else:
+        if args.taskName == "addition":
+            train_size = 10000
+            operation = "addition"
+            orthography = "decimal"
+            base_number = 10
+            min_digits_train, max_digits_train = 2, 5
+            train = MyDataset(n_examples=train_size, min_digits=min_digits_train,
+                              max_digits=max_digits_train,
+                              operation=operation, orthography=orthography,
+                              base_number=base_number, invert_question=False,
+                              invert_answer=False, balance=True)
+
+            test = MyDataset(n_examples=1000, min_digits=min_digits_train,
+                             max_digits=max_digits_train,
+                             operation=operation, orthography=orthography,
+                             base_number=base_number, invert_question=False,
+                             invert_answer=False, balance=True)
+
+            train_set = SimpleMathDataset(train, tokenizerMLM, tokenizerTask, 30)
+            train_dl = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=custom_collate_fn)
+
+            test_set = SimpleMathDataset(test, tokenizerMLM, tokenizerTask, None)
+
+            test_dl = DataLoader(test_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=custom_collate_fn)
+        else:
+            raise NotImplementedError
 
     new_toks = tokenizerTask.convert_tokens_to_ids(nonces)
 
@@ -196,6 +231,10 @@ if __name__ == "__main__":
         test_model = MorphMemoryModel(firstLM, secondLM, new_toks,
                                   device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
     else:
+        if "addition" in args.taskName:
+            test_model = MorphMemoryModelGPT(firstLM, secondLM, new_toks, device, [-1],
+                                             tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
+                device)
         raise NotImplementedError
 
     opt = AdamW(filter(lambda p: p.requires_grad, test_model.parameters()),
@@ -208,8 +247,12 @@ if __name__ == "__main__":
     eval_ind = len(train_dl) // 10
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
     intermediate = args.intermediate_loss
+    if args.taskName == "addition":
+        project = "fewshot_addition"
+    else:
+        project = "fewshot_model_testing_redone"
 
-    run = wandb.init(project="fewshot_model_testing_redone", reinit=True)
+    run = wandb.init(project=project, reinit=True)
     wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}2layers_weight_decay_modified".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen, args.batch_size)
 
     if intermediate:
@@ -263,6 +306,18 @@ if __name__ == "__main__":
                 log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
                 if torch.isnan(torch.norm(param.grad.view(-1))):
                     raise Exception("Nan Gradient")
+
+            if args.taskName == "addition":
+                for i, val in enumerate(batch['generationTokens']):
+                    idx = deepcopy(val)
+                    gen_ans = test_model.generate(idx, 10)
+                    gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
+                                                   clean_up_tokenization_spaces=True)
+                    true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][i, 0, :], skip_special_tokens=True,
+                                                    clean_up_tokenization_spaces=True)
+                    train_total += 1
+                    train_correct += compute_exact_match(gen_ans, true_ans)
+
             opt.step()
             scheduler.step()
             test_model.memory.memory = {}
@@ -370,11 +425,38 @@ if __name__ == "__main__":
                         print("Saved {}".format(chkpt_name))
                         best_acc = acc
 
+                elif args.taskName == "addition":
+                    test_matches = 0
+                    test_total = 0
+                    for b in test_dl:
+                        t_out, _ = test_model.forward(b)
 
+                        test_losses.append(t_out.loss.item())
+                        for i, val in enumerate(b['generationTokens']):
+                            idx = deepcopy(val)
+                            gen_ans = test_model.generate(idx, 10)
+                            gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
+                                                           clean_up_tokenization_spaces=True)
+                            true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][i, 0, :],
+                                                            skip_special_tokens=True, clean_up_tokenization_spaces=True)
+                            test_total += 1
+                            test_matches += compute_exact_match(gen_ans, true_ans)
+                        test_model.memory.memory = {}
+                    avg_test = sum(test_losses) / len(test_losses)
+                    avg_match = test_matches / test_total
+                    wandb.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
+                    if best_acc < avg_match:
+                        chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
+                        save(test_model, opt, chkpt_name)
+                        print("Saved {}".format(chkpt_name))
+                        best_loss = avg_test
 
         wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
         if "snli" in args.data_path:
             wandb.log({"epoch": epoch, 'average train acc': train_correct / train_total})
+        if args.taskName == "addition":
+            wandb.log({'epoch': epoch,
+                       'train exact match': train_correct / train_total})
 
 
 

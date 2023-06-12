@@ -606,3 +606,147 @@ class SimpleSQuADDataset(Dataset):
             'task_start': start_positions,
             'task_end': end_positions
         }
+
+class MyDataset(Dataset):
+    def __init__(self, n_examples: int, min_digits: int, max_digits: int, operation: str,
+                 orthography: str, base_number: int, invert_question: bool, invert_answer: bool,
+                 balance: bool):
+
+        self.operation = operation
+        self.orthography = orthography
+        self.invert_answer = invert_answer
+        self.invert_question = invert_question
+        self.base_number = base_number
+        self.max_digits = max_digits
+        if self.base_number != 10:
+            assert self.orthography != 'words', 'Cannot convert to words when base is different than 10.'
+            assert self.operation == 'addition', 'Cannot perform {self.operation} when base is different than 10.'
+
+        if self.invert_question or self.invert_answer:
+            assert self.orthography != 'words', 'Cannot invert number when ortography = "words".'
+
+        if balance:
+            self.examples = []
+            for _ in range(n_examples):
+                example = []
+                for _ in range(2):
+                    max_digits_i = random.randint(min_digits, max_digits)
+                    min_number = int((max_digits_i - 1) * '9') + 1
+                    max_number = int(max_digits_i * '9')
+                    example.append(random.randint(min_number, max_number))
+                self.examples.append(example)
+        else:
+            self.examples = [
+                (random.randint(0, int(max_digits * '9')), random.randint(0, int(max_digits * '9')))
+                for _ in range(n_examples)]
+
+    def __len__(self):
+        return len(self.examples)
+
+    def __getitem__(self, idx):
+        first_term, second_term = self.examples[idx]
+
+        if self.operation == 'addition':
+            operation_term = 'plus'
+            result = first_term + second_term
+        elif self.operation == 'subtraction':
+            operation_term = 'minus'
+            result = first_term - second_term
+        else:
+            raise Exception(f'Invalid operation: {self.operation}')
+
+        first_term = self.convert_number(first_term, invert_number=self.invert_question)
+        second_term = self.convert_number(second_term, invert_number=self.invert_question)
+        answer = self.convert_number(result, invert_number=self.invert_answer)
+
+        return first_term, second_term, operation_term, answer
+
+    def convert_number(self, number: int, invert_number: bool) -> str:
+        number = str(number)
+        if self.base_number != 10:
+            number = convert_to_base(num=int(number), base=self.base_number)
+
+        if self.orthography == 'decimal':
+            return convert_to_character(
+                number=number, separator='', invert_number=invert_number,
+                max_digits=-1)
+        elif self.orthography == 'character':
+            return convert_to_character(
+                number=number, separator=' ', invert_number=invert_number,
+                max_digits=-1)
+        elif self.orthography == 'character_fixed':
+            return convert_to_character(
+                number=number, separator=' ', invert_number=invert_number,
+                max_digits=self.max_digits)
+        elif self.orthography == 'underscore':
+            return convert_to_character(
+                number=number, separator='_', invert_number=invert_number,
+                max_digits=-1)
+        elif self.orthography == 'words':
+            raise NotImplementedError
+        elif self.orthography == '10based':
+            raise NotImplementedError
+        elif self.orthography == '10ebased':
+            raise NotImplementedError
+        else:
+            raise Exception(f'Wrong orthography: {self.orthography}')
+
+
+class SimpleMathDataset(Dataset):
+
+    def __init__(self, dataset, tokenizerMLM, tokenizerTask, max_length):
+        self.max_length = max_length
+        self.base_dataset = dataset
+        self.tokenizerMLM = tokenizerMLM
+        self.tokenizerTask = tokenizerTask
+
+    def __len__(self):
+        return len(self.base_dataset)
+
+    def __getitem__(self, idx):
+        #         print(self.base_dataset.__getitem__(idx))
+        first, second, op, answer = self.base_dataset.__getitem__(idx)
+
+        new_tok = "<OP>"
+
+        sentence = 'Q: What is {} {} {}? A: {}'.format(first, new_tok, second, answer)
+        sentence_minus_answer = 'Q: What is {} {} {}? A: '.format(first, new_tok, second)
+
+        nonceMLM = self.tokenizerMLM.convert_tokens_to_ids(new_tok)
+        nonceTask = self.tokenizerTask.convert_tokens_to_ids(new_tok)
+
+        if self.tokenizerMLM.model_max_length:
+            mlm_length = self.tokenizerMLM.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for MLM")
+
+        if self.tokenizerTask.model_max_length:
+            task_length = self.tokenizerTask.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for TaskLM")
+
+        tokensMLM = self.tokenizerMLM(sentence,
+                                      max_length=self.max_length,
+                                      truncation=True,
+                                      padding='max_length',
+                                      return_tensors='pt')
+
+        tokensTask = self.tokenizerTask(sentence,
+                                        max_length=self.max_length,
+                                        truncation=True,
+                                        padding='max_length',
+                                        return_tensors='pt')
+        task_labels = tokensTask['input_ids'].clone()
+        task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
+
+        generationTokens = self.tokenizerTask(sentence_minus_answer,
+                                              truncation=True,
+                                              return_tensors='pt')
+        return {
+            'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'task_inputs': tokensTask,
+            'task_labels': task_labels,
+            'nonceMLM': nonceMLM,
+            'nonceTask': nonceTask,
+            'generationTokens': generationTokens
+        }

@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-from transformers.modeling_outputs import MaskedLMOutput, QuestionAnsweringModelOutput
+from transformers.modeling_outputs import MaskedLMOutput, QuestionAnsweringModelOutput, \
+    CausalLMOutputWithCrossAttentions
 
 from modules.memory import OnlineProtoNet
 from modules.utils import combine_layers
@@ -476,3 +477,179 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
         )
 
         return out_vals, losses
+
+
+class MorphMemoryModelGPT(nn.Module):
+
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type="MLP"):
+        super().__init__()
+
+        self.layers = layers
+        self.device = device
+        self.mask_token_id = mask_token_id
+        self.firstLM = firstLM.to(device)
+        self.secondLM = secondLM.to(device)
+
+        self.freeze_roberta()
+
+        self.memory = OnlineProtoNet(memory_config, self.device)
+        self.emb_type = emb_type
+
+        if self.emb_type == "MLP":
+            self.emb_gen = MLP(self.firstLM.config.hidden_size, 384, self.secondLM.config.hidden_size)
+
+        elif self.emb_type == "Transformer":
+            encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=1).to(self.device)
+            self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
+
+        self.nonces = nonces  # for referencing embedding location
+
+        initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+        m_first = torch.mean(self.firstLM.roberta.embeddings.word_embeddings.weight[:initial_first_ind, :], dim=0)
+        m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
+        for i, nonce in enumerate(nonces):
+            with torch.no_grad():
+                self.secondLM.get_input_embeddings().weight[-i, :] = m_second
+                self.firstLM.roberta.embeddings.word_embeddings.weight[nonce, :] = m_first
+
+        self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
+                                                                self.secondLM.config.model_type,
+                                                                memory_config.agg_method)
+
+    def freeze_roberta(self, tune_tok=False):
+        for parameter in self.firstLM.parameters():
+            parameter.requires_grad = False
+
+        #         if tune_tok:
+        #             self.firstLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
+        for parameter in self.secondLM.parameters():
+            parameter.requires_grad = False
+
+    #         self.secondLM.lm_head.bias.requires_grad=True
+    #         self.secondLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
+
+    def forward(self, batch):
+
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        nonceMLM = batch["nonceMLM"]
+        nonceTask = batch['nonceTask']
+        if 'task_labels' in batch:
+            task_labels = batch["task_labels"].to(self.device)
+
+        else:
+            task_labels = None
+
+        b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
+
+        new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
+
+        mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
+        mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
+
+        first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
+
+        first_hidden = first_out.hidden_states
+
+        combined = combine_layers(first_hidden, self.layers)
+
+        chunked = torch.chunk(combined, b)  # get different embeds per nonce, shape = k x max_len x hidden
+
+        # embedding generator + store in memory
+        losses = []
+        for i, chunk in enumerate(chunked):
+            msk = (new_inputs[i] == self.mask_token_id)  # mask all but the outputs for the mask
+            #             if self.emb_type == "Transformer":
+            #                 generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
+            #                                                                                                            2)  # permute for shape, mask, permute back
+
+            embed_ids = msk.nonzero(as_tuple=True)
+
+            #             if self.emb_type == "Transformer":
+            #                 nonce_embeds = generated_embeds[embed_ids[0], embed_ids[1], :]
+
+            #             elif self.emb_type == "MLP":
+            nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
+
+            self.memory.store(nonceTask[i].item(), nonce_embeds)
+
+        # now do task specific stuff
+        b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
+
+        task_ids = task_inputs["input_ids"].reshape((b_task * k_task, l_task))  # reshape so we have n x seq_len
+        task_attn = task_inputs["attention_mask"].reshape((b_task * k_task, l_task))
+
+        if 'task_labels' in batch:
+            task_labels = task_labels.reshape((b_task * k_task, l_task))
+
+        new_w = self.get_new_weights(task="Task")
+        input_embeds = F.embedding(task_ids, new_w)
+
+        outputs = self.secondLM.transformer(
+            inputs_embeds=input_embeds,
+            attention_mask=task_attn,
+            output_hidden_states=True
+        )
+
+        lm_logits = F.linear(outputs[0], new_w)
+        loss_fct = nn.CrossEntropyLoss()
+
+        shift_logits = lm_logits[..., :-1, :].contiguous()
+        shift_labels = task_labels[..., 1:].contiguous()
+
+        lm_loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+        # #         l = nn.CrossEntropyLoss(reduction="none")
+
+        out_vals = CausalLMOutputWithCrossAttentions(
+            loss=lm_loss,
+            logits=lm_logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions
+        )
+        return out_vals, losses
+
+    def swap_with_mask(self, inputs, k_examples, nonces):
+        inp = inputs.clone()
+        exp = torch.Tensor(nonces).unsqueeze(1).expand_as(inputs[:, 0, :]).to(
+            self.device)  # expand for a set of sentences across batches
+        exp = exp.unsqueeze(1).repeat(1, k_examples, 1)  # repeat for k sentences
+        inp[inp == exp] = self.mask_token_id
+
+        return inp
+
+    @torch.no_grad()
+    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None, do_sample=False):
+        idx = idx.to(self.device)
+        for i in range(max_new_tokens):
+            new_w = self.get_new_weights("Task")
+            input_embeds = F.embedding(idx['input_ids'], new_w)
+            outputs = self.secondLM.transformer(
+                inputs_embeds=input_embeds,
+                attention_mask=idx['attention_mask'].unsqueeze(0),
+                output_hidden_states=True
+            )
+            lm_logits = F.linear(outputs[0], new_w)
+            lm_logits = lm_logits[:, -1, :] / temperature
+
+            if top_k is not None:
+                v, _ = torch.topk(lm_logits, min(top_k, lm_logits.size(-1)))
+                lm_logits[lm_logits < v[:, [-1]]] = -float('Inf')
+
+            probs = F.softmax(lm_logits, dim=-1)
+
+            if do_sample:
+                idx_next = torch.multinomial(probs, num_samples=1)
+            else:
+                idx_next = torch.argmax(probs, keepdim=True)
+
+            idx['input_ids'] = torch.cat((idx['input_ids'], idx_next), dim=1)
+            last_element = idx['attention_mask'][:, -1].unsqueeze(1)
+            idx['attention_mask'] = torch.cat([idx['attention_mask'], last_element], dim=1)
+
+        return idx
+
+    def re_encode(self, input_ids, w):
+
+        return torch.nn.functional.embedding(input_ids.squeeze(0), w)

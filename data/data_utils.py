@@ -1,7 +1,19 @@
 from datasets import load_from_disk
+from torch.utils.data import default_collate
 import torch
 import random
 import functools
+
+
+def custom_collate_fn(batch):
+    baseline = [{k: v for k, v in b.items() if k != "generationTokens"} for b in batch]
+    base_collate = default_collate(baseline)
+
+    genToks = [b["generationTokens"] for b in batch]
+
+    base_collate["generationTokens"] = genToks
+
+    return base_collate
 
 def collate_fn_replace_corrupted(batch, dataset):
     """Collate function that allows to replace corrupted examples in the
@@ -46,3 +58,21 @@ def load_chimera(trial):
 
 def make_sanity_nonce(word):
     return "<{}>".format(word)
+
+def convert_to_base(num: int, base: int, numerals="0123456789abcdefghijklmnopqrstuvwxyz") -> str:
+    return ((num == 0) and numerals[0]) or (
+        convert_to_base(num // base, base, numerals).lstrip(numerals[0]) + numerals[num % base])
+
+
+def convert_to_character(number: str, separator: str, invert_number: bool, max_digits: int) -> str:
+    if max_digits > 0:
+        signal = None
+        if number[0] == '-':
+            signal = '-'
+            number = number[1:]
+        number = (max_digits - len(number)) * '0' + number
+        if signal:
+            number = signal + number
+    if invert_number:
+        number = number[::-1]
+    return separator.join(number)
