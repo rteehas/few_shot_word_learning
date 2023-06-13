@@ -330,15 +330,15 @@ if __name__ == "__main__":
                     raise Exception("Nan Gradient")
 
             if args.taskName == "addition":
-                for ind, val in enumerate(batch['generationTokens']):
-                    idx = deepcopy(val)
-                    gen_ans = test_model.generate(idx, 10)
-                    gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
-                                                   clean_up_tokenization_spaces=True)
-                    true_ans = tokenizerTask.decode(batch['task_inputs']['input_ids'][ind, 0, :], skip_special_tokens=True,
-                                                    clean_up_tokenization_spaces=True)
-                    train_total += 1
-                    train_correct += compute_exact_match(gen_ans, true_ans)
+                # for ind, val in enumerate(batch['generationTokens']):
+                #     idx = deepcopy(val)
+                #     gen_ans = test_model.generate(idx, 10)
+                #     gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
+                #                                    clean_up_tokenization_spaces=True)
+                #     true_ans = tokenizerTask.decode(batch['task_inputs']['input_ids'][ind, 0, :], skip_special_tokens=True,
+                #                                     clean_up_tokenization_spaces=True)
+                #     train_total += 1
+                #     train_correct += compute_exact_match(gen_ans, true_ans)
 
             opt.step()
             scheduler.step()
@@ -454,20 +454,20 @@ if __name__ == "__main__":
                         t_out, _ = test_model.forward(b)
 
                         test_losses.append(t_out.loss.item())
-                        for ind, val in enumerate(b['generationTokens']):
-                            idx = deepcopy(val)
-                            gen_ans = test_model.generate(idx, 10)
-                            gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
-                                                           clean_up_tokenization_spaces=True)
-                            true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][ind, 0, :],
-                                                            skip_special_tokens=True, clean_up_tokenization_spaces=True)
-                            test_total += 1
-                            test_matches += compute_exact_match(gen_ans, true_ans)
+                        # for ind, val in enumerate(b['generationTokens']):
+                        #     idx = deepcopy(val)
+                        #     gen_ans = test_model.generate(idx, 10)
+                        #     gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
+                        #                                    clean_up_tokenization_spaces=True)
+                        #     true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][ind, 0, :],
+                        #                                     skip_special_tokens=True, clean_up_tokenization_spaces=True)
+                        #     test_total += 1
+                        #     test_matches += compute_exact_match(gen_ans, true_ans)
                         test_model.memory.memory = {}
                     avg_test = sum(test_losses) / len(test_losses)
                     avg_match = test_matches / test_total
-                    wandb.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
-                    if best_acc < avg_match:
+                    wandb.log({'epoch': epoch, 'average test loss': avg_test})
+                    if avg_test < best_loss:
                         chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
                         save(test_model, opt, chkpt_name)
                         print("Saved {}".format(chkpt_name))
@@ -476,9 +476,9 @@ if __name__ == "__main__":
         wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
         if "snli" in args.data_path:
             wandb.log({"epoch": epoch, 'average train acc': train_correct / train_total})
-        if args.taskName == "addition":
-            wandb.log({'epoch': epoch,
-                       'train exact match': train_correct / train_total})
+        # if args.taskName == "addition":
+        #     wandb.log({'epoch': epoch,
+        #                'train exact match': train_correct / train_total})
 
 
 
