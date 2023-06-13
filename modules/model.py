@@ -483,50 +483,6 @@ class MorphMemoryModelGPT(MorphMemoryModel):
     def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
         super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
 
-        self.layers = layers
-        self.device = device
-        self.mask_token_id = mask_token_id
-        self.firstLM = firstLM.to(device)
-        self.secondLM = secondLM.to(device)
-
-        self.freeze_roberta()
-
-        self.memory = OnlineProtoNet(memory_config, self.device)
-        self.emb_type = emb_type
-
-        if self.emb_type == "MLP":
-            self.emb_gen = MLP(self.firstLM.config.hidden_size, 384, self.secondLM.config.hidden_size)
-
-        elif self.emb_type == "Transformer":
-            encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=1).to(self.device)
-            self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
-
-        self.nonces = nonces  # for referencing embedding location
-
-        initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
-        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
-        m_first = torch.mean(self.firstLM.roberta.embeddings.word_embeddings.weight[:initial_first_ind, :], dim=0)
-        m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
-        for i, nonce in enumerate(nonces):
-            with torch.no_grad():
-                self.secondLM.get_input_embeddings().weight[-i, :] = m_second
-                self.firstLM.roberta.embeddings.word_embeddings.weight[nonce, :] = m_first
-
-        self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
-                                                                self.secondLM.config.model_type,
-                                                                memory_config.agg_method)
-
-    def freeze_roberta(self, tune_tok=False):
-        for parameter in self.firstLM.parameters():
-            parameter.requires_grad = False
-
-        #         if tune_tok:
-        #             self.firstLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
-        for parameter in self.secondLM.parameters():
-            parameter.requires_grad = False
-
-    #         self.secondLM.lm_head.bias.requires_grad=True
-    #         self.secondLM.roberta.embeddings.word_embeddings.weight.requires_grad = True
 
     def forward(self, batch):
 
