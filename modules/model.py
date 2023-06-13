@@ -477,6 +477,41 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
 
         return out_vals, losses
 
+    def forward_inner(self, batch):
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        nonceMLM = batch["nonceMLM"]
+
+        b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
+
+        new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
+
+        new_labels = new_inputs.clone()
+        new_labels[new_inputs != self.mask_token_id] = -100
+
+        mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
+        mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
+
+        new_w = self.get_new_weights('Task')
+
+        embs = F.embedding(mlm_ids, new_w)
+
+        outputs = self.secondLM.roberta(
+            inputs_embeds=embs,
+            attention_mask=mlm_attn,
+            output_hidden_states=True
+        )
+
+        preds = self.calc_first_lmhead(new_w, outputs[0])
+        loss_fct = nn.CrossEntropyLoss()
+        lm_loss = loss_fct(preds.view(-1, self.firstLM.config.vocab_size), new_labels.view(-1))
+        out_vals = MaskedLMOutput(
+            loss=lm_loss,
+            logits=preds,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions
+        )
+
+        return out_vals
 
 class MorphMemoryModelGPT(MorphMemoryModel):
 

@@ -5,6 +5,7 @@ import os
 from copy import deepcopy
 from scipy import stats
 import json
+import higher
 
 import wandb
 import torch
@@ -42,6 +43,7 @@ def get_arguments():
     parser.add_argument("--emb_gen", type=str, default='mlp')
     parser.add_argument("--strategy", type=str, default='mask')
     parser.add_argument("--batch_size", type=int, default=5)
+    parser.add_argument("--maml", action="store_false")
     return parser
 
 
@@ -264,6 +266,7 @@ if __name__ == "__main__":
     best_corr = 0
     best_acc = 0
     best_loss = 10000
+    n_inner_iter = 3
     for epoch in range(epochs):
         train_corr = []
         train_losses = []
@@ -273,15 +276,33 @@ if __name__ == "__main__":
             log_dict = {}
 
             test_model.train()
+            if not args.maml:
+                test_model.zero_grad()
+                opt.zero_grad()
+                out, losses = test_model(batch)
 
-            test_model.zero_grad()
-            opt.zero_grad()
-            out, losses = test_model(batch)
+                loss = out.loss
 
-            loss = out.loss
+                log_dict['train loss'] = loss.item()
+                train_losses.append(loss.item())
+            elif args.maml:
+                inner_opt = torch.optim.SGD(filter(lambda p: p.requires_grad, test_model.parameters()),
+                                            lr=1e-5)
+                with higher.innerloop_ctx(
+                        test_model, inner_opt, copy_initial_weights=False
+                ) as (fnet, diffopt):
+                    inner_losses = []
+                    for _ in range(n_inner_iter):
+                        maml_out = test_model.forward_inner(batch)
 
-            log_dict['train loss'] = loss.item()
-            train_losses.append(loss.item())
+                        inner_losses.append(maml_out.loss.item())
+                        diffopt.step(maml_out.loss)
+
+                    query_out, l = test_model(batch)
+                    log_dict['average maml inner loss'] = sum(inner_losses) / len(inner_losses)
+                    log_dict['maml outer loss'] =  query_out.loss.item()
+                    query_out.loss.backward()
+
             if "sanity" in args.data_path:
                 nonce_loss = get_nonce_loss(batch, out, test_model.secondLM.vocab_size, device)
                 if nonce_loss:
@@ -309,12 +330,12 @@ if __name__ == "__main__":
                     raise Exception("Nan Gradient")
 
             if args.taskName == "addition":
-                for i, val in enumerate(batch['generationTokens']):
+                for ind, val in enumerate(batch['generationTokens']):
                     idx = deepcopy(val)
                     gen_ans = test_model.generate(idx, 10)
                     gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
                                                    clean_up_tokenization_spaces=True)
-                    true_ans = tokenizerTask.decode(batch['task_inputs']['input_ids'][i, 0, :], skip_special_tokens=True,
+                    true_ans = tokenizerTask.decode(batch['task_inputs']['input_ids'][ind, 0, :], skip_special_tokens=True,
                                                     clean_up_tokenization_spaces=True)
                     train_total += 1
                     train_correct += compute_exact_match(gen_ans, true_ans)
@@ -433,12 +454,12 @@ if __name__ == "__main__":
                         t_out, _ = test_model.forward(b)
 
                         test_losses.append(t_out.loss.item())
-                        for i, val in enumerate(b['generationTokens']):
+                        for ind, val in enumerate(b['generationTokens']):
                             idx = deepcopy(val)
                             gen_ans = test_model.generate(idx, 10)
                             gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
                                                            clean_up_tokenization_spaces=True)
-                            true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][i, 0, :],
+                            true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][ind, 0, :],
                                                             skip_special_tokens=True, clean_up_tokenization_spaces=True)
                             test_total += 1
                             test_matches += compute_exact_match(gen_ans, true_ans)
