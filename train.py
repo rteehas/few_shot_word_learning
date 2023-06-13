@@ -6,6 +6,7 @@ from copy import deepcopy
 from scipy import stats
 import json
 import higher
+import csv
 
 import wandb
 import torch
@@ -19,7 +20,9 @@ from datasets import load_from_disk
 
 from configs.config import *
 from eval_utils import compute_exact_match
-from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI, MorphMemoryModelGPT
+from modules.buffer import RetrievalBuffer
+from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI, MorphMemoryModelGPT, \
+    MorphMemoryModelGPTOnline
 from data.data_utils import *
 from train_utils import *
 from data.few_shot_datasets import *
@@ -44,6 +47,7 @@ def get_arguments():
     parser.add_argument("--strategy", type=str, default='mask')
     parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--maml", action="store_true")
+    parser.add_argument("--word_path", type=str, default='')
     return parser
 
 
@@ -80,11 +84,22 @@ if __name__ == "__main__":
         secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
         nonces = ["<OP>"]
         dataset_name = "addition"
+    elif args.taskName == "online":
+        tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
+        tokenizerTask.pad_token = tokenizerTask.unk_token
+
+        with open(args.word_path, 'r') as f:
+            reader = csv.reader(f)
+            rows = [row for row in reader]
+        words = rows[0]
+        nonces = list(map(lambda w: "<{}_new>".format(w), words))
     else:
         raise NotImplementedError("{} not implemented".format(args.taskName))
 
     if args.taskName != "addition":
         dataset = load_from_disk(args.data_path)
+        if args.taskName == "online":
+            dataset = dataset.filter(lambda ex: len(ex['text']) > 10)
 
 
     if "chimera" in args.data_path:
@@ -102,6 +117,8 @@ if __name__ == "__main__":
     elif "snli" in args.data_path:
         nonces = list(map(snli_nonce, list(set(dataset['replace']))))
         dataset_name = "snli"
+    elif "wikitext" in args.data_path:
+        dataset_name = "online"
     else:
         if args.taskName != "addition":
             raise NotImplementedError("Not implemented for this dataset")
@@ -188,6 +205,15 @@ if __name__ == "__main__":
 
         train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
         test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
+    elif "wikitext" in args.data_path:
+        split = dataset.train_test_split(0.2)
+
+        train = SimpleOnlineDataset(split['train'], tokenizerMLM, tokenizerTask)
+        train_dl = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True)
+
+        test = SimpleOnlineDataset(split['test'], tokenizerMLM, tokenizerTask)
+        test_dl = DataLoader(test, batch_size=args.batch_size, shuffle=True, drop_last=True)
+
     else:
         if args.taskName == "addition":
             train_size = 10000
@@ -216,7 +242,7 @@ if __name__ == "__main__":
         else:
             raise NotImplementedError
 
-    new_toks = tokenizerTask.convert_tokens_to_ids(nonces)
+    new_toks = tokenizerMLM.convert_tokens_to_ids(nonces)
 
 
     epochs = args.epochs
@@ -232,6 +258,11 @@ if __name__ == "__main__":
     elif "sanity" in args.data_path:
         test_model = MorphMemoryModel(firstLM, secondLM, new_toks,
                                   device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
+    elif "wikitext" in args.data_path:
+        buffer = RetrievalBuffer(15, 5, new_toks)
+        test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
+                                               tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
+            device)
     else:
         if "addition" in args.taskName:
             test_model = MorphMemoryModelGPT(firstLM, secondLM, new_toks, device, [-1],
@@ -256,7 +287,7 @@ if __name__ == "__main__":
         project = "fewshot_model_testing_redone"
 
     run = wandb.init(project=project, reinit=True)
-    wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}2layers_weight_decay_modified_maml={}".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen, args.batch_size, args.maml)
+    wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}_6layers_weight_decay_modified_maml={}".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen, args.batch_size, args.maml)
 
     if intermediate:
         wandb.run.name = wandb.run.name + "_intermediate"
@@ -279,6 +310,15 @@ if __name__ == "__main__":
             if not args.maml:
                 test_model.zero_grad()
                 opt.zero_grad()
+
+                if args.taskName == "online":
+                    buffer.store(batch)
+                    to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids']]
+                    for n in to_sample:
+                        sample = buffer.retrieve(n)
+                        for s in sample:
+                            test_model.process_memories(s)
+
                 out, losses = test_model(batch)
 
                 loss = out.loss
@@ -329,7 +369,7 @@ if __name__ == "__main__":
                 if torch.isnan(torch.norm(param.grad.view(-1))):
                     raise Exception("Nan Gradient")
 
-            if args.taskName == "addition":
+            # if args.taskName == "addition":
                 # for ind, val in enumerate(batch['generationTokens']):
                 #     idx = deepcopy(val)
                 #     gen_ans = test_model.generate(idx, 10)
@@ -467,6 +507,28 @@ if __name__ == "__main__":
                     avg_test = sum(test_losses) / len(test_losses)
                     avg_match = test_matches / test_total
                     wandb.log({'epoch': epoch, 'average test loss': avg_test})
+                    if avg_test < best_loss:
+                        chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
+                        save(test_model, opt, chkpt_name)
+                        print("Saved {}".format(chkpt_name))
+                        best_loss = avg_test
+
+                elif args.taskName == "online":
+                    test_model.eval()
+                    test_losses = []
+                    for b in test_dl:
+                        to_sample = [n for n in buffer.nonces if n in b['mlm_inputs']['input_ids']]
+                        for n in to_sample:
+                            sample = buffer.retrieve(n)
+                            for s in sample:
+                                test_model.process_memories(s)
+                        t_out, _ = test_model.forward(b)
+
+                        test_losses.append(t_out.loss.item())
+                        test_model.memory.memory = {}
+                    avg_test = sum(test_losses) / len(test_losses)
+                    wandb.log({'epoch': epoch, 'average test loss': avg_test})
+
                     if avg_test < best_loss:
                         chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
                         save(test_model, opt, chkpt_name)

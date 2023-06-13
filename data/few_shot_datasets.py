@@ -750,3 +750,47 @@ class SimpleMathDataset(Dataset):
             'nonceTask': nonceTask,
             'generationTokens': generationTokens
         }
+
+
+class SimpleOnlineDataset(Dataset):
+    def __init__(self, data, tokenizerMLM, tokenizerTask):
+        self.text = data['text']
+        self.tokenizerMLM = tokenizerMLM
+        self.tokenizerTask = tokenizerTask
+
+    def __len__(self):
+        return len(self.text)
+
+    def __getitem__(self, idx):
+        text = self.text[idx]
+
+        if self.tokenizerMLM.model_max_length:
+            mlm_length = self.tokenizerMLM.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for MLM")
+
+        if self.tokenizerTask.model_max_length:
+            task_length = self.tokenizerTask.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for TaskLM")
+
+        tokensMLM = self.tokenizerMLM(text,
+                                      max_length=mlm_length,
+                                      truncation=True,
+                                      padding='max_length',
+                                      return_tensors='pt')
+
+        tokensTask = self.tokenizerTask(text,
+                                        max_length=task_length,
+                                        truncation=True,
+                                        padding='max_length',
+                                        return_tensors='pt')
+
+        task_labels = tokensTask['input_ids'].clone()
+        task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
+
+        return {
+            'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'task_inputs': tokensTask,
+            'task_labels': task_labels
+        }
