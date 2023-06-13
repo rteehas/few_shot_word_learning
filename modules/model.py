@@ -659,13 +659,13 @@ class MorphMemoryModelGPTOnline(MorphMemoryModelGPT):
                                                                        self.secondLM.config.model_type,
                                                                        memory_config.agg_method)
 
-    @torch.no_grad
+    @torch.no_grad()
     def process_memories(self, mem):
 
         b, l = mem["input_ids"].shape
-        mlm_ids = self.swap_with_mask(mem['input_ids'])
+        mlm_ids = self.swap_with_mask(mem['input_ids'].to(self.device))
         #         mlm_ids = new_inputs.reshape((b * k, l))
-        mlm_attn = mem["attention_mask"]
+        mlm_attn = mem["attention_mask"].to(self.device)
         first_out = self.firstLM(input_ids=mlm_ids,
                                  attention_mask=mlm_attn, output_hidden_states=True)
 

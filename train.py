@@ -87,7 +87,7 @@ if __name__ == "__main__":
     elif args.taskName == "online":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
         tokenizerTask.pad_token = tokenizerTask.unk_token
-
+        secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
         with open(args.word_path, 'r') as f:
             reader = csv.reader(f)
             rows = [row for row in reader]
@@ -312,7 +312,7 @@ if __name__ == "__main__":
                 opt.zero_grad()
 
                 if args.taskName == "online":
-                    buffer.store(batch)
+                    buffer.store(batch['mlm_inputs'].to(device))
                     to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids']]
                     for n in to_sample:
                         sample = buffer.retrieve(n)
