@@ -279,6 +279,8 @@ if __name__ == "__main__":
 
     warmup_steps = 3e2
     eval_ind = len(train_dl) // 10
+    if args.taskName == "addition":
+        eval_ind=30
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
     intermediate = args.intermediate_loss
     if args.taskName == "addition":
