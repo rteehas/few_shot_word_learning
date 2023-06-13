@@ -136,14 +136,14 @@ if __name__ == "__main__":
     # memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
-        weight_decay = 0.1
+        weight_decay = 0.01
 
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
-        weight_decay = 0.15
+        weight_decay = 0.015
     elif args.memory == "cls":
         memory_config = TransformerCLSConfig()
-        weight_decay = 0.15
+        weight_decay = 0.015
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
