@@ -405,9 +405,59 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
 
 class MorphMemoryModelSNLI(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen='MLP'):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen):
         super(MorphMemoryModelSNLI, self).__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
                                                    memory_config, emb_gen)
+    def store_mem(self, batch):
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        nonceMLM = batch["nonceMLM"]
+        nonceTask = batch["nonceTask"]
+        if 'task_labels' in batch:
+            task_labels = batch["task_labels"].to(self.device)
+
+        else:
+            task_labels = None
+
+        b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
+
+        new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
+
+        mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
+        mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
+
+        first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
+
+        first_hidden = first_out.hidden_states
+
+        combined = combine_layers(first_hidden, self.layers)
+
+        chunked = torch.chunk(combined, b)  # get different embeds per nonce, shape = k x max_len x hidden
+
+        # embedding generator + store in memory
+        losses = []
+        for i, chunk in enumerate(chunked):
+            msk = (new_inputs[i] == self.mask_token_id)  # mask all but the outputs for the mask
+            if self.emb_type == "Transformer":
+                generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
+                                                                                                           2)  # permute for shape, mask, permute back
+
+            embed_ids = msk.nonzero(as_tuple=True)
+
+            if self.emb_type == "Transformer":
+                nonce_embeds = generated_embeds[embed_ids[0], embed_ids[1], :]
+
+            elif self.emb_type == "MLP":
+                nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
+
+            preds = self.emb_decoder(nonce_embeds)
+            labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
+            l_fct = nn.CrossEntropyLoss()
+            inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
+            losses.append(inter_loss)
+
+            self.memory.store(nonceMLM[i].item(), nonce_embeds)
 
     def forward(self, batch):
 
