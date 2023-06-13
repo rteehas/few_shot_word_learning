@@ -43,7 +43,7 @@ def get_arguments():
     parser.add_argument("--emb_gen", type=str, default='mlp')
     parser.add_argument("--strategy", type=str, default='mask')
     parser.add_argument("--batch_size", type=int, default=5)
-    parser.add_argument("--maml", action="store_false")
+    parser.add_argument("--maml", action="store_true")
     return parser
 
 
@@ -256,7 +256,7 @@ if __name__ == "__main__":
         project = "fewshot_model_testing_redone"
 
     run = wandb.init(project=project, reinit=True)
-    wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}2layers_weight_decay_modified".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen, args.batch_size)
+    wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}2layers_weight_decay_modified_maml={}".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen, args.batch_size, args.maml)
 
     if intermediate:
         wandb.run.name = wandb.run.name + "_intermediate"
