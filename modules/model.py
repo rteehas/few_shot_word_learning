@@ -513,6 +513,13 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
 
         return out_vals
 
+    def calc_first_lmhead(self, new_w, last_hidden):
+        x = self.firstLM.lm_head.dense(last_hidden)
+        x = gelu(x)
+        x = self.firstLM.lm_head.layer_norm(x)
+        x = F.linear(x, new_w, bias=self.firstLM.lm_head.bias)
+        return x
+
 class MorphMemoryModelGPT(MorphMemoryModel):
 
     def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
