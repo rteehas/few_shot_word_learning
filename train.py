@@ -328,6 +328,8 @@ if __name__ == "__main__":
             elif args.maml:
                 inner_opt = torch.optim.SGD(filter(lambda p: p.requires_grad, test_model.parameters()),
                                             lr=1e-5)
+
+                test_model(batch)
                 with higher.innerloop_ctx(
                         test_model, inner_opt, copy_initial_weights=False
                 ) as (fnet, diffopt):
