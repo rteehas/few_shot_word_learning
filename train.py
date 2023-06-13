@@ -343,10 +343,11 @@ if __name__ == "__main__":
                         inner_losses.append(maml_out.loss.item())
                         diffopt.step(maml_out.loss)
 
-                    query_out, l = test_model(batch)
+                    out, l = test_model(batch)
                     log_dict['average maml inner loss'] = sum(inner_losses) / len(inner_losses)
-                    log_dict['maml outer loss'] =  query_out.loss.item()
-                    query_out.loss.backward()
+                    log_dict['maml outer loss'] =  out.loss.item()
+                    #out.loss.backward()
+                    loss = out.loss
 
             if "sanity" in args.data_path:
                 nonce_loss = get_nonce_loss(batch, out, test_model.secondLM.vocab_size, device)

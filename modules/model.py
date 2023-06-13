@@ -716,7 +716,6 @@ class MorphMemoryModelGPTOnline(MorphMemoryModelGPT):
                                                                        self.secondLM.config.model_type,
                                                                        memory_config.agg_method)
 
-    @torch.no_grad()
     def process_memories(self, mem):
 
         b, l = mem["input_ids"].shape
