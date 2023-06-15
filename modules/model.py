@@ -710,7 +710,7 @@ class MorphMemoryModelGPTOnline(MorphMemoryModelGPT):
         initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
 
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
-        self.second_list = list(range(initial_first_ind, self.secondLM.config.vocab_size))
+        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
 
         self.model_name = "online_memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
                                                                        self.secondLM.config.model_type,
