@@ -22,7 +22,7 @@ from configs.config import *
 from eval_utils import compute_exact_match
 from modules.buffer import RetrievalBuffer
 from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI, MorphMemoryModelGPT, \
-    MorphMemoryModelGPTOnline
+    MorphMemoryModelGPTOnline, MorphMemoryModelGPTSubtoken
 from data.data_utils import *
 from train_utils import *
 from data.few_shot_datasets import *
@@ -84,6 +84,13 @@ if __name__ == "__main__":
         secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
         nonces = ["<OP>"]
         dataset_name = "addition"
+    elif args.taskName == "addition_subtok":
+        tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
+        tokenizerTask.pad_token = tokenizerTask.unk_token
+        secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
+        nonces = ["<NUM1>", "<NUM2>"]
+        dataset_name = "addition_subtok"
+
     elif args.taskName == "online":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
         tokenizerTask.pad_token = tokenizerTask.unk_token
@@ -96,7 +103,7 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError("{} not implemented".format(args.taskName))
 
-    if args.taskName != "addition":
+    if "addition" not in args.taskName:
         dataset = load_from_disk(args.data_path)
         if args.taskName == "online":
             dataset = dataset.filter(lambda ex: len(ex['text']) > 10)
@@ -120,7 +127,7 @@ if __name__ == "__main__":
     elif "wikitext" in args.data_path:
         dataset_name = "online"
     else:
-        if args.taskName != "addition":
+        if "addition" not in args.taskName:
             raise NotImplementedError("Not implemented for this dataset")
 
     # add support for other datasets
@@ -239,6 +246,31 @@ if __name__ == "__main__":
             test_set = SimpleMathDataset(test, tokenizerMLM, tokenizerTask, None)
 
             test_dl = DataLoader(test_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=custom_collate_fn)
+        elif args.taskName == "addition_subtok":
+            train_size = 10000
+            operation = "addition"
+            orthography = "decimal"
+            base_number = 10
+            min_digits_train, max_digits_train = 2, 5
+            train = MyDataset(n_examples=train_size, min_digits=min_digits_train,
+                              max_digits=max_digits_train,
+                              operation=operation, orthography=orthography,
+                              base_number=base_number, invert_question=False,
+                              invert_answer=False, balance=True)
+
+            test = MyDataset(n_examples=1000, min_digits=min_digits_train,
+                             max_digits=max_digits_train,
+                             operation=operation, orthography=orthography,
+                             base_number=base_number, invert_question=False,
+                             invert_answer=False, balance=True)
+
+            train_set = SimpleMathDatasetSubtok(train, tokenizerMLM, tokenizerTask, 30)
+            train_dl = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=custom_collate_fn)
+
+            test_set = SimpleMathDatasetSubtok(test, tokenizerMLM, tokenizerTask, None)
+
+            test_dl = DataLoader(test_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=custom_collate_fn)
+
         else:
             raise NotImplementedError
 
@@ -264,8 +296,12 @@ if __name__ == "__main__":
                                                tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
             device)
     else:
-        if "addition" in args.taskName:
+        if args.taskName == "addition":
             test_model = MorphMemoryModelGPT(firstLM, secondLM, new_toks, device, [-1],
+                                             tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
+                device)
+        elif args.taskName == "addition_subtok":
+            test_model = MorphMemoryModelGPTSubtoken(firstLM, secondLM, new_toks, device, [-1, -2],
                                              tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
                 device)
         else:
@@ -281,9 +317,10 @@ if __name__ == "__main__":
     eval_ind = len(train_dl) // 10
     if args.taskName == "addition":
         eval_ind=30
+
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
     intermediate = args.intermediate_loss
-    if args.taskName == "addition":
+    if "addition" in args.taskName:
         project = "fewshot_addition"
     else:
         project = "fewshot_model_testing_redone"
@@ -493,22 +530,22 @@ if __name__ == "__main__":
                         print("Saved {}".format(chkpt_name))
                         best_acc = acc
 
-                elif args.taskName == "addition":
+                elif "addition" in args.taskName:
                     test_matches = 0
                     test_total = 0
                     for b in test_dl:
                         t_out, _ = test_model.forward(b)
 
                         test_losses.append(t_out.loss.item())
-                        # for ind, val in enumerate(b['generationTokens']):
-                        #     idx = deepcopy(val)
-                        #     gen_ans = test_model.generate(idx, 10)
-                        #     gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
-                        #                                    clean_up_tokenization_spaces=True)
-                        #     true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][ind, 0, :],
-                        #                                     skip_special_tokens=True, clean_up_tokenization_spaces=True)
-                        #     test_total += 1
-                        #     test_matches += compute_exact_match(gen_ans, true_ans)
+                        for ind, val in enumerate(b['generationTokens']):
+                            idx = deepcopy(val)
+                            gen_ans = test_model.generate(idx, 10)
+                            gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
+                                                           clean_up_tokenization_spaces=True)
+                            true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][ind, 0, :],
+                                                            skip_special_tokens=True, clean_up_tokenization_spaces=True)
+                            test_total += 1
+                            test_matches += compute_exact_match(gen_ans, true_ans)
                         test_model.memory.memory = {}
                     avg_test = sum(test_losses) / len(test_losses)
                     avg_match = test_matches / test_total
