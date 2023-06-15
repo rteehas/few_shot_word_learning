@@ -814,3 +814,151 @@ class MorphMemoryModelGPTOnline(MorphMemoryModelGPT):
             attentions=outputs.attentions
         )
         return out_vals, losses
+
+class MorphMemoryModelGPTSubtoken(MorphMemoryModel):
+
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
+        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
+        initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+
+        self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
+        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+
+        self.pe = PositionalEncoding(self.firstLM.config.hidden_size, self.firstLM.config.max_position_embeddings)
+
+    def make_mask(self, ids, spans):
+
+        mask = torch.zeros_like(ids).to(self.device)
+        for i, span in enumerate(spans):
+            mask[i, span] = 1.
+
+        return mask
+
+    def forward(self, batch):
+
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        firstSpan = batch["firstSpan"]
+        secondSpan = batch['secondSpan']
+
+        if 'task_labels' in batch:
+            task_labels = batch["task_labels"].to(self.device)
+
+        else:
+            task_labels = None
+
+        b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
+
+        #         new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
+
+        mlm_ids = mlm_inputs['input_ids'].reshape((b * k, l))  # reshape so we have n x seq_len
+        mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
+
+        first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
+
+        first_hidden = first_out.hidden_states
+
+        combined = combine_layers(first_hidden, self.layers)
+
+        combined = self.pe(combined)
+        # embedding generator + store in memory
+        losses = []
+        spans = [firstSpan, secondSpan]
+        for i, nonce in enumerate(self.second_list):
+            msk = self.make_mask(mlm_ids, spans[i])
+            if self.emb_type == "Transformer":
+                generated_embeds = self.emb_gen(combined.permute(1, 0, 2), src_key_padding_mask=~msk.bool()).permute(1,
+                                                                                                                     0,
+                                                                                                                     2)  # permute for shape, mask, permute back
+            else:
+                raise NotImplementedError
+
+            # mean pooling per seq
+            nonce_embeds = (generated_embeds * msk.unsqueeze(2)).sum(dim=1) / msk.unsqueeze(2).sum(dim=1)
+
+            self.memory.store(nonce, nonce_embeds)
+
+        # now do task specific stuff
+        b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
+
+        task_ids = task_inputs["input_ids"].reshape((b_task * k_task, l_task))  # reshape so we have n x seq_len
+        task_attn = task_inputs["attention_mask"].reshape((b_task * k_task, l_task))
+
+        if 'task_labels' in batch:
+            task_labels = task_labels.reshape((b_task * k_task, l_task))
+
+        new_w = self.get_new_weights(task="Task")
+        input_embeds = F.embedding(task_ids, new_w)
+
+        outputs = self.secondLM.transformer(
+            inputs_embeds=input_embeds,
+            attention_mask=task_attn,
+            output_hidden_states=True
+        )
+
+        lm_logits = F.linear(outputs[0], new_w)
+        loss_fct = nn.CrossEntropyLoss()
+
+        shift_logits = lm_logits[..., :-1, :].contiguous()
+        shift_labels = task_labels[..., 1:].contiguous()
+
+        lm_loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+        # #         l = nn.CrossEntropyLoss(reduction="none")
+
+        out_vals = CausalLMOutputWithCrossAttentions(
+            loss=lm_loss,
+            logits=lm_logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions
+        )
+        return out_vals, losses
+
+    @torch.no_grad()
+    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None, do_sample=False):
+        idx = idx.to(self.device)
+        for i in range(max_new_tokens):
+            new_w = self.get_new_weights("Task")
+            input_embeds = F.embedding(idx['input_ids'], new_w)
+            outputs = self.secondLM.transformer(
+                inputs_embeds=input_embeds,
+                attention_mask=idx['attention_mask'].unsqueeze(0),
+                output_hidden_states=True
+            )
+            lm_logits = F.linear(outputs[0], new_w)
+            lm_logits = lm_logits[:, -1, :] / temperature
+
+            if top_k is not None:
+                v, _ = torch.topk(lm_logits, min(top_k, lm_logits.size(-1)))
+                lm_logits[lm_logits < v[:, [-1]]] = -float('Inf')
+
+            probs = F.softmax(lm_logits, dim=-1)
+
+            if do_sample:
+                idx_next = torch.multinomial(probs, num_samples=1)
+            else:
+                idx_next = torch.argmax(probs, keepdim=True)
+
+            idx['input_ids'] = torch.cat((idx['input_ids'], idx_next), dim=1)
+            last_element = idx['attention_mask'][:, -1].unsqueeze(1)
+            idx['attention_mask'] = torch.cat([idx['attention_mask'], last_element], dim=1)
+
+        return idx
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+
+        # Compute the positional encodings once in log space.
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        x = x + self.pe[:, :x.size(1)]
+        return x

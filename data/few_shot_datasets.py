@@ -794,3 +794,69 @@ class SimpleOnlineDataset(Dataset):
             'task_inputs': tokensTask,
             'task_labels': task_labels
         }
+
+
+class SimpleMathDatasetSubtok(Dataset):
+
+    def __init__(self, dataset, tokenizerMLM, tokenizerTask, max_length):
+        self.max_length = max_length
+        self.base_dataset = dataset
+        self.tokenizerMLM = tokenizerMLM
+        self.tokenizerTask = tokenizerTask
+
+    def __len__(self):
+        return len(self.base_dataset)
+
+    def __getitem__(self, idx):
+        #         print(self.base_dataset.__getitem__(idx))
+        first, second, op, answer = self.base_dataset.__getitem__(idx)
+
+        tok1 = "<NUM1>"
+        tok2 = "<NUM2>"
+        sentence = 'Q: What is {} plus {}? A: '.format(first, second)
+
+        sentence_task = 'Q: What is {} plus {}? A: {}'.format(tok1, tok2, answer)
+
+        if np.random.binomial(n=1, p=0.5) == 1:
+            sentence_gen = 'Q: What is {} plus {}? A: '.format(tok2, tok1)
+        else:
+            sentence_gen = 'Q: What is {} plus {}? A: '.format(tok1, tok2)
+
+        if self.tokenizerMLM.model_max_length:
+            mlm_length = self.tokenizerMLM.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for MLM")
+
+        if self.tokenizerTask.model_max_length:
+            task_length = self.tokenizerTask.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for TaskLM")
+
+        tokensMLM = self.tokenizerMLM(sentence,
+                                      max_length=self.max_length,
+                                      truncation=True,
+                                      padding='max_length',
+                                      return_tensors='pt')
+
+        tokensTask = self.tokenizerTask(sentence_task,
+                                        max_length=self.max_length,
+                                        truncation=True,
+                                        padding='max_length',
+                                        return_tensors='pt')
+        task_labels = tokensTask['input_ids'].clone()
+        task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
+
+        firstSpan = get_span(sentence, first, self.tokenizerMLM)
+        secondSpan = get_span(sentence, second, self.tokenizerMLM)
+
+        generationTokens = self.tokenizerTask(sentence_gen,
+                                              truncation=True,
+                                              return_tensors='pt')
+        return {
+            'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'task_inputs': tokensTask,
+            'task_labels': task_labels,
+            'firstSpan': firstSpan,
+            'secondSpan': secondSpan,
+            'generationTokens': generationTokens
+        }

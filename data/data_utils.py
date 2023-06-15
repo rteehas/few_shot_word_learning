@@ -3,17 +3,24 @@ from torch.utils.data import default_collate
 import torch
 import random
 import functools
+import numpy as np
 
 
 def custom_collate_fn(batch):
-    baseline = [{k: v for k, v in b.items() if k != "generationTokens"} for b in batch]
+    baseline = [{k: v for k, v in b.items() if k not in ['firstSpan', 'secondSpan', "generationTokens"]} for b in batch]
     base_collate = default_collate(baseline)
 
+    firstSpan = [b["firstSpan"] for b in batch]
+    secondSpan = [b["secondSpan"] for b in batch]
+
+    base_collate["firstSpan"] = firstSpan
+    base_collate['secondSpan'] = secondSpan
     genToks = [b["generationTokens"] for b in batch]
 
     base_collate["generationTokens"] = genToks
 
     return base_collate
+
 
 def collate_fn_replace_corrupted(batch, dataset):
     """Collate function that allows to replace corrupted examples in the
@@ -76,3 +83,18 @@ def convert_to_character(number: str, separator: str, invert_number: bool, max_d
     if invert_number:
         number = number[::-1]
     return separator.join(number)
+
+
+def get_span(sent, word, tokenizer):
+    enc = tokenizer.encode_plus(sent)
+    word_id = None
+    for i in enc.word_ids():
+        if i is not None:
+            start, end = enc.word_to_chars(i)
+            if word == sent[start: end]:
+                word_id = i
+
+    if word_id is not None:
+        return np.where(np.array(enc.word_ids()) == word_id)[0].tolist()
+    else:
+        raise Exception("Word {} not in sentence {}".format(word, sent))
