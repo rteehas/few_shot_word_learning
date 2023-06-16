@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from transformers.modeling_outputs import MaskedLMOutput, QuestionAnsweringModelOutput, \
     CausalLMOutputWithCrossAttentions
-
+import math
 from modules.memory import OnlineProtoNet
 from modules.utils import combine_layers
 from modules.embedding_generators import MLP

@@ -314,7 +314,7 @@ if __name__ == "__main__":
                 )
 
     warmup_steps = 3e2
-    eval_ind = len(train_dl) // 10
+    eval_ind = len(train_dl) // 2
     if args.taskName == "addition":
         eval_ind=30
 
@@ -428,7 +428,8 @@ if __name__ == "__main__":
             test_model.memory.memory = {}
             wandb.log(log_dict)
 
-            if (i + 1) % eval_ind == 0 or (i+1) % len(train_dl) == 0:
+            if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
+                opt.zero_grad(set_to_none=True)
                 test_model.eval()
                 if "chimera" in args.data_path:
                     corrs = []
@@ -533,6 +534,7 @@ if __name__ == "__main__":
                 elif "addition" in args.taskName:
                     test_matches = 0
                     test_total = 0
+                    test_losses = []
                     for b in test_dl:
                         t_out, _ = test_model.forward(b)
 
