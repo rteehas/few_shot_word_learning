@@ -561,7 +561,7 @@ if __name__ == "__main__":
                         test_model.memory.memory = {}
                     avg_test = sum(test_losses) / len(test_losses)
                     avg_match = test_matches / test_total
-                    wandb.log({'epoch': epoch, 'average test loss': avg_test})
+                    wandb.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
                     if avg_test < best_loss:
                         chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
                         save(test_model, opt, chkpt_name)
