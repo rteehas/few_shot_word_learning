@@ -7,6 +7,7 @@ from scipy import stats
 import json
 import higher
 import csv
+from accelerate import Accelerator
 
 import wandb
 import torch
@@ -55,8 +56,9 @@ if __name__ == "__main__":
     args = get_arguments().parse_args()
 
     print("Arguments: ", args)
-
+    accelerator = Accelerator()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = accelerator.device
     layers = [-1] # add arg to pass this
 
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
@@ -281,6 +283,7 @@ if __name__ == "__main__":
     lr = args.lr
     epsilon = 1e-8
 
+
     if "squad" in args.data_path:
         test_model = MorphMemoryModelSQuAD(firstLM, secondLM, new_toks,
                                       device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
@@ -320,6 +323,12 @@ if __name__ == "__main__":
 
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
     intermediate = args.intermediate_loss
+
+    test_model.to(device)
+    model, optimizer, training_dataloader, scheduler = accelerator.prepare(
+        test_model, opt, train_dl, scheduler
+    )
+
     if "addition" in args.taskName:
         project = "fewshot_addition"
     else:
@@ -405,7 +414,8 @@ if __name__ == "__main__":
             else:
                 final_loss = loss
 
-            final_loss.backward()
+            # final_loss.backward()
+            accelerator.backward(final_loss)
             torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
             for name, param in test_model.emb_gen.named_parameters():
                 log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
