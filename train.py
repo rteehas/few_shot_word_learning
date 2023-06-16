@@ -539,6 +539,7 @@ if __name__ == "__main__":
                         t_out, _ = test_model.forward(b)
 
                         test_losses.append(t_out.loss.item())
+                        
                         for ind, val in enumerate(b['generationTokens']):
                             idx = deepcopy(val)
                             gen_ans = test_model.generate(idx, 10)
