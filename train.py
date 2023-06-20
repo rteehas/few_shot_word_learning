@@ -325,7 +325,7 @@ if __name__ == "__main__":
     intermediate = args.intermediate_loss
 
     test_model.to(device)
-    model, optimizer, training_dataloader, scheduler = accelerator.prepare(
+    test_model, opt, train_dl, scheduler = accelerator.prepare(
         test_model, opt, train_dl, scheduler
     )
 

@@ -838,18 +838,19 @@ class SimpleMathDatasetSubtok(Dataset):
                                       padding='max_length',
                                       return_tensors='pt')
 
-        tokensTask = self.tokenizerTask(sentence_task,
+        tokensTask = self.tokenizerTask(self.tokenizerTask.bos_token + sentence_task + self.tokenizerTask.eos_token,
                                         max_length=self.max_length,
                                         truncation=True,
                                         padding='max_length',
                                         return_tensors='pt')
+
         task_labels = tokensTask['input_ids'].clone()
         task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
 
         firstSpan = get_span(sentence, first, self.tokenizerMLM)
         secondSpan = get_span(sentence, second, self.tokenizerMLM)
 
-        generationTokens = self.tokenizerTask(sentence_gen,
+        generationTokens = self.tokenizerTask(tokenizerTask.bos_token + sentence_gen,
                                               truncation=True,
                                               return_tensors='pt')
         return {
