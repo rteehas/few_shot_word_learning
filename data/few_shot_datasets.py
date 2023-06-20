@@ -850,7 +850,7 @@ class SimpleMathDatasetSubtok(Dataset):
         firstSpan = get_span(sentence, first, self.tokenizerMLM)
         secondSpan = get_span(sentence, second, self.tokenizerMLM)
 
-        generationTokens = self.tokenizerTask(tokenizerTask.bos_token + sentence_gen,
+        generationTokens = self.tokenizerTask(self.tokenizerTask.bos_token + sentence_gen,
                                               truncation=True,
                                               return_tensors='pt')
         return {
