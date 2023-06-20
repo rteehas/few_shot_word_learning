@@ -817,10 +817,7 @@ class SimpleMathDatasetSubtok(Dataset):
 
         sentence_task = 'Q: What is {} plus {}? A: {}'.format(tok1, tok2, answer)
 
-        if np.random.binomial(n=1, p=0.5) == 1:
-            sentence_gen = 'Q: What is {} plus {}? A: '.format(tok2, tok1)
-        else:
-            sentence_gen = 'Q: What is {} plus {}? A: '.format(tok1, tok2)
+        sentence_gen = 'Q: What is {} plus {}? A: '.format(tok1, tok2)
 
         if self.tokenizerMLM.model_max_length:
             mlm_length = self.tokenizerMLM.model_max_length
