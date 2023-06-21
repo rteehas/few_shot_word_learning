@@ -780,7 +780,7 @@ class SimpleOnlineDataset(Dataset):
                                       padding='max_length',
                                       return_tensors='pt')
 
-        tokensTask = self.tokenizerTask(text,
+        tokensTask = self.tokenizerTask(self.tokenizerTask.bos_token + text + self.tokenizerTask.eos_token,
                                         max_length=task_length,
                                         truncation=True,
                                         padding='max_length',
