@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class RetrievalBuffer():
 
     def __init__(self, max_num, k, nonce_list):
@@ -34,9 +35,12 @@ class RetrievalBuffer():
                 self.buffer[key].pop()
 
     def retrieve(self, nonce):
-        if len(self.buffer[nonce]) > self.k:
-            return np.random.choice(self.buffer[nonce], size=self.k).tolist()
+        if nonce not in self.buffer:
+            return []
         else:
-            return self.buffer[nonce]
+            if len(self.buffer[nonce]) > self.k:
+                return np.random.choice(self.buffer[nonce], size=self.k).tolist()
+            else:
+                return self.buffer[nonce]
 
 
