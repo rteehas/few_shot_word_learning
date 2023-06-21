@@ -20,8 +20,8 @@ class RetrievalBuffer():
                 b, k, l = tups
                 uq = list(set([(i ,j) for i ,j in zip(b ,k)]))
                 for (i ,j) in uq:
-                    mem = {'input_ids': mlm_inputs['input_ids'][i ,j ,:].clone().unsqueeze(0),
-                           'attention_mask': mlm_inputs['attention_mask'][i ,j ,:].clone().unsqueeze(0)}
+                    mem = {'input_ids': mlm_inputs['input_ids'][i ,j ,:].detach().unsqueeze(0),
+                           'attention_mask': mlm_inputs['attention_mask'][i ,j ,:].detach().unsqueeze(0)}
 
                     if n in self.buffer:
                         self.buffer[n] = [mem] + self.buffer[n]

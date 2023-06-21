@@ -360,8 +360,7 @@ if __name__ == "__main__":
                 opt.zero_grad()
 
                 if args.taskName == "online":
-                    buffer.store(batch['mlm_inputs'].to(device))
-                    buffer.cleanup()
+
                     to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids']]
                     for n in to_sample:
                         sample = buffer.retrieve(n)
@@ -374,6 +373,7 @@ if __name__ == "__main__":
 
                 log_dict['train loss'] = loss.item()
                 train_losses.append(loss.item())
+
             elif args.maml:
                 inner_opt = torch.optim.SGD(filter(lambda p: p.requires_grad, test_model.parameters()),
                                             lr=1e-5)
@@ -436,6 +436,9 @@ if __name__ == "__main__":
             opt.step()
             scheduler.step()
             test_model.memory.memory = {}
+            if args.taskName == "online":
+                buffer.store(batch['mlm_inputs'].to(device))
+                buffer.cleanup()
             wandb.log(log_dict)
 
             if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
