@@ -435,6 +435,10 @@ if __name__ == "__main__":
 
             opt.step()
             scheduler.step()
+            with torch.no_grad():
+                for v in test_model.memory.memory:
+                    for val in test_model.memory.memory[v]:
+                        del val
             test_model.memory.memory = {}
             if args.taskName == "online":
                 buffer.store(batch['mlm_inputs'].to(device))
@@ -535,6 +539,10 @@ if __name__ == "__main__":
                         num_correct = (preds == true_ans).sum()
                         total_correct += num_correct
                         total += b['task_labels'].shape[0]
+                        with torch.no_grad():
+                            for v in test_model.memory.memory:
+                                for val in test_model.memory.memory[v]:
+                                    del val
                         test_model.memory.memory = {}
                     acc = total_correct / total
                     wandb.log({'epoch': epoch, 'average test accuracy': acc})
@@ -562,6 +570,11 @@ if __name__ == "__main__":
                                                             skip_special_tokens=True, clean_up_tokenization_spaces=True)
                             test_total += 1
                             test_matches += compute_exact_match(gen_ans, true_ans)
+
+                        with torch.no_grad():
+                            for v in test_model.memory.memory:
+                                for val in test_model.memory.memory[v]:
+                                    del val
                         test_model.memory.memory = {}
                     avg_test = sum(test_losses) / len(test_losses)
                     avg_match = test_matches / test_total
