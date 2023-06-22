@@ -743,10 +743,15 @@ class MorphMemoryModelGPTOnline(MorphMemoryModelGPT):
 
         for nonce1, nonce2 in zip(self.first_list, self.second_list):
             if nonce1 in mem["input_ids"]:
-                msk = (mem["input_ids"] == nonce1).nonzero()
-                embed_ids = msk.nonzero(as_tuple=True)
-                nonce_embeds = self.emb_gen(combined[embed_ids[0], embed_ids[1], :])
+                msk = (mem["input_ids"] == nonce1)
 
+                embed_ids = msk.nonzero(as_tuple=True)
+                if len(combined.shape) == 2:
+                    nonce_embeds = self.emb_gen(combined[embed_ids[1], :])
+                elif len(combined.shape) == 3:
+                    nonce_embeds = self.emb_gen(combined[embed_ids[0], embed_ids[1], :])
+                else:
+                    raise NotImplementedError("Wrong shape for Combined")
                 self.memory.store(nonce2, nonce_embeds)
 
     def swap_with_mask(self, inputs):
