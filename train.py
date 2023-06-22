@@ -364,8 +364,8 @@ if __name__ == "__main__":
                     to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids']]
                     for n in to_sample:
                         sample = buffer.retrieve(n)
-                        for s in sample:
-                            test_model.process_memories(s)
+                        if sample is not None:
+                            test_model.process_memories(sample)
 
                 out, losses = test_model(batch)
 
@@ -592,8 +592,8 @@ if __name__ == "__main__":
                         to_sample = [n for n in buffer.nonces if n in b['mlm_inputs']['input_ids']]
                         for n in to_sample:
                             sample = buffer.retrieve(n)
-                            for s in sample:
-                                test_model.process_memories(s)
+                            if sample is not None:
+                                test_model.process_memories(sample)
                         t_out, _ = test_model.forward(b)
 
                         test_losses.append(t_out.loss.item())
