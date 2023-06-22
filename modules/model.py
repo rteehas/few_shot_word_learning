@@ -216,12 +216,17 @@ class MorphMemoryModel(nn.Module):
             raise NotImplementedError
 
         w = ref_model.get_input_embeddings().weight.clone()
-        w.requires_grad = True
-        for ind in self.memory.memory:
-            msk = torch.zeros_like(w).to(self.device)
-            msk[ind, :] = 1.
-            w = w * (~msk.bool()) + msk * self.memory.retrieve(ind)
+        n, hidden = w.shape
 
+        w.requires_grad = True
+
+        msk = torch.zeros_like(w).to(self.device)
+        msk2 = torch.zeros_like(w).to(self.device)
+        for key in self.memory.memory:
+            msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), self.memory.retrieve(self.device))
+            msk2[key, :] = 1.
+
+        return w * (~msk2.bool()) + msk
         # a = []
         # for i in range(w.shape[0]):
         #     if i in self.memory.memory:
@@ -229,7 +234,6 @@ class MorphMemoryModel(nn.Module):
         #     else:
         #         a.append(w[i, :].unsqueeze(0))
         # return torch.cat(a, dim=0)
-        return w
 
     def update_weights(self):
         first_wt = nn.Embedding(self.firstLM.config.vocab_size,
