@@ -741,7 +741,7 @@ class MorphMemoryModelGPTOnline(MorphMemoryModelGPT):
             if nonce1 in mem["input_ids"]:
                 msk = (mem["input_ids"] == nonce1).nonzero()
                 embed_ids = msk.nonzero(as_tuple=True)
-                nonce_embeds = self.emb_gen(combined[embed_ids[1]])
+                nonce_embeds = self.emb_gen(combined[embed_ids[0], embed_ids[1], :])
 
                 self.memory.store(nonce2, nonce_embeds)
 
