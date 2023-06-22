@@ -294,7 +294,7 @@ if __name__ == "__main__":
         test_model = MorphMemoryModel(firstLM, secondLM, new_toks,
                                   device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
     elif "wikitext" in args.data_path:
-        buffer = RetrievalBuffer(15, args.num_examples, new_toks)
+        buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM)
         test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
                                                tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
             device)
