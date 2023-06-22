@@ -223,7 +223,7 @@ class MorphMemoryModel(nn.Module):
         msk = torch.zeros_like(w).to(self.device)
         msk2 = torch.zeros_like(w).to(self.device)
         for key in self.memory.memory:
-            msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), self.memory.retrieve(self.device))
+            msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), self.memory.retrieve(key))
             msk2[key, :] = 1.
 
         return w * (~msk2.bool()) + msk
