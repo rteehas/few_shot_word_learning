@@ -691,6 +691,32 @@ class MyDataset(Dataset):
         else:
             raise Exception(f'Wrong orthography: {self.orthography}')
 
+class CalcDataset(Dataset):
+
+    def __init__(self, n_examples: int, min_digits: int, max_digits: int, operation: str,
+                 orthography: str, base_number: int, invert_question: bool, invert_answer: bool,
+                 balance: bool):
+
+        self.math_dataset = MyDataset(n_examples, min_digits,
+                                      max_digits, operation, orthography,
+                                      base_number, invert_question, invert_answer, balance)
+    def __len__(self):
+        return len(self.math_dataset)
+
+    def __getitem__(self, idx):
+        first_term, second_term, operation_term, answer = self.math_dataset.__getitem__(idx)
+
+        random_idx = np.random.choice(len(self.math_dataset))
+
+        random_pair = self.math_dataset.examples[random_idx]
+
+        simple_statement = "{0} plus {1} = [CALC] {0} plus {1} -> {2} [\CALC]".format(first_term, second_term, answer)
+        complex_statement = "[CALC] {0} plus {1} -> {2} [\CALC] plus {3} = ".format(first_term, second_term, answer, random_pair[0])
+
+        complex_ans = answer + random_pair[0]
+
+        return simple_statement, complex_statement, complex_ans
+
 
 class SimpleMathDataset(Dataset):
 
@@ -758,6 +784,9 @@ class SimpleOnlineDataset(Dataset):
         self.tokenizerMLM = tokenizerMLM
         self.tokenizerTask = tokenizerTask
 
+        if "roberta" in self.tokenizerTask.name_or_path:
+            self.data_collator = DataCollatorForLanguageModeling(self.tokenizerTask, mlm=True, mlm_probability=0.15)
+
     def __len__(self):
         return len(self.text)
 
@@ -780,18 +809,37 @@ class SimpleOnlineDataset(Dataset):
                                       padding='max_length',
                                       return_tensors='pt')
 
-        tokensTask = self.tokenizerTask(self.tokenizerTask.bos_token + text + self.tokenizerTask.eos_token,
-                                        max_length=task_length,
-                                        truncation=True,
-                                        padding='max_length',
-                                        return_tensors='pt')
+        if "gpt2" in self.tokenizerTask.name_or_path:
+            tokensTask = self.tokenizerTask(self.tokenizerTask.bos_token + text + self.tokenizerTask.eos_token,
+                                            max_length=task_length,
+                                            truncation=True,
+                                            padding='max_length',
+                                            return_tensors='pt')
 
-        task_labels = tokensTask['input_ids'].clone()
-        task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
+            task_labels = tokensTask['input_ids'].clone()
+            task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
+            task_inputs = tokensTask
+
+        elif "roberta" in self.tokenizerTask.name_or_path:
+            tokensTask = self.tokenizerTask(text,
+                                            max_length=task_length,
+                                            padding='max_length',
+                                            truncation=True,
+                                            return_tensors='pt',
+                                            return_special_tokens_mask=True)
+
+            task_ids, task_labels = self.data_collator.torch_mask_tokens(inputs=tokensTask['input_ids'],
+                                                                         special_tokens_mask=tokensTask[
+                                                                             "special_tokens_mask"])
+
+            masked_task = deepcopy(tokensTask)
+
+            masked_task['input_ids'] = task_ids
+            task_inputs = masked_task
 
         return {
             'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
-            'task_inputs': tokensTask,
+            'task_inputs': task_inputs,
             'task_labels': task_labels
         }
 
