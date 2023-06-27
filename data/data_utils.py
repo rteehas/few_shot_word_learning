@@ -9,12 +9,12 @@ import numpy as np
 def custom_collate_fn(batch):
     baseline = [{k: v for k, v in b.items() if k not in ['firstSpan', 'secondSpan', "generationTokens"]} for b in batch]
     base_collate = default_collate(baseline)
+    if "firstSpan" in batch[0] and "secondSpan" in batch[0]:
+        firstSpan = [b["firstSpan"] for b in batch]
+        secondSpan = [b["secondSpan"] for b in batch]
 
-    firstSpan = [b["firstSpan"] for b in batch]
-    secondSpan = [b["secondSpan"] for b in batch]
-
-    base_collate["firstSpan"] = firstSpan
-    base_collate['secondSpan'] = secondSpan
+        base_collate["firstSpan"] = firstSpan
+        base_collate['secondSpan'] = secondSpan
     genToks = [b["generationTokens"] for b in batch]
 
     base_collate["generationTokens"] = genToks
