@@ -979,3 +979,117 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         x = x + self.pe[:, :x.size(1)]
         return x
+
+class MorphMemoryModelMLMOnline(MorphMemoryModel):
+
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
+        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
+        initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+
+        self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
+        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+
+        self.model_name = "MLMonline_memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
+                                                                       self.secondLM.config.model_type,
+                                                                       memory_config.agg_method)
+
+    def process_memories(self, mem):
+
+        b, l = mem["input_ids"].shape
+        mlm_ids = self.swap_with_mask(mem['input_ids'].to(self.device))
+        #         mlm_ids = new_inputs.reshape((b * k, l))
+        mlm_attn = mem["attention_mask"].to(self.device)
+        first_out = self.firstLM(input_ids=mlm_ids,
+                                 attention_mask=mlm_attn, output_hidden_states=True)
+
+        first_hidden = first_out.hidden_states
+
+        combined = combine_layers(first_hidden, self.layers)
+
+        for nonce1, nonce2 in zip(self.first_list, self.second_list):
+            if nonce1 in mem["input_ids"]:
+                msk = (mem["input_ids"] == nonce1)
+
+                embed_ids = msk.nonzero(as_tuple=True)
+                if len(combined.shape) == 2:
+                    nonce_embeds = self.emb_gen(combined[embed_ids[1], :])
+                elif len(combined.shape) == 3:
+                    nonce_embeds = self.emb_gen(combined[embed_ids[0], embed_ids[1], :])
+                else:
+                    raise NotImplementedError("Wrong shape for Combined")
+                self.memory.store(nonce2, nonce_embeds)
+
+    def swap_with_mask(self, inputs):
+        inp = inputs.clone()
+        for nonce in self.first_list:
+            inp[inp == nonce] = self.mask_token_id
+        return inp
+
+    def forward(self, batch):
+
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        if 'task_labels' in batch:
+            task_labels = batch["task_labels"].to(self.device)
+
+        else:
+            task_labels = None
+
+        b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
+
+        new_inputs = self.swap_with_mask(mlm_inputs["input_ids"])  # replace nonce with mask
+
+        mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
+        mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
+
+        first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
+
+        first_hidden = first_out.hidden_states
+
+        combined = combine_layers(first_hidden, self.layers)
+
+        chunked = torch.chunk(combined, b)  # get different embeds per nonce, shape = k x max_len x hidden
+
+        # embedding generator + store in memory
+        losses = []
+        for nonce1, nonce2 in zip(self.first_list, self.second_list):
+            if nonce1 in mlm_inputs["input_ids"]:
+                msk = (mlm_inputs["input_ids"].reshape((b * k, l)) == nonce1)
+
+                embed_ids = msk.nonzero(as_tuple=True)
+                nonce_embeds = self.emb_gen(combined[embed_ids[0], embed_ids[1], :])
+
+                self.memory.store(nonce2, nonce_embeds)
+
+        # now do task specific stuff
+        b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
+
+        task_ids = task_inputs["input_ids"].reshape((b_task * k_task, l_task))  # reshape so we have n x seq_len
+        task_attn = task_inputs["attention_mask"].reshape((b_task * k_task, l_task))
+
+        if 'task_labels' in batch:
+            task_labels = task_labels.reshape((b_task * k_task, l_task))
+
+        new_w = self.get_new_weights(task="Task")
+        input_embeds = F.embedding(task_ids, new_w)
+
+        outputs = self.secondLM.roberta(
+            inputs_embeds=input_embeds,
+            attention_mask=task_attn,
+            output_hidden_states=True
+        )
+
+        preds = self.calc_second_lmhead(new_w, outputs[0])
+        loss_fct = nn.CrossEntropyLoss()
+        lm_loss = loss_fct(preds.view(-1, self.secondLM.config.vocab_size), task_labels.view(-1))
+        # #         l = nn.CrossEntropyLoss(reduction="none")
+
+        out_vals = MaskedLMOutput(
+            loss=lm_loss,
+            logits=preds,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions
+        )
+        return out_vals, losses
