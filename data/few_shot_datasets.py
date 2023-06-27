@@ -714,8 +714,8 @@ class CalcDataset(Dataset):
         complex_statement = "[CALC] {0} plus {1} -> {2} [\CALC] plus {3} = ".format(first_term, second_term, answer, random_pair[0])
 
         complex_ans = answer + random_pair[0]
-
-        return simple_statement, complex_statement, complex_ans
+        complex_api = "[CALC] {} plus {} -> ".format(answer, random_pair[0]) + "{} [\CALC]"
+        return simple_statement, complex_statement, complex_api, complex_ans
 
 
 class SimpleMathDataset(Dataset):
