@@ -32,6 +32,7 @@ from data.few_shot_datasets import *
 def get_arguments():
     parser = ArgumentParser()
     parser.add_argument("--lr", type=float, default=1e-6)
+    parser.add_argument("--percent_first", type=float, default=0.0)
     # parser.add_argument("--warmup", type=int, default=1e2)
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--data_path", type=str, default="")
@@ -91,6 +92,12 @@ if __name__ == "__main__":
         nonces = ["<NUM1>", "<NUM2>"]
         dataset_name = "addition_subtok"
 
+    elif args.taskName == "calc":
+        tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
+        secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
+        nonces = ["[CALC]", "[END_CALC]"]
+        dataset_name = "calc"
+
     elif args.taskName == "online":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
         tokenizerTask.pad_token = tokenizerTask.unk_token
@@ -103,7 +110,7 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError("{} not implemented".format(args.taskName))
 
-    if "addition" not in args.taskName:
+    if "addition" not in args.taskName and "calc" not in args.taskName:
         dataset = load_from_disk(args.data_path)
         if args.taskName == "online":
             dataset = dataset.filter(lambda ex: len(ex['text']) > 10)
@@ -162,7 +169,30 @@ if __name__ == "__main__":
         train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
         test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
     else:
-        raise NotImplementedError
+        if args.taskName == "calc":
+            train_size = 10000
+            operation = "addition"
+            orthography = "decimal"
+            base_number = 10
+            min_digits_train, max_digits_train = 2, 5
+            train = CalcDataset(n_examples=train_size, min_digits=min_digits_train,
+                                max_digits=max_digits_train,
+                                operation=operation, orthography=orthography,
+                                base_number=base_number, invert_question=False,
+                                invert_answer=False, balance=True)
+
+            test = CalcDataset(n_examples=1000, min_digits=min_digits_train,
+                               max_digits=max_digits_train,
+                               operation=operation, orthography=orthography,
+                               base_number=base_number, invert_question=False,
+                               invert_answer=False, balance=True)
+
+            train_set = SimpleCalcDataset(train, tokenizerMLM, tokenizerTask, 50, args.num_examples, args.percent_first)
+            train_dl = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=custom_collate_fn)
+
+            test_set = SimpleCalcDataset(test, tokenizerMLM, tokenizerTask, None, args.num_examples, args.percent_first)
+
+            test_dl = DataLoader(test_set, batch_size=args.batch_size, shuffle=True, drop_last=True, collate_fn=custom_collate_fn)
     # else:
     #     if args.taskName == "calc":
 
@@ -177,7 +207,11 @@ if __name__ == "__main__":
         test_model = load_model_partial(args.model_dir + args.checkpoint, test_model)
 
     else:
-        raise NotImplementedError
+        if args.taskName == "calc":
+            test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
+                                                   tokenizerMLM.mask_token_id, memory_config,
+                                                   emb_type='Transformer').to(device)
+            test_model = load_model_partial(args.model_dir + args.checkpoint, test_model)
 
     opt = AdamW(filter(lambda p: p.requires_grad, test_model.parameters()),
                 lr=lr,
@@ -186,7 +220,7 @@ if __name__ == "__main__":
                 )
 
     warmup_steps = 3e2
-    eval_ind = len(train_dl) // 2
+    eval_ind = len(train_dl) // 4
     if args.taskName == "addition":
         eval_ind = 30
 
@@ -203,7 +237,7 @@ if __name__ == "__main__":
     wandb.run.name = "finetuned_{}_{}examples_{}_{}_{}_bs={}_6layers_weight_decay_modified_maml={}".format(dataset_name,
                                                                                                  args.num_examples, lr,
                                                                                                  memory_config.agg_method)
-    eval_ind = 300
+    # eval_ind = 300
 
     best_corr = 0
     best_acc = 0
@@ -289,6 +323,27 @@ if __name__ == "__main__":
                         save(test_model, opt, chkpt_name)
                         print("Saved {}".format(chkpt_name))
                         best_acc = acc
+
+                elif "calc" == args.taskName:
+                    test_model.eval()
+                    test_losses = []
+                    for b in test_dl:
+                        t_out, _ = test_model.forward(b)
+
+                        test_losses.append(t_out.loss.item())
+                    with torch.no_grad():
+                        for v in test_model.memory.memory:
+                            for val in test_model.memory.memory[v]:
+                                del val
+                    test_model.memory.memory = {}
+                    avg_test = sum(test_losses) / len(test_losses)
+
+                    wandb.log({'epoch': epoch, 'average test loss': avg_test})
+                    if avg_test < best_loss:
+                        chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
+                        save(test_model, opt, chkpt_name)
+                        print("Saved {}".format(chkpt_name))
+                        best_loss = avg_test
 
         wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
         if "snli" in args.data_path:

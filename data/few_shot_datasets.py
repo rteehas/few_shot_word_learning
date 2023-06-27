@@ -710,11 +710,11 @@ class CalcDataset(Dataset):
 
         random_pair = self.math_dataset.examples[random_idx]
 
-        simple_statement = "{0} plus {1} = [CALC] {0} plus {1} -> {2} [\CALC]".format(first_term, second_term, answer)
-        complex_statement = "[CALC] {0} plus {1} -> {2} [\CALC] plus {3} = ".format(first_term, second_term, answer, random_pair[0])
+        simple_statement = "{0} plus {1} = [CALC] {0} plus {1} -> {2} [END_CALC]".format(first_term, second_term, answer)
+        complex_statement = "[CALC] {0} plus {1} -> {2} [END_CALC] plus {3} = ".format(first_term, second_term, answer, random_pair[0])
 
-        complex_ans = answer + random_pair[0]
-        complex_api = "[CALC] {} plus {} -> ".format(answer, random_pair[0]) + "{} [\CALC]"
+        complex_ans = int(answer) + random_pair[0]
+        complex_api = "[CALC] {} plus {} -> ".format(answer, random_pair[0]) + "{} [END_CALC]"
         return simple_statement, complex_statement, complex_api, complex_ans
 
 
@@ -904,5 +904,81 @@ class SimpleMathDatasetSubtok(Dataset):
             'task_labels': task_labels,
             'firstSpan': firstSpan,
             'secondSpan': secondSpan,
+            'generationTokens': generationTokens
+        }
+
+
+class SimpleCalcDataset(Dataset):
+
+    def __init__(self, dataset, tokenizerMLM, tokenizerTask, max_length, n, complex_first=0.0):
+        self.max_length = max_length
+        self.base_dataset = dataset
+        self.tokenizerMLM = tokenizerMLM
+        self.tokenizerTask = tokenizerTask
+        self.n = n
+        self.complex_first = complex_first
+
+    def __len__(self):
+        return len(self.base_dataset)
+
+    def __getitem__(self, idx):
+        #         print(self.base_dataset.__getitem__(idx))
+        choice_idxs = np.random.choice(len(self.base_dataset), size=self.n - 1)
+
+        context = []
+
+        for i in choice_idxs:
+            simple, cplx, cplx_api, answer = self.base_dataset.__getitem__(i)
+            if np.random.binomial(n=1, p=self.complex_first) == 1:
+                context.append(cplx + cplx_api.format(answer))
+            else:
+                context.append(simple)
+
+        simple, cplx, cplx_api, answer = self.base_dataset.__getitem__(idx)
+
+        new_toks = ["[CALC]", "[END_CALC]"]
+
+        cplx_with_ans = cplx + cplx_api.format(answer)
+        print(answer)
+        print(cplx_with_ans)
+        nonceMLM = self.tokenizerMLM.convert_tokens_to_ids(new_toks)
+        nonceTask = self.tokenizerTask.convert_tokens_to_ids(new_toks)
+
+        if self.tokenizerMLM.model_max_length:
+            mlm_length = self.tokenizerMLM.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for MLM")
+
+        if self.tokenizerTask.model_max_length:
+            task_length = self.tokenizerTask.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for TaskLM")
+
+        context.append(simple)
+
+        tokensMLM = self.tokenizerMLM(context,
+                                      max_length=self.max_length,
+                                      truncation=True,
+                                      padding='max_length',
+                                      return_tensors='pt')
+
+        tokensTask = self.tokenizerTask(self.tokenizerTask.bos_token + cplx_with_ans + self.tokenizerTask.eos_token,
+                                        max_length=self.max_length,
+                                        truncation=True,
+                                        padding='max_length',
+                                        return_tensors='pt')
+
+        task_labels = tokensTask['input_ids'].clone()
+        task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
+
+        generationTokens = self.tokenizerTask(self.tokenizerTask.bos_token + cplx,
+                                              truncation=True,
+                                              return_tensors='pt')
+        return {
+            'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'task_inputs': tokensTask,
+            'task_labels': task_labels,
+            'nonceMLM': nonceMLM,
+            'nonceTask': nonceTask,
             'generationTokens': generationTokens
         }
