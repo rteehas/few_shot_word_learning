@@ -312,10 +312,12 @@ if __name__ == "__main__":
         else:
             raise NotImplementedError
 
-    opt = AdamW(filter(lambda p: p.requires_grad, test_model.parameters()),
-                lr=lr,
-                eps=epsilon,
-                weight_decay=weight_decay
+    test_model.secondLM.get_input_embeddings().weight.requires_grad = True
+    param_list = [{"params": filter(lambda p: p.requires_grad, test_model.secondLM.parameters()), 'lr': 1e-5},
+                  {'params': filter(lambda p: p.requires_grad, test_model.emb_gen.parameters()), 'lr': lr, 'weight_decay': weight_decay}]
+
+    opt = AdamW(param_list,
+                eps=epsilon
                 )
 
     warmup_steps = len(train_dl)
