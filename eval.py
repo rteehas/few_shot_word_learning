@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     if "snli" in args.data_path:
         test_model = MorphMemoryModelSNLI(firstLM, secondLM, new_toks, device, [-1],
-                                   tokenizerMLM.mask_token_id, memory_config, args.emb_gen).to(device)
+                                   tokenizerMLM.mask_token_id, memory_config, "Transformer").to(device)
         test_model = load_model_partial(args.model_dir + args.checkpoint, test_model)
 
     else:
@@ -234,10 +234,10 @@ if __name__ == "__main__":
 
     project = "fewshot_model_testing_finetune"
     run = wandb.init(project=project, reinit=True)
-    wandb.run.name = "finetuned_{}_{}examples_{}_{}_{}_bs={}_6layers_weight_decay_modified_maml={}".format(dataset_name,
-                                                                                                 args.num_examples, lr,
-                                                                                                 memory_config.agg_method)
-    # eval_ind = 300
+    wandb.run.name = "finetuned_{}_{}examples_{}_{}_bs={}_6layers".format(dataset_name,
+                                                                    args.num_examples, lr,
+                                                                    memory_config.agg_method, args.batch_size)
+   # eval_ind = 300
 
     best_corr = 0
     best_acc = 0
