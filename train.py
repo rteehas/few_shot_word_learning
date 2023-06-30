@@ -422,9 +422,10 @@ if __name__ == "__main__":
             accelerator.backward(final_loss)
             torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
             for name, param in test_model.emb_gen.named_parameters():
-                log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
-                if torch.isnan(torch.norm(param.grad.view(-1))):
-                    raise Exception("Nan Gradient")
+                if param.grad is not None:
+                    log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
+                    if torch.isnan(torch.norm(param.grad.view(-1))):
+                        raise Exception("Nan Gradient")
 
             # if args.taskName == "addition":
                 # for ind, val in enumerate(batch['generationTokens']):
