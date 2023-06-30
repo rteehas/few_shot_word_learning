@@ -97,10 +97,12 @@ if __name__ == "__main__":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
         tokenizerTask.pad_token = tokenizerTask.unk_token
         secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
-        with open(args.word_path, 'r') as f:
-            reader = csv.reader(f)
-            rows = [row for row in reader]
-        words = rows[0]
+        # with open(args.word_path, 'r') as f:
+        #     reader = csv.reader(f)
+        #     rows = [row for row in reader]
+        # words = rows[0]
+        word_dict = load_from_disk(args.word_path)
+        words = word_dict['train']['words'] + word_dict['test']['words']
         nonces = list(map(lambda w: "<{}_new>".format(w), words))
     else:
         raise NotImplementedError("{} not implemented".format(args.taskName))
@@ -145,7 +147,7 @@ if __name__ == "__main__":
     # memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
-        weight_decay = 0.01
+        weight_decay = 0.02
 
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
@@ -215,12 +217,12 @@ if __name__ == "__main__":
         train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
         test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
     elif "wikitext" in args.data_path:
-        split = dataset.train_test_split(0.2)
+        # split = dataset.train_test_split(0.2)
 
-        train = SimpleOnlineDataset(split['train'], tokenizerMLM, tokenizerTask)
+        train = SimpleOnlineDataset(dataset['train'], tokenizerMLM, tokenizerTask)
         train_dl = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
-        test = SimpleOnlineDataset(split['test'], tokenizerMLM, tokenizerTask)
+        test = SimpleOnlineDataset(dataset['test'], tokenizerMLM, tokenizerTask)
         test_dl = DataLoader(test, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
     else:
@@ -316,7 +318,7 @@ if __name__ == "__main__":
                 weight_decay=weight_decay
                 )
 
-    warmup_steps = 3e2
+    warmup_steps = len(train_dl)
     eval_ind = len(train_dl) // 2
     if args.taskName == "addition":
         eval_ind=30
