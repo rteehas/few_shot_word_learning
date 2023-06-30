@@ -317,7 +317,7 @@ if __name__ == "__main__":
                 )
 
     warmup_steps = 3e2
-    eval_ind = len(train_dl) // 2
+    eval_ind = len(train_dl) // 4
     if args.taskName == "addition":
         eval_ind=30
 
