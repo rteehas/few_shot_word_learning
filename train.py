@@ -450,164 +450,165 @@ if __name__ == "__main__":
             if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
                 opt.zero_grad(set_to_none=True)
                 test_model.eval()
-                if "chimera" in args.data_path:
-                    corrs = []
-                    for b in test_dl:
-                        t_out, _ = test_model.forward(b)
-                        new_w = test_model.get_new_weights(batch, task="MLM").to(device)
+                with torch.no_grad():
+                    if "chimera" in args.data_path:
+                        corrs = []
+                        for b in test_dl:
+                            t_out, _ = test_model.forward(b)
+                            new_w = test_model.get_new_weights(batch, task="MLM").to(device)
 
-                        indices = b['eval_indices']
-                        sims = []
-                        for probe in b['probe_inputs']:
-                            p_sims = []
-                            p_s = b['probe_inputs'][probe]['sentences']
+                            indices = b['eval_indices']
+                            sims = []
+                            for probe in b['probe_inputs']:
+                                p_sims = []
+                                p_s = b['probe_inputs'][probe]['sentences']
 
-                            for p_idx, s in enumerate(p_s):
-                                enc = tokenizerTask.encode_plus(s[0], return_tensors='pt').to(device)
-                                p_ind = indices[p_idx]
-                                locs = get_locs(s[0], p_ind.item(), tokenizerTask)
+                                for p_idx, s in enumerate(p_s):
+                                    enc = tokenizerTask.encode_plus(s[0], return_tensors='pt').to(device)
+                                    p_ind = indices[p_idx]
+                                    locs = get_locs(s[0], p_ind.item(), tokenizerTask)
 
-                                p_emb = get_hidden_states(enc, locs, test_model.secondLM, [-1])
-                                n_emb = get_emb(t_out.hidden_states, locs, [-1], p_idx)
-                                p_sims.append(cos(n_emb, p_emb).item())
+                                    p_emb = get_hidden_states(enc, locs, test_model.secondLM, [-1])
+                                    n_emb = get_emb(t_out.hidden_states, locs, [-1], p_idx)
+                                    p_sims.append(cos(n_emb, p_emb).item())
 
-                            sim = sum(p_sims) / len(p_sims)
-                            sims.append(sim)
+                                sim = sum(p_sims) / len(p_sims)
+                                sims.append(sim)
 
-                        ratings = [float(v) for v in b['ratings'][0].split(',')]
-                        corr = stats.spearmanr(sims, ratings)
-                        wandb.log({'test_point_correlation': corr.correlation})
-                        corrs.append(corr.correlation)
+                            ratings = [float(v) for v in b['ratings'][0].split(',')]
+                            corr = stats.spearmanr(sims, ratings)
+                            wandb.log({'test_point_correlation': corr.correlation})
+                            corrs.append(corr.correlation)
 
-                    test_model.memory.detach_past()
-                    test_model.memory.memory = {}
-
-                    avg_corr = sum(corrs) / len(corrs)
-                    wandb.log({'epoch': epoch, 'Correlation on Test': avg_corr})
-
-                    if avg_corr > best_corr:
-                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
-                        save(test_model, opt, chkpt_name)
-                        best_corr = avg_corr
-
-                elif "sanity" in args.data_path:
-                    test_model.eval()
-                    test_losses = []
-                    test_nonce_losses = []
-                    for b in test_dl:
-                        t_out, _ = test_model.forward(b)
-                        wandb.log({'test point loss': t_out.loss.item()})
-                        test_nonce_loss = get_nonce_loss(b, t_out, test_model.secondLM.vocab_size, device)
-                        wandb.log({"test loss on nonce tokens": test_nonce_loss.item()})
-                        test_nonce_losses.append(test_nonce_loss.item())
-
-                        test_losses.append(t_out.loss.item())
-
-                    wandb.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses),
-                               'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
-                    n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
-
-                    if n_loss < best_loss:
-                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
-                        save(test_model, opt, chkpt_name)
-                        best_loss = n_loss
-
-                elif "squad" in args.data_path:
-                    test_model.eval()
-                    test_losses = []
-                    for b in test_dl:
-                        t_out, _ = test_model.forward(b)
-
-                        test_losses.append(t_out.loss.item())
+                        test_model.memory.detach_past()
                         test_model.memory.memory = {}
 
-                    avg_test = sum(test_losses) / len(test_losses)
-                    if avg_test < best_loss:
-                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
-                        save(test_model, opt, chkpt_name)
-                        best_loss = avg_test
+                        avg_corr = sum(corrs) / len(corrs)
+                        wandb.log({'epoch': epoch, 'Correlation on Test': avg_corr})
 
-                    wandb.log({'epoch': epoch, 'average test loss': avg_test})
+                        if avg_corr > best_corr:
+                            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                            save(test_model, opt, chkpt_name)
+                            best_corr = avg_corr
 
-                elif "snli" in args.data_path:
-                    test_model.eval()
-                    total_correct = 0
-                    total = 0
-                    for b in test_dl:
-                        t_out, _ = test_model.forward(b)
-                        preds = t_out.logits
-                        preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
-                        true_ans = b['task_labels'].to(device).view(-1)
-                        num_correct = (preds == true_ans).sum()
-                        total_correct += num_correct
-                        total += b['task_labels'].shape[0]
-                        with torch.no_grad():
-                            for v in test_model.memory.memory:
-                                for val in test_model.memory.memory[v]:
-                                    del val
-                        test_model.memory.memory = {}
-                    acc = total_correct / total
-                    wandb.log({'epoch': epoch, 'average test accuracy': acc})
-                    if best_acc < acc:
-                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
-                        save(test_model, opt, chkpt_name)
-                        print("Saved {}".format(chkpt_name))
-                        best_acc = acc
+                    elif "sanity" in args.data_path:
+                        test_model.eval()
+                        test_losses = []
+                        test_nonce_losses = []
+                        for b in test_dl:
+                            t_out, _ = test_model.forward(b)
+                            wandb.log({'test point loss': t_out.loss.item()})
+                            test_nonce_loss = get_nonce_loss(b, t_out, test_model.secondLM.vocab_size, device)
+                            wandb.log({"test loss on nonce tokens": test_nonce_loss.item()})
+                            test_nonce_losses.append(test_nonce_loss.item())
 
-                elif "addition" in args.taskName:
-                    test_matches = 0
-                    test_total = 0
-                    test_losses = []
-                    for b in test_dl:
-                        t_out, _ = test_model.forward(b)
+                            test_losses.append(t_out.loss.item())
 
-                        test_losses.append(t_out.loss.item())
-                        
-                        for ind, val in enumerate(b['generationTokens']):
-                            idx = deepcopy(val)
-                            gen_ans = test_model.generate(idx, 10)
-                            gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
-                                                           clean_up_tokenization_spaces=True)
-                            true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][ind, 0, :],
-                                                            skip_special_tokens=True, clean_up_tokenization_spaces=True)
-                            test_total += 1
-                            test_matches += compute_exact_match(gen_ans, true_ans)
+                        wandb.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses),
+                                   'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
+                        n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
 
-                        with torch.no_grad():
-                            for v in test_model.memory.memory:
-                                for val in test_model.memory.memory[v]:
-                                    del val
-                        test_model.memory.memory = {}
-                    avg_test = sum(test_losses) / len(test_losses)
-                    avg_match = test_matches / test_total
-                    wandb.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
-                    if avg_test < best_loss:
-                        chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
-                        save(test_model, opt, chkpt_name)
-                        print("Saved {}".format(chkpt_name))
-                        best_loss = avg_test
+                        if n_loss < best_loss:
+                            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                            save(test_model, opt, chkpt_name)
+                            best_loss = n_loss
 
-                elif args.taskName == "online":
-                    test_model.eval()
-                    test_losses = []
-                    for b in test_dl:
-                        to_sample = [n for n in buffer.nonces if n in b['mlm_inputs']['input_ids']]
-                        for n in to_sample:
-                            sample = buffer.retrieve(n)
-                            if sample is not None:
-                                test_model.process_memories(sample)
-                        t_out, _ = test_model.forward(b)
+                    elif "squad" in args.data_path:
+                        test_model.eval()
+                        test_losses = []
+                        for b in test_dl:
+                            t_out, _ = test_model.forward(b)
 
-                        test_losses.append(t_out.loss.item())
-                        test_model.memory.memory = {}
-                    avg_test = sum(test_losses) / len(test_losses)
-                    wandb.log({'epoch': epoch, 'average test loss': avg_test})
+                            test_losses.append(t_out.loss.item())
+                            test_model.memory.memory = {}
 
-                    if avg_test < best_loss:
-                        chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
-                        save(test_model, opt, chkpt_name)
-                        print("Saved {}".format(chkpt_name))
-                        best_loss = avg_test
+                        avg_test = sum(test_losses) / len(test_losses)
+                        if avg_test < best_loss:
+                            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                            save(test_model, opt, chkpt_name)
+                            best_loss = avg_test
+
+                        wandb.log({'epoch': epoch, 'average test loss': avg_test})
+
+                    elif "snli" in args.data_path:
+                        test_model.eval()
+                        total_correct = 0
+                        total = 0
+                        for b in test_dl:
+                            t_out, _ = test_model.forward(b)
+                            preds = t_out.logits
+                            preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
+                            true_ans = b['task_labels'].to(device).view(-1)
+                            num_correct = (preds == true_ans).sum()
+                            total_correct += num_correct
+                            total += b['task_labels'].shape[0]
+                            with torch.no_grad():
+                                for v in test_model.memory.memory:
+                                    for val in test_model.memory.memory[v]:
+                                        del val
+                            test_model.memory.memory = {}
+                        acc = total_correct / total
+                        wandb.log({'epoch': epoch, 'average test accuracy': acc})
+                        if best_acc < acc:
+                            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                            save(test_model, opt, chkpt_name)
+                            print("Saved {}".format(chkpt_name))
+                            best_acc = acc
+
+                    elif "addition" in args.taskName:
+                        test_matches = 0
+                        test_total = 0
+                        test_losses = []
+                        for b in test_dl:
+                            t_out, _ = test_model.forward(b)
+
+                            test_losses.append(t_out.loss.item())
+
+                            for ind, val in enumerate(b['generationTokens']):
+                                idx = deepcopy(val)
+                                gen_ans = test_model.generate(idx, 10)
+                                gen_ans = tokenizerTask.decode(gen_ans['input_ids'][0], skip_special_tokens=True,
+                                                               clean_up_tokenization_spaces=True)
+                                true_ans = tokenizerTask.decode(b['task_inputs']['input_ids'][ind, 0, :],
+                                                                skip_special_tokens=True, clean_up_tokenization_spaces=True)
+                                test_total += 1
+                                test_matches += compute_exact_match(gen_ans, true_ans)
+
+                            with torch.no_grad():
+                                for v in test_model.memory.memory:
+                                    for val in test_model.memory.memory[v]:
+                                        del val
+                            test_model.memory.memory = {}
+                        avg_test = sum(test_losses) / len(test_losses)
+                        avg_match = test_matches / test_total
+                        wandb.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
+                        if avg_test < best_loss:
+                            chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
+                            save(test_model, opt, chkpt_name)
+                            print("Saved {}".format(chkpt_name))
+                            best_loss = avg_test
+
+                    elif args.taskName == "online":
+                        test_model.eval()
+                        test_losses = []
+                        for b in test_dl:
+                            to_sample = [n for n in buffer.nonces if n in b['mlm_inputs']['input_ids']]
+                            for n in to_sample:
+                                sample = buffer.retrieve(n)
+                                if sample is not None:
+                                    test_model.process_memories(sample)
+                            t_out, _ = test_model.forward(b)
+
+                            test_losses.append(t_out.loss.item())
+                            test_model.memory.memory = {}
+                        avg_test = sum(test_losses) / len(test_losses)
+                        wandb.log({'epoch': epoch, 'average test loss': avg_test})
+
+                        if avg_test < best_loss:
+                            chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
+                            save(test_model, opt, chkpt_name)
+                            print("Saved {}".format(chkpt_name))
+                            best_loss = avg_test
 
         wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
         if "snli" in args.data_path:
