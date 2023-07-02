@@ -817,7 +817,7 @@ class SimpleOnlineDataset(Dataset):
                                             return_tensors='pt')
 
             task_labels = tokensTask['input_ids'].clone()
-            task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
+            # task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
             task_inputs = tokensTask
 
         elif "roberta" in self.tokenizerTask.name_or_path:
