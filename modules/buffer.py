@@ -40,7 +40,7 @@ class RetrievalBuffer():
             return None
         else:
             if self.random:
-                k = np.random.choice(self.k)
+                k = np.random.choice(list(range(1, self.k + 1)))
             else:
                 k = self.k
 
