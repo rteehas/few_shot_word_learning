@@ -321,7 +321,7 @@ if __name__ == "__main__":
                 )
 
     warmup_steps = len(train_dl)
-    eval_ind = len(train_dl) // 2
+    eval_ind = len(train_dl) // 10
     if args.taskName == "addition":
         eval_ind=30
 
@@ -350,6 +350,7 @@ if __name__ == "__main__":
     best_acc = 0
     best_loss = 10000
     n_inner_iter = 3
+    eval_num = 100
     for epoch in range(epochs):
         train_corr = []
         train_losses = []
@@ -450,7 +451,7 @@ if __name__ == "__main__":
                 buffer.cleanup()
             wandb.log(log_dict)
 
-            if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
+            if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0 or len(buffer.buffer.keys()) % eval_num == 0):
                 opt.zero_grad(set_to_none=True)
                 test_model.eval()
                 with torch.no_grad():

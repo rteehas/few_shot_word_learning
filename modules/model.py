@@ -217,7 +217,7 @@ class MorphMemoryModel(nn.Module):
 
         w = ref_model.get_input_embeddings().weight.clone()
         n, hidden = w.shape
-        if not ref_model.get_input_embeddings().weight:
+        if not ref_model.get_input_embeddings().weight.requires_grad:
             w.requires_grad = True
 
         msk = torch.zeros_like(w).to(self.device)

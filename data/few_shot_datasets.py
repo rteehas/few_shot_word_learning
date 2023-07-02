@@ -890,7 +890,7 @@ class SimpleMathDatasetSubtok(Dataset):
                                         return_tensors='pt')
 
         task_labels = tokensTask['input_ids'].clone()
-        task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
+        #task_labels[task_labels == self.tokenizerTask.unk_token_id] = -100
 
         firstSpan = get_span(sentence, first, self.tokenizerMLM)
         secondSpan = get_span(sentence, second, self.tokenizerMLM)

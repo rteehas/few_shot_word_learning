@@ -97,6 +97,7 @@ if __name__ == "__main__":
         secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
         nonces = ["[CALC]", "[END_CALC]"]
         dataset_name = "calc"
+        tokenizerTask.pad_token = tokenizerTask.unk_token
 
     elif args.taskName == "online":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
@@ -134,7 +135,7 @@ if __name__ == "__main__":
     elif "wikitext" in args.data_path:
         dataset_name = "online"
     else:
-        if "addition" not in args.taskName:
+        if "addition" not in args.taskName and "calc" not in args.taskName:
             raise NotImplementedError("Not implemented for this dataset")
 
     tokenizerMLM.add_tokens(nonces)
@@ -149,7 +150,7 @@ if __name__ == "__main__":
         memory_config = AggregatorConfig()
         weight_decay = 0.01
 
-    elif "rnn" in args.checkpoint:
+    elif "RNN" in args.checkpoint:
         memory_config = RNNAggConfig()
         weight_decay = 0.015
     elif "cls" in args.checkpoint:
@@ -220,7 +221,7 @@ if __name__ == "__main__":
                 )
 
     warmup_steps = 3e2
-    eval_ind = len(train_dl) // 4
+    eval_ind = len(train_dl) // 2
     if args.taskName == "addition":
         eval_ind = 30
 
@@ -237,7 +238,7 @@ if __name__ == "__main__":
     wandb.run.name = "finetuned_{}_{}examples_{}_{}_bs={}_6layers".format(dataset_name,
                                                                     args.num_examples, lr,
                                                                     memory_config.agg_method, args.batch_size)
-   # eval_ind = 300
+    #eval_ind = 300
 
     best_corr = 0
     best_acc = 0
