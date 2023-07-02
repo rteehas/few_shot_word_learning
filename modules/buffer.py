@@ -2,12 +2,13 @@ import numpy as np
 
 class RetrievalBuffer():
 
-    def __init__(self, max_num, k, nonce_list, tokenizer):
+    def __init__(self, max_num, k, nonce_list, tokenizer, random):
         self.k = k
         self.max_num = max_num
         self.buffer = {}
         self.nonces = nonce_list
         self.tokenizer = tokenizer
+        self.random = random
 
 
     def store(self, mlm_inputs):
@@ -38,8 +39,13 @@ class RetrievalBuffer():
         if nonce not in self.buffer:
             return None
         else:
-            if len(self.buffer[nonce]) > self.k:
-                samples = np.random.choice(self.buffer[nonce], size=self.k).tolist()
+            if self.random:
+                k = np.random.choice(self.k)
+            else:
+                k = self.k
+
+            if len(self.buffer[nonce]) > k:
+                samples = np.random.choice(self.buffer[nonce], size=k).tolist()
             else:
                 samples = self.buffer[nonce]
 

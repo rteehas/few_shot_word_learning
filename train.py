@@ -23,7 +23,7 @@ from configs.config import *
 from eval_utils import compute_exact_match
 from modules.buffer import RetrievalBuffer
 from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI, MorphMemoryModelGPT, \
-    MorphMemoryModelGPTOnline, MorphMemoryModelGPTSubtoken
+    MorphMemoryModelGPTOnline, MorphMemoryModelGPTSubtoken, MorphMemoryModelMLMOnline
 from data.data_utils import *
 from train_utils import *
 from data.few_shot_datasets import *
@@ -40,6 +40,7 @@ def get_arguments():
     parser.add_argument("--load_checkpoint", type=bool, default=False)
     parser.add_argument("--mlm_prob", type=float, default=0.15)
     parser.add_argument("--taskName", type=str, default='mlm')
+    parser.add_argument("--secondLM", type=str)
     parser.add_argument("--memory", type=str, default="mean")
     parser.add_argument("--num_examples", type=int, default=2)
     parser.add_argument("--intermediate_loss", type=bool, default=False)
@@ -49,6 +50,8 @@ def get_arguments():
     parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--maml", action="store_true")
     parser.add_argument("--word_path", type=str, default='')
+    parser.add_argument("--finetune", action="store_true")
+    parser.add_argument("--random_ex", action="store_true")
     return parser
 
 
@@ -94,9 +97,15 @@ if __name__ == "__main__":
         dataset_name = "addition_subtok"
 
     elif args.taskName == "online":
-        tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
-        tokenizerTask.pad_token = tokenizerTask.unk_token
-        secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
+        if args.secondLM == "gpt2":
+            tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
+            tokenizerTask.pad_token = tokenizerTask.unk_token
+            secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
+        elif args.secondLM == "roberta":
+            tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
+            secondLM = RobertaForMaskedLM.from_pretrained('roberta-base')
+        else:
+            raise NotImplementedError("{} Not Implemented for Task LM".format(args.secondLM))
         # with open(args.word_path, 'r') as f:
         #     reader = csv.reader(f)
         #     rows = [row for row in reader]
@@ -109,8 +118,8 @@ if __name__ == "__main__":
 
     if "addition" not in args.taskName:
         dataset = load_from_disk(args.data_path)
-        if args.taskName == "online":
-            dataset = dataset.filter(lambda ex: len(ex['text']) > 10)
+        # if args.taskName == "online":
+        #     dataset = dataset.filter(lambda ex: len(ex['text']) > 10)
 
 
     if "chimera" in args.data_path:
@@ -296,10 +305,16 @@ if __name__ == "__main__":
         test_model = MorphMemoryModel(firstLM, secondLM, new_toks,
                                   device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
     elif "wikitext" in args.data_path:
-        buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM)
-        test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
-                                               tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
-            device)
+        buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex)
+        if args.secondLM == "gpt2":
+            test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
+                                                   tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
+                device)
+        elif args.secondLM == "roberta":
+            test_model = MorphMemoryModelMLMOnline(firstLM, secondLM, new_toks, device, [-1],
+                                                   tokenizerMLM.mask_token_id, memory_config,
+                                                   emb_type='Transformer').to(
+                device)
     else:
         if args.taskName == "addition":
             test_model = MorphMemoryModelGPT(firstLM, secondLM, new_toks, device, [-1],
@@ -311,17 +326,21 @@ if __name__ == "__main__":
                 device)
         else:
             raise NotImplementedError
+    if args.finetune:
+        test_model.secondLM.get_input_embeddings().weight.requires_grad = True
 
-    test_model.secondLM.get_input_embeddings().weight.requires_grad = True
-    param_list = [{"params": filter(lambda p: p.requires_grad, test_model.secondLM.parameters()), 'lr': 1e-5},
-                  {'params': filter(lambda p: p.requires_grad, test_model.emb_gen.parameters()), 'lr': lr, 'weight_decay': weight_decay}]
+        param_list = [{"params": filter(lambda p: p.requires_grad, test_model.secondLM.parameters()), 'lr': 1e-5},
+                      {'params': filter(lambda p: p.requires_grad, test_model.emb_gen.parameters()), 'lr': lr, 'weight_decay': weight_decay}]
+    else:
+        param_list = [{'params': filter(lambda p: p.requires_grad, test_model.emb_gen.parameters()), 'lr': lr,
+                       'weight_decay': weight_decay}]
 
     opt = AdamW(param_list,
                 eps=epsilon
                 )
 
     warmup_steps = len(train_dl)
-    eval_ind = len(train_dl) // 10
+    eval_ind = 300
     if args.taskName == "addition":
         eval_ind=30
 
@@ -333,13 +352,18 @@ if __name__ == "__main__":
         test_model, opt, train_dl, test_dl, scheduler
     )
 
-    if "addition" in args.taskName:
-        project = "fewshot_addition"
-    else:
-        project = "fewshot_model_testing_redone"
+    project = "fewshot_model_{}".format(args.taskName)
 
     run = wandb.init(project=project, reinit=True)
-    wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}_6layers_weight_decay_modified_maml={}".format(dataset_name, args.num_examples, lr, memory_config.agg_method, args.emb_gen, args.batch_size, args.maml)
+    wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
+                                                                            args.num_examples,
+                                                                            lr,
+                                                                            memory_config.agg_method,
+                                                                            args.emb_gen,
+                                                                            args.batch_size,
+                                                                            args.maml,
+                                                                            args.random_ex,
+                                                                            args.finetune)
 
     if intermediate:
         wandb.run.name = wandb.run.name + "_intermediate"
@@ -451,7 +475,7 @@ if __name__ == "__main__":
                 buffer.cleanup()
             wandb.log(log_dict)
 
-            if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0 or len(buffer.buffer.keys()) % eval_num == 0):
+            if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
                 opt.zero_grad(set_to_none=True)
                 test_model.eval()
                 with torch.no_grad():
