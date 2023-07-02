@@ -340,7 +340,7 @@ if __name__ == "__main__":
                 )
 
     warmup_steps = len(train_dl)
-    eval_ind = 300
+    eval_ind = 100
     if args.taskName == "addition":
         eval_ind=30
 
