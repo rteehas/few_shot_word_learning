@@ -355,7 +355,7 @@ if __name__ == "__main__":
     project = "fewshot_model_{}".format(args.taskName)
 
     run = wandb.init(project=project, reinit=True)
-    wandb.run.name = "{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
+    wandb.run.name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
                                                                             args.num_examples,
                                                                             lr,
                                                                             memory_config.agg_method,
