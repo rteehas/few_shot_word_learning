@@ -368,7 +368,10 @@ if __name__ == "__main__":
     if intermediate:
         wandb.run.name = wandb.run.name + "_intermediate"
 
+    os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}".format(dataset_name), exist_ok=True)
+    os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}/{}".format(wandb.run.name), exist_ok=True)
 
+    save_folder = "{}/{}/".format(dataset_name, wandb.run.name)
 
     best_corr = 0
     best_acc = 0
@@ -515,7 +518,7 @@ if __name__ == "__main__":
                         wandb.log({'epoch': epoch, 'Correlation on Test': avg_corr})
 
                         if avg_corr > best_corr:
-                            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             save(test_model, opt, chkpt_name)
                             best_corr = avg_corr
 
@@ -537,7 +540,7 @@ if __name__ == "__main__":
                         n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
 
                         if n_loss < best_loss:
-                            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             save(test_model, opt, chkpt_name)
                             best_loss = n_loss
 
@@ -552,7 +555,7 @@ if __name__ == "__main__":
 
                         avg_test = sum(test_losses) / len(test_losses)
                         if avg_test < best_loss:
-                            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             save(test_model, opt, chkpt_name)
                             best_loss = avg_test
 
@@ -578,7 +581,7 @@ if __name__ == "__main__":
                         acc = total_correct / total
                         wandb.log({'epoch': epoch, 'average test accuracy': acc})
                         if best_acc < acc:
-                            chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             save(test_model, opt, chkpt_name)
                             print("Saved {}".format(chkpt_name))
                             best_acc = acc
@@ -611,7 +614,7 @@ if __name__ == "__main__":
                         avg_match = test_matches / test_total
                         wandb.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
                         if avg_test < best_loss:
-                            chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             save(test_model, opt, chkpt_name)
                             print("Saved {}".format(chkpt_name))
                             best_loss = avg_test
@@ -633,7 +636,7 @@ if __name__ == "__main__":
                         wandb.log({'epoch': epoch, 'average test loss': avg_test})
 
                         if avg_test < best_loss:
-                            chkpt_name = get_model_name_checkpoint(wandb.run.name, eval_ind)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, eval_ind)
                             save(test_model, opt, chkpt_name)
                             print("Saved {}".format(chkpt_name))
                             best_loss = avg_test

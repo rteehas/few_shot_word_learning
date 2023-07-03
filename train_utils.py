@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
+import os
 
 def get_grad_norm(model):
     total_norm = 0
@@ -13,10 +14,20 @@ def get_grad_norm(model):
 
 def save(model, opt, model_name_chkpt):
     # save
+    fname = "/scratch/rst306/few_shot_word_learning/checkpoints/{}".format(model_name_chkpt)
+
+    i =0
+
+    save_name = fname + "_{}".format(i)
+    while os.path.exists(save_name):
+        i+=1
+        save_name = fname + "_{}".format(i)
+
+    save_name = save_name+".pth"
     torch.save({
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': opt.state_dict()},
-        "/scratch/rst306/few_shot_word_learning/checkpoints/{}.pth".format(model_name_chkpt))
+        save_name)
 
 
 def get_hidden_states(encoded, token_ids_word, model, layers):
