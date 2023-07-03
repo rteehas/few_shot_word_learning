@@ -369,7 +369,7 @@ if __name__ == "__main__":
         wandb.run.name = wandb.run.name + "_intermediate"
 
     os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}".format(dataset_name), exist_ok=True)
-    os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}/{}".format(wandb.run.name), exist_ok=True)
+    os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}/{}".format(dataset_name, wandb.run.name), exist_ok=True)
 
     save_folder = "{}/{}/".format(dataset_name, wandb.run.name)
 
