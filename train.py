@@ -638,6 +638,7 @@ if __name__ == "__main__":
 
                         if avg_test < best_loss:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, eval_ind)
+                            print(chkpt_name)
                             save(test_model, opt, chkpt_name)
                             print("Saved {}".format(chkpt_name))
                             best_loss = avg_test
