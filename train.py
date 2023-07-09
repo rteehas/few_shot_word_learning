@@ -55,7 +55,7 @@ def get_arguments():
     return parser
 
 
-if __name__ == "__main__":
+def main():
     args = get_arguments().parse_args()
 
     print("Arguments: ", args)
@@ -650,5 +650,5 @@ if __name__ == "__main__":
         #     wandb.log({'epoch': epoch,
         #                'train exact match': train_correct / train_total})
 
-
-
+if __name__ == "__main__":
+    main()
