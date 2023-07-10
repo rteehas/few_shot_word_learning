@@ -450,11 +450,11 @@ def main():
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(test_model.parameters(), 1.0)
             # torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
-            # for name, param in test_model.emb_gen.named_parameters():
-            #     if param.grad is not None:
-            #         log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
-            #         if torch.isnan(torch.norm(param.grad.view(-1))):
-            #             raise Exception("Nan Gradient")
+            for name, param in test_model.module.emb_gen.named_parameters():
+                if param.grad is not None:
+                    log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
+                    if torch.isnan(torch.norm(param.grad.view(-1))):
+                        raise Exception("Nan Gradient")
 
             # if args.taskName == "addition":
                 # for ind, val in enumerate(batch['generationTokens']):
@@ -469,11 +469,7 @@ def main():
 
             opt.step()
             scheduler.step()
-            with torch.no_grad():
-                for v in test_model.memory.memory:
-                    for val in test_model.memory.memory[v]:
-                        del val
-            test_model.memory.memory = {}
+            test_model.module.memory.memory = {}
             if args.taskName == "online":
                 buffer.store(batch['mlm_inputs'].to(device))
                 buffer.cleanup()
@@ -512,8 +508,7 @@ def main():
                             wandb.log({'test_point_correlation': corr.correlation})
                             corrs.append(corr.correlation)
 
-                        test_model.memory.detach_past()
-                        test_model.memory.memory = {}
+                        test_model.module.memory.memory = {}
 
                         avg_corr = sum(corrs) / len(corrs)
                         wandb.log({'epoch': epoch, 'Correlation on Test': avg_corr})
@@ -553,11 +548,11 @@ def main():
                             t_out, _ = test_model.forward(b)
 
                             test_losses.append(t_out.loss.item())
-                            test_model.memory.memory = {}
+                            test_model.module.memory.memory = {}
 
                         avg_test = sum(test_losses) / len(test_losses)
                         if avg_test < best_loss:
-                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, epoch)
                             save(test_model, opt, chkpt_name)
                             best_loss = avg_test
 
@@ -575,15 +570,11 @@ def main():
                             num_correct = (preds == true_ans).sum()
                             total_correct += num_correct
                             total += b['task_labels'].shape[0]
-                            with torch.no_grad():
-                                for v in test_model.memory.memory:
-                                    for val in test_model.memory.memory[v]:
-                                        del val
-                            test_model.memory.memory = {}
+                            test_model.module.memory.memory = {}
                         acc = total_correct / total
                         wandb.log({'epoch': epoch, 'average test accuracy': acc})
                         if best_acc < acc:
-                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, epoch)
                             save(test_model, opt, chkpt_name)
                             print("Saved {}".format(chkpt_name))
                             best_acc = acc
@@ -607,11 +598,7 @@ def main():
                                 test_total += 1
                                 test_matches += compute_exact_match(gen_ans, true_ans)
 
-                            with torch.no_grad():
-                                for v in test_model.memory.memory:
-                                    for val in test_model.memory.memory[v]:
-                                        del val
-                            test_model.memory.memory = {}
+                            test_model.module.memory.memory = {}
                         avg_test = sum(test_losses) / len(test_losses)
                         avg_match = test_matches / test_total
                         wandb.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
@@ -633,12 +620,12 @@ def main():
                             t_out, _ = test_model.forward(b)
 
                             test_losses.append(t_out.loss.item())
-                            test_model.memory.memory = {}
+                            test_model.module.memory.memory = {}
                         avg_test = sum(test_losses) / len(test_losses)
                         wandb.log({'epoch': epoch, 'average test loss': avg_test})
 
                         if avg_test < best_loss:
-                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, eval_ind)
+                            chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, eval_ind)
                             print(chkpt_name)
                             save(test_model, opt, chkpt_name)
                             print("Saved {}".format(chkpt_name))
