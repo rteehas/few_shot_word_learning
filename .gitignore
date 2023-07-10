@@ -1,1 +1,4 @@
 .idea/
+*.ipynb
+*.out
+__pycache__/
