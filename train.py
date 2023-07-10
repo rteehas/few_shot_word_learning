@@ -398,7 +398,7 @@ def main():
                         if sample is not None:
                             test_model.process_memories(sample)
 
-                out, losses = test_model(batch)
+                out = test_model(batch)
 
                 loss = out.loss
 
@@ -420,7 +420,7 @@ def main():
                         inner_losses.append(maml_out.loss.item())
                         diffopt.step(maml_out.loss)
 
-                    out, l = test_model(batch)
+                    out = test_model(batch)
                     log_dict['average maml inner loss'] = sum(inner_losses) / len(inner_losses)
                     log_dict['maml outer loss'] =  out.loss.item()
                     #out.loss.backward()
@@ -482,7 +482,7 @@ def main():
                     if "chimera" in args.data_path:
                         corrs = []
                         for b in test_dl:
-                            t_out, _ = test_model.forward(b)
+                            t_out= test_model.forward(b)
                             new_w = test_model.get_new_weights(batch, task="MLM").to(device)
 
                             indices = b['eval_indices']
@@ -524,7 +524,7 @@ def main():
                         test_losses = []
                         test_nonce_losses = []
                         for b in test_dl:
-                            t_out, _ = test_model.forward(b)
+                            t_out = test_model.forward(b)
                             wandb.log({'test point loss': t_out.loss.item()})
                             test_nonce_loss = get_nonce_loss(b, t_out, test_model.secondLM.vocab_size, device)
                             wandb.log({"test loss on nonce tokens": test_nonce_loss.item()})
@@ -545,7 +545,7 @@ def main():
                         test_model.eval()
                         test_losses = []
                         for b in test_dl:
-                            t_out, _ = test_model.forward(b)
+                            t_out = test_model.forward(b)
 
                             test_losses.append(t_out.loss.item())
                             test_model.module.memory.memory = {}
@@ -563,7 +563,7 @@ def main():
                         total_correct = 0
                         total = 0
                         for b in test_dl:
-                            t_out, _ = test_model.forward(b)
+                            t_out = test_model.forward(b)
                             preds = t_out.logits
                             preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
                             true_ans = b['task_labels'].to(device).view(-1)
@@ -584,7 +584,7 @@ def main():
                         test_total = 0
                         test_losses = []
                         for b in test_dl:
-                            t_out, _ = test_model.forward(b)
+                            t_out = test_model.forward(b)
 
                             test_losses.append(t_out.loss.item())
 
@@ -617,7 +617,7 @@ def main():
                                 sample = buffer.retrieve(n)
                                 if sample is not None:
                                     test_model.process_memories(sample)
-                            t_out, _ = test_model.forward(b)
+                            t_out = test_model.forward(b)
 
                             test_losses.append(t_out.loss.item())
                             test_model.module.memory.memory = {}
