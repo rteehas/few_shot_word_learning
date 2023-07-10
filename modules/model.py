@@ -21,7 +21,7 @@ class MorphMemoryModel(nn.Module):
         self.firstLM = firstLM.to(device)
         self.secondLM = secondLM.to(device)
 
-        self.emb_decoder = nn.Linear(self.firstLM.config.hidden_size, self.firstLM.config.vocab_size).to(device)
+        # self.emb_decoder = nn.Linear(self.firstLM.config.hidden_size, self.firstLM.config.vocab_size).to(device)
 
         self.freeze()
 
@@ -105,12 +105,12 @@ class MorphMemoryModel(nn.Module):
             elif self.emb_type == "MLP":
                 nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
 
-            preds = self.emb_decoder(nonce_embeds)
-            labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
-            #                 print(preds.shape, nonce_embeds.shape)
-            l_fct = nn.CrossEntropyLoss()
-            inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
-            losses.append(inter_loss)
+            # preds = self.emb_decoder(nonce_embeds)
+            # labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
+            # #                 print(preds.shape, nonce_embeds.shape)
+            # l_fct = nn.CrossEntropyLoss()
+            # inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
+            # losses.append(inter_loss)
 
             self.memory.store(nonceTask[i].item(), nonce_embeds)
 
@@ -350,11 +350,11 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
             elif self.emb_type == "MLP":
                 nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
 
-            preds = self.emb_decoder(nonce_embeds)
-            labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
-            l_fct = nn.CrossEntropyLoss()
-            inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
-            losses.append(inter_loss)
+            # preds = self.emb_decoder(nonce_embeds)
+            # labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
+            # l_fct = nn.CrossEntropyLoss()
+            # inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
+            # losses.append(inter_loss)
             #             print((~msk).nonzero()[:,0].tolist())
             #             if nonce_embeds.shape[0] > 2:
             #                 print(batch['mlm_inputs']['input_ids'])
@@ -463,11 +463,11 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
             elif self.emb_type == "MLP":
                 nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
 
-            preds = self.emb_decoder(nonce_embeds)
-            labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
-            l_fct = nn.CrossEntropyLoss()
-            inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
-            losses.append(inter_loss)
+            # preds = self.emb_decoder(nonce_embeds)
+            # labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
+            # l_fct = nn.CrossEntropyLoss()
+            # inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
+            # losses.append(inter_loss)
 
             self.memory.store(nonceMLM[i].item(), nonce_embeds)
 
@@ -515,11 +515,11 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
             elif self.emb_type == "MLP":
                 nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
 
-            preds = self.emb_decoder(nonce_embeds)
-            labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
-            l_fct = nn.CrossEntropyLoss()
-            inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
-            losses.append(inter_loss)
+            # preds = self.emb_decoder(nonce_embeds)
+            # labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
+            # l_fct = nn.CrossEntropyLoss()
+            # inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
+            # losses.append(inter_loss)
 
             self.memory.store(nonceMLM[i].item(), nonce_embeds)
 
