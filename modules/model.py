@@ -143,7 +143,7 @@ class MorphMemoryModel(nn.Module):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions
         )
-        return out_vals, losses
+        return out_vals
 
     def calc_second_lmhead(self, new_w, last_hidden):
         x = self.secondLM.lm_head.dense(last_hidden)
@@ -413,7 +413,7 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
             attentions=outputs.attentions,
         )
 
-        return out_vals, losses
+        return out_vals
 
 class MorphMemoryModelSNLI(MorphMemoryModel):
 
@@ -537,7 +537,7 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
             output_hidden_states=True
         )
 
-        return out_vals, losses
+        return out_vals
 
     def forward_inner(self, batch):
         mlm_inputs = batch["mlm_inputs"].to(self.device)
@@ -667,7 +667,7 @@ class MorphMemoryModelGPT(MorphMemoryModel):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions
         )
-        return out_vals, losses
+        return out_vals
 
     def swap_with_mask(self, inputs, k_examples, nonces):
         inp = inputs.clone()
@@ -830,7 +830,7 @@ class MorphMemoryModelGPTOnline(MorphMemoryModelGPT):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions
         )
-        return out_vals, losses
+        return out_vals
 
 class MorphMemoryModelGPTSubtoken(MorphMemoryModel):
 
@@ -930,7 +930,7 @@ class MorphMemoryModelGPTSubtoken(MorphMemoryModel):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions
         )
-        return out_vals, losses
+        return out_vals
 
     @torch.no_grad()
     def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None, do_sample=False):
@@ -1092,4 +1092,4 @@ class MorphMemoryModelMLMOnline(MorphMemoryModel):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions
         )
-        return out_vals, losses
+        return out_vals
