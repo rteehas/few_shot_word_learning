@@ -396,7 +396,7 @@ def main():
                     for n in to_sample:
                         sample = buffer.retrieve(n)
                         if sample is not None:
-                            test_model.process_memories(sample)
+                            test_model.module.process_memories(sample)
 
                 out = test_model(batch)
 
@@ -616,7 +616,7 @@ def main():
                             for n in to_sample:
                                 sample = buffer.retrieve(n)
                                 if sample is not None:
-                                    test_model.process_memories(sample)
+                                    test_model.module.process_memories(sample)
                             t_out = test_model.forward(b)
 
                             test_losses.append(t_out.loss.item())
