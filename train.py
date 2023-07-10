@@ -60,13 +60,14 @@ def main():
 
     print("Arguments: ", args)
     accelerator = Accelerator()
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    #device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = accelerator.device
     layers = [-1] # add arg to pass this
-
+    print("here")
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
+    print("made first tokenizer")
     firstLM = RobertaForMaskedLM.from_pretrained('roberta-base')
-
+    print("made firstLM, tokenizer")
     # change these to accept model names
     if args.taskName == "mlm":
         tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
@@ -82,17 +83,17 @@ def main():
 
     elif args.taskName == "snli":
         tokenizerTask = AutoTokenizer.from_pretrained('cross-encoder/nli-roberta-base', use_fast=True)
-        secondLM = AutoModelForSequenceClassification.from_pretrained('cross-encoder/nli-roberta-base').to(device)
+        secondLM = AutoModelForSequenceClassification.from_pretrained('cross-encoder/nli-roberta-base')
     elif args.taskName == "addition":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
         tokenizerTask.pad_token = tokenizerTask.unk_token
-        secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
+        secondLM = AutoModelForCausalLM.from_pretrained("gpt2")
         nonces = ["<OP>"]
         dataset_name = "addition"
     elif args.taskName == "addition_subtok":
         tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
         tokenizerTask.pad_token = tokenizerTask.unk_token
-        secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
+        secondLM = AutoModelForCausalLM.from_pretrained("gpt2")
         nonces = ["<NUM1>", "<NUM2>"]
         dataset_name = "addition_subtok"
 
@@ -100,7 +101,9 @@ def main():
         if args.secondLM == "gpt2":
             tokenizerTask = AutoTokenizer.from_pretrained('gpt2', use_fast=True)
             tokenizerTask.pad_token = tokenizerTask.unk_token
-            secondLM = AutoModelForCausalLM.from_pretrained("gpt2").to(device)
+            print("making model")
+            secondLM = AutoModelForCausalLM.from_pretrained("gpt2")
+            print("made model")
         elif args.secondLM == "roberta":
             tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
             secondLM = RobertaForMaskedLM.from_pretrained('roberta-base')
@@ -121,7 +124,7 @@ def main():
         # if args.taskName == "online":
         #     dataset = dataset.filter(lambda ex: len(ex['text']) > 10)
 
-
+    print("here2")
     if "chimera" in args.data_path:
         nonces = list(map(make_nonce, list(set(dataset["train"]['id'] + dataset["test"]['id']))))
         dataset_name = "chimera{}".format(args.num_examples)
@@ -297,33 +300,29 @@ def main():
 
     if "squad" in args.data_path:
         test_model = MorphMemoryModelSQuAD(firstLM, secondLM, new_toks,
-                                      device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
+                                      device, layers, mask_token_id, memory_config, args.emb_gen)
     elif "snli" in args.data_path:
         test_model = MorphMemoryModelSNLI(firstLM, secondLM, new_toks, device, [-1],
-                                   tokenizerMLM.mask_token_id, memory_config, args.emb_gen).to(device)
+                                   tokenizerMLM.mask_token_id, memory_config, args.emb_gen)
     elif "sanity" in args.data_path:
         test_model = MorphMemoryModel(firstLM, secondLM, new_toks,
-                                  device, layers, mask_token_id, memory_config, args.emb_gen).to(device)
+                                  device, layers, mask_token_id, memory_config, args.emb_gen)
     elif "wikitext" in args.data_path:
         buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex)
         if args.secondLM == "gpt2":
             test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
-                                                   tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
-                device)
+                                                   tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer')
         elif args.secondLM == "roberta":
             test_model = MorphMemoryModelMLMOnline(firstLM, secondLM, new_toks, device, [-1],
                                                    tokenizerMLM.mask_token_id, memory_config,
-                                                   emb_type='Transformer').to(
-                device)
+                                                   emb_type='Transformer')
     else:
         if args.taskName == "addition":
             test_model = MorphMemoryModelGPT(firstLM, secondLM, new_toks, device, [-1],
-                                             tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
-                device)
+                                             tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer')
         elif args.taskName == "addition_subtok":
             test_model = MorphMemoryModelGPTSubtoken(firstLM, secondLM, new_toks, device, [-1, -2],
-                                             tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer').to(
-                device)
+                                             tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer')
         else:
             raise NotImplementedError
     if args.finetune:
@@ -347,7 +346,7 @@ def main():
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
     intermediate = args.intermediate_loss
 
-    test_model.to(device)
+    test_model
     test_model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
         test_model, opt, train_dl, test_dl, scheduler
     )
