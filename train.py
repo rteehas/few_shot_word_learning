@@ -536,7 +536,7 @@ def main():
                         if avg_corr > best_corr:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             print(chkpt_name)
-                            save(test_model, opt, chkpt_name)
+                            save(test_model, opt, chkpt_name, accelerator)
                             best_corr = avg_corr
 
                     elif "sanity" in args.data_path:
@@ -558,7 +558,7 @@ def main():
 
                         if n_loss < best_loss:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
-                            save(test_model, opt, chkpt_name)
+                            save(test_model, opt, chkpt_name, accelerator)
                             best_loss = n_loss
 
                     elif "squad" in args.data_path:
@@ -573,7 +573,7 @@ def main():
                         avg_test = sum(test_losses) / len(test_losses)
                         if avg_test < best_loss:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, epoch)
-                            save(test_model, opt, chkpt_name)
+                            save(test_model, opt, chkpt_name, accelerator)
                             best_loss = avg_test
 
                         accelerator.log({'epoch': epoch, 'average test loss': avg_test})
@@ -595,7 +595,7 @@ def main():
                         accelerator.log({'epoch': epoch, 'average test accuracy': acc})
                         if best_acc < acc:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, epoch)
-                            save(test_model, opt, chkpt_name)
+                            save(test_model, opt, chkpt_name, accelerator)
                             print("Saved {}".format(chkpt_name))
                             best_acc = acc
 
@@ -624,7 +624,7 @@ def main():
                         accelerator.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
                         if avg_test < best_loss:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
-                            save(test_model, opt, chkpt_name)
+                            save(test_model, opt, chkpt_name, accelerator)
                             print("Saved {}".format(chkpt_name))
                             best_loss = avg_test
 
@@ -647,7 +647,7 @@ def main():
                         if avg_test < best_loss:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, eval_ind)
                             print(chkpt_name)
-                            save(test_model, opt, chkpt_name)
+                            save(test_model, opt, chkpt_name, accelerator)
                             print("Saved {}".format(chkpt_name))
                             best_loss = avg_test
 
