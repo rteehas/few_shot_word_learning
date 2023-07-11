@@ -59,7 +59,7 @@ def main():
     args = get_arguments().parse_args()
 
     print("Arguments: ", args)
-    accelerator = Accelerator()
+    accelerator = Accelerator(log_with="wandb")
     #device = 'cuda' if torch.cuda.is_available() else 'cpu'
     device = accelerator.device
     layers = [-1] # add arg to pass this
@@ -353,8 +353,18 @@ def main():
 
     project = "fewshot_model_{}".format(args.taskName)
 
-    run = wandb.init(project=project, reinit=True)
-    wandb.run.name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
+    # run = wandb.init(project=project, reinit=True)
+    accelerator.init_trackers(
+        project_name=project,
+        config={"num_examples": args.num_examples,
+                "learning_rate": lr,
+                "aggregation": memory_config.agg_method,
+                "finetune_token": args.finetune,
+                "batch_size": args.batch_size,
+                "maml": args.maml,
+                "model": test_model.module.model_name
+                },
+    init_kwargs = {"wandb": {"name": "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
                                                                             args.num_examples,
                                                                             lr,
                                                                             memory_config.agg_method,
@@ -362,7 +372,17 @@ def main():
                                                                             args.batch_size,
                                                                             args.maml,
                                                                             args.random_ex,
-                                                                            args.finetune)
+                                                                            args.finetune)}},
+    )
+    # wandb.run.name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
+    #                                                                         args.num_examples,
+    #                                                                         lr,
+    #                                                                         memory_config.agg_method,
+    #                                                                         args.emb_gen,
+    #                                                                         args.batch_size,
+    #                                                                         args.maml,
+    #                                                                         args.random_ex,
+    #                                                                         args.finetune)
 
     if intermediate:
         wandb.run.name = wandb.run.name + "_intermediate"
@@ -473,7 +493,7 @@ def main():
             if args.taskName == "online":
                 buffer.store(batch['mlm_inputs'].to(device))
                 buffer.cleanup()
-            wandb.log(log_dict)
+            accelerator.log(log_dict)
 
             if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
                 opt.zero_grad(set_to_none=True)
@@ -505,13 +525,13 @@ def main():
 
                             ratings = [float(v) for v in b['ratings'][0].split(',')]
                             corr = stats.spearmanr(sims, ratings)
-                            wandb.log({'test_point_correlation': corr.correlation})
+                            accelerator.log({'test_point_correlation': corr.correlation})
                             corrs.append(corr.correlation)
 
                         test_model.module.memory.memory = {}
 
                         avg_corr = sum(corrs) / len(corrs)
-                        wandb.log({'epoch': epoch, 'Correlation on Test': avg_corr})
+                        accelerator.log({'epoch': epoch, 'Correlation on Test': avg_corr})
 
                         if avg_corr > best_corr:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
@@ -525,14 +545,14 @@ def main():
                         test_nonce_losses = []
                         for b in test_dl:
                             t_out = test_model.forward(b)
-                            wandb.log({'test point loss': t_out.loss.item()})
+                            accelerator.log({'test point loss': t_out.loss.item()})
                             test_nonce_loss = get_nonce_loss(b, t_out, test_model.secondLM.vocab_size, device)
-                            wandb.log({"test loss on nonce tokens": test_nonce_loss.item()})
+                            accelerator.log({"test loss on nonce tokens": test_nonce_loss.item()})
                             test_nonce_losses.append(test_nonce_loss.item())
 
                             test_losses.append(t_out.loss.item())
 
-                        wandb.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses),
+                        accelerator.log({'epoch': epoch, 'average test loss': sum(test_losses) / len(test_losses),
                                    'average test nonce loss': sum(test_nonce_losses) / len(test_nonce_losses)})
                         n_loss = sum(test_nonce_losses) / len(test_nonce_losses)
 
@@ -556,7 +576,7 @@ def main():
                             save(test_model, opt, chkpt_name)
                             best_loss = avg_test
 
-                        wandb.log({'epoch': epoch, 'average test loss': avg_test})
+                        accelerator.log({'epoch': epoch, 'average test loss': avg_test})
 
                     elif "snli" in args.data_path:
                         test_model.eval()
@@ -572,7 +592,7 @@ def main():
                             total += b['task_labels'].shape[0]
                             test_model.module.memory.memory = {}
                         acc = total_correct / total
-                        wandb.log({'epoch': epoch, 'average test accuracy': acc})
+                        accelerator.log({'epoch': epoch, 'average test accuracy': acc})
                         if best_acc < acc:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, epoch)
                             save(test_model, opt, chkpt_name)
@@ -601,7 +621,7 @@ def main():
                             test_model.module.memory.memory = {}
                         avg_test = sum(test_losses) / len(test_losses)
                         avg_match = test_matches / test_total
-                        wandb.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
+                        accelerator.log({'epoch': epoch, 'average test loss': avg_test, "test exact match": avg_match})
                         if avg_test < best_loss:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             save(test_model, opt, chkpt_name)
@@ -622,7 +642,7 @@ def main():
                             test_losses.append(t_out.loss.item())
                             test_model.module.memory.memory = {}
                         avg_test = sum(test_losses) / len(test_losses)
-                        wandb.log({'epoch': epoch, 'average test loss': avg_test})
+                        accelerator.log({'epoch': epoch, 'average test loss': avg_test})
 
                         if avg_test < best_loss:
                             chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, eval_ind)
@@ -631,12 +651,13 @@ def main():
                             print("Saved {}".format(chkpt_name))
                             best_loss = avg_test
 
-        wandb.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
+        accelerator.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
         if "snli" in args.data_path:
-            wandb.log({"epoch": epoch, 'average train acc': train_correct / train_total})
+            accelerator.log({"epoch": epoch, 'average train acc': train_correct / train_total})
         # if args.taskName == "addition":
         #     wandb.log({'epoch': epoch,
         #                'train exact match': train_correct / train_total})
+    accelerator.end_training()
 
 if __name__ == "__main__":
     main()
