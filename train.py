@@ -59,10 +59,7 @@ def main():
     args = get_arguments().parse_args()
 
     print("Arguments: ", args)
-    proj_conf = ProjectConfiguration(automatic_checkpoint_naming=True)
-    accelerator = Accelerator(log_with="wandb", project_config=proj_conf)
-    #device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    device = accelerator.device
+
     layers = [-1] # add arg to pass this
     print("here")
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
@@ -170,6 +167,21 @@ def main():
         weight_decay = 0.015
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
+
+    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
+                                                                                                 args.num_examples,
+                                                                                                 args.lr,
+                                                                                                 memory_config.agg_method,
+                                                                                                 args.emb_gen,
+                                                                                                 args.batch_size,
+                                                                                                 args.maml,
+                                                                                                 args.random_ex,
+                                                                                                 args.finetune)
+    proj_conf = ProjectConfiguration(automatic_checkpoint_naming=True)
+    accelerator = Accelerator(log_with="wandb", project_config=proj_conf,
+                              project_dir="./model_checkpoints/{}".format(run_name.replace("=", "")))
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = accelerator.device
 
     mask_token_id = tokenizerMLM.mask_token_id
 
@@ -339,10 +351,12 @@ def main():
                 eps=epsilon
                 )
 
-    warmup_steps = len(train_dl)
+    warmup_steps = len(train_dl) // 3
     eval_ind = 100
     if args.taskName == "addition":
         eval_ind=30
+
+
 
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
     intermediate = args.intermediate_loss
@@ -356,16 +370,7 @@ def main():
     project = "fewshot_model_{}".format(args.taskName)
 
     # run = wandb.init(project=project, reinit=True)
-    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
-                                                                            args.num_examples,
-                                                                            lr,
-                                                                            memory_config.agg_method,
-                                                                            args.emb_gen,
-                                                                            args.batch_size,
-                                                                            args.maml,
-                                                                            args.random_ex,
-                                                                            args.finetune)
-    accelerator.project_dir = "./model_checkpoints/{}".format(run_name.replace("=", ""))
+
     accelerator.init_trackers(
         project_name=project,
         config={"num_examples": args.num_examples,
