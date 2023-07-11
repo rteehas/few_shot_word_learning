@@ -546,6 +546,7 @@ def main():
                             # chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             # print(chkpt_name)
                             # save(test_model, opt, chkpt_name, accelerator)
+                            accelerator.wait_for_everyone()
                             accelerator.save_state()
                             best_corr = avg_corr
 
@@ -569,6 +570,7 @@ def main():
                         if n_loss < best_loss:
                             # chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             # save(test_model, opt, chkpt_name, accelerator)
+                            accelerator.wait_for_everyone()
                             accelerator.save_state()
                             best_loss = n_loss
 
@@ -585,6 +587,7 @@ def main():
                         if avg_test < best_loss:
                             # chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, epoch)
                             # save(test_model, opt, chkpt_name, accelerator)
+                            accelerator.wait_for_everyone()
                             accelerator.save_state()
                             best_loss = avg_test
 
@@ -609,6 +612,7 @@ def main():
                             # chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, epoch)
                             # save(test_model, opt, chkpt_name, accelerator)
                             # print("Saved {}".format(chkpt_name))
+                            accelerator.wait_for_everyone()
                             accelerator.save_state()
                             best_acc = acc
 
@@ -639,6 +643,7 @@ def main():
                             # chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             # save(test_model, opt, chkpt_name, accelerator)
                             # print("Saved {}".format(chkpt_name))
+                            accelerator.wait_for_everyone()
                             accelerator.save_state()
                             best_loss = avg_test
 
@@ -663,6 +668,7 @@ def main():
                             # print(chkpt_name)
                             # save(test_model, opt, chkpt_name, accelerator)
                             # print("Saved {}".format(chkpt_name))
+                            accelerator.wait_for_everyone()
                             accelerator.save_state()
                             best_loss = avg_test
 
