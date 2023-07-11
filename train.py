@@ -354,6 +354,15 @@ def main():
     project = "fewshot_model_{}".format(args.taskName)
 
     # run = wandb.init(project=project, reinit=True)
+    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
+                                                                            args.num_examples,
+                                                                            lr,
+                                                                            memory_config.agg_method,
+                                                                            args.emb_gen,
+                                                                            args.batch_size,
+                                                                            args.maml,
+                                                                            args.random_ex,
+                                                                            args.finetune)
     accelerator.init_trackers(
         project_name=project,
         config={"num_examples": args.num_examples,
@@ -364,15 +373,7 @@ def main():
                 "maml": args.maml,
                 "model": test_model.module.model_name
                 },
-    init_kwargs = {"wandb": {"name": "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
-                                                                            args.num_examples,
-                                                                            lr,
-                                                                            memory_config.agg_method,
-                                                                            args.emb_gen,
-                                                                            args.batch_size,
-                                                                            args.maml,
-                                                                            args.random_ex,
-                                                                            args.finetune)}},
+    init_kwargs = {"wandb": {"name": run_name}},
     )
     # wandb.run.name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
     #                                                                         args.num_examples,
@@ -385,12 +386,12 @@ def main():
     #                                                                         args.finetune)
 
     if intermediate:
-        wandb.run.name = wandb.run.name + "_intermediate"
+        run_name = run_name + "_intermediate"
 
     os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}".format(dataset_name), exist_ok=True)
-    os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}/{}".format(dataset_name, wandb.run.name.replace("=", "")), exist_ok=True)
+    os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}/{}".format(dataset_name, run_name.replace("=", "")), exist_ok=True)
 
-    save_folder = "{}/{}/".format(dataset_name, wandb.run.name)
+    save_folder = "{}/{}/".format(dataset_name, run_name)
 
     best_corr = 0
     best_acc = 0
