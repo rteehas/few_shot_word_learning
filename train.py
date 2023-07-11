@@ -15,7 +15,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, RobertaForMaskedLM, GPT2Model, RobertaForQuestionAnswering, \
-    AutoModelForSequenceClassification, AutoModelForCausalLM
+    AutoModelForSequenceClassification, AutoModelForCausalLM, GPTJForCausalLM
 from transformers import AdamW, get_linear_schedule_with_warmup
 from datasets import load_from_disk
 
@@ -105,6 +105,13 @@ def main():
         elif args.secondLM == "roberta":
             tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
             secondLM = RobertaForMaskedLM.from_pretrained('roberta-base')
+        elif args.secondLM == "gptj":
+            tokenizerTask = AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B")
+            secondLM = GPTJForCausalLM.from_pretrained(
+                                    "EleutherAI/gpt-j-6B",
+                                    revision="float16",
+                                    torch_dtype=torch.float16)
+
         else:
             raise NotImplementedError("{} Not Implemented for Task LM".format(args.secondLM))
         # with open(args.word_path, 'r') as f:
@@ -322,7 +329,7 @@ def main():
                                   device, layers, mask_token_id, memory_config, args.emb_gen)
     elif "wikitext" in args.data_path:
         buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex)
-        if args.secondLM == "gpt2":
+        if "gpt" in args.secondLM:
             test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
                                                    tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer')
         elif args.secondLM == "roberta":
