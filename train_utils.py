@@ -12,7 +12,7 @@ def get_grad_norm(model):
     total_norm = total_norm ** 0.5
     return total_norm
 
-def save(model, opt, model_name_chkpt):
+def save(model, opt, model_name_chkpt, accelerator):
     # save
     fname = "/scratch/rst306/few_shot_word_learning/checkpoints/{}".format(model_name_chkpt)
 
@@ -24,7 +24,7 @@ def save(model, opt, model_name_chkpt):
         save_name = fname + "_{}".format(i)
 
     save_name = save_name+".pth"
-    torch.save({
+    accelerator.save({
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': opt.state_dict()},
         save_name)
