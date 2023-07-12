@@ -39,15 +39,10 @@ def get_arguments():
     parser.add_argument("--model_dir", type=str, default="../few_shot_word_learning/checkpoints/")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--checkpoint", type=str)
-    parser.add_argument("--mlm_prob", type=float, default=0.15)
-    parser.add_argument("--taskName", type=str, default='mlm')
-    parser.add_argument("--memory", type=str, default="mean")
+    parser.add_argument("--taskName", type=str, default='snli')
     parser.add_argument("--num_examples", type=int, default=2)
-    parser.add_argument("--intermediate_loss", type=bool, default=False)
     parser.add_argument("--batch_size", type=int, default=5)
-    parser.add_argument("--maml", action="store_true")
     parser.add_argument("--word_path", type=str, default='')
-    parser.add_argument("--finetune", action="store_true")
     return parser
 
 
@@ -99,11 +94,11 @@ def main():
 
     if "snli" in args.data_path:
         n = args.num_examples
-        split = dataset.train_test_split(0.2)
-        train = SimpleSNLIDataset(split["train"], tokenizer, tokenizer, n)
+        split = dataset.train_test_split(0.5)
+        # train = SimpleSNLIDataset(split["train"], tokenizer, tokenizer, n)
         test = SimpleSNLIDataset(split["test"], tokenizer, tokenizer, n)
 
-        train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
+        # train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
         test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
 
     project = "snli_eval_baselines"
