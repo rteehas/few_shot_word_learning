@@ -76,7 +76,7 @@ def prepare_baseline_batch(batch, mask_token_id, device, use_mask):
 
 def main():
     args = get_arguments().parse_args()
-    model = RobertaForQuestionAnswering.from_pretrained(args.model_dir)
+    model = AutoModelForSequenceClassification.from_pretrained(args.model_dir)
 
     dataset = load_from_disk(args.data_path)
     tokenizer = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
