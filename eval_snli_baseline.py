@@ -141,4 +141,5 @@ def main():
     acc = total_correct / total
     accelerator.log({'average test accuracy mask': acc})
 
-
+if __name__ == "__main__":
+    main()
