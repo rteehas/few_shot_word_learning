@@ -91,6 +91,7 @@ def main():
 
     accelerator = Accelerator(log_with="wandb")
     device = accelerator.device
+    model = accelerator.prepare(model)
 
     if "snli" in args.data_path:
         n = args.num_examples
