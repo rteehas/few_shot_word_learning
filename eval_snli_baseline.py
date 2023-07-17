@@ -65,7 +65,7 @@ def prepare_baseline_batch(batch, mask_token_id, device, use_mask):
 
     b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
     if use_mask:
-        new_ids = swap_with_mask(task_inputs["input_ids"], k_task, nonceTask, mask_token_id)
+        new_ids = swap_with_mask(task_inputs["input_ids"], k_task, nonceTask, mask_token_id, device)
     else:
         new_ids = task_inputs["input_ids"]
     task_ids = new_ids.reshape((b_task * k_task, l_task))  # reshape so we have n x seq_len
@@ -132,14 +132,16 @@ def main():
     total = 0
     for b in test_dl:
         with torch.no_grad():
-            batch = prepare_baseline_batch(b, tokenizer.mask_token_id, device, use_mask=True)
-            t_out = model.forward(batch)
+            ids, attn, labels = prepare_baseline_batch(b, tokenizer.mask_token_id, device, use_mask=False)
+            t_out = model(input_ids=ids,
+                    attention_mask=attn,
+                    labels=labels.squeeze(1))
             preds = t_out.logits
             preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
-            true_ans = batch['task_labels'].to(device).view(-1)
+            true_ans = b['task_labels'].to(device).view(-1)
             num_correct = (preds == true_ans).sum()
             total_correct += num_correct
-            total += batch['task_labels'].shape[0]
+            total += b['task_labels'].shape[0]
 
     acc = total_correct / total
     accelerator.log({'average test accuracy mask': acc})
