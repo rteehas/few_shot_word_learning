@@ -319,11 +319,11 @@ if __name__ == "__main__":
                         test_model.memory.memory = {}
                     acc = total_correct / total
                     wandb.log({'epoch': epoch, 'average test accuracy': acc})
-                    if best_acc < acc:
-                        chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
-                        save(test_model, opt, chkpt_name)
-                        print("Saved {}".format(chkpt_name))
-                        best_acc = acc
+                    # if best_acc < acc:
+                    #     chkpt_name = get_model_name_checkpoint(wandb.run.name, epoch)
+                    #     save(test_model, opt, chkpt_name)
+                    #     print("Saved {}".format(chkpt_name))
+                    #     best_acc = acc
 
                 elif "calc" == args.taskName:
                     test_model.eval()
