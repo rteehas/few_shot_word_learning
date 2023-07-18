@@ -146,7 +146,7 @@ if __name__ == "__main__":
     secondLM.resize_token_embeddings(len(tokenizerTask))
 
     # memory
-    if "mean" in args.checkpoint:
+    if "mean" in args.checkpoint or args.memory == "mean":
         memory_config = AggregatorConfig()
         weight_decay = 0.01
 
