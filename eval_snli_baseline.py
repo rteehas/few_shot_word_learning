@@ -158,8 +158,9 @@ class SimpleSNLIDatasetCat(Dataset):
                                       truncation=True,
                                       return_tensors='pt')
 
-        tokensTask = self.tokenizerTask(sentences,
-                                        premise,
+        modified_premise = " ".join(sentences + [premise])
+
+        tokensTask = self.tokenizerTask(modified_premise,
                                         hypothesis,
                                         max_length=task_length,
                                         padding='max_length',
