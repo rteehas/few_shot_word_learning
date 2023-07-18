@@ -258,7 +258,7 @@ if __name__ == "__main__":
                 opt.zero_grad()
 
 
-                out, losses = test_model(batch)
+                out = test_model(batch)
 
                 loss = out.loss
 
@@ -305,7 +305,7 @@ if __name__ == "__main__":
                     total_correct = 0
                     total = 0
                     for b in test_dl:
-                        t_out, _ = test_model.forward(b)
+                        t_out = test_model.forward(b)
                         preds = t_out.logits
                         preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
                         true_ans = b['task_labels'].to(device).view(-1)
