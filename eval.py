@@ -205,7 +205,7 @@ if __name__ == "__main__":
     if "snli" in args.data_path:
         test_model = MorphMemoryModelSNLI(firstLM, secondLM, new_toks, device, [-1],
                                    tokenizerMLM.mask_token_id, memory_config, "Transformer").to(device)
-        test_model = load_model_partial(args.model_dir + args.checkpoint, test_model)
+        test_model = load_model_partial(args.checkpoint, test_model)
 
     else:
         if args.taskName == "calc":
