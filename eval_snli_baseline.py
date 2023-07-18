@@ -43,6 +43,7 @@ def get_arguments():
     parser.add_argument("--num_examples", type=int, default=2)
     parser.add_argument("--batch_size", type=int, default=5)
     parser.add_argument("--word_path", type=str, default='')
+    parser.add_argument("--cat", action="store_true")
     return parser
 
 
@@ -73,6 +74,106 @@ def prepare_baseline_batch(batch, mask_token_id, device, use_mask):
 
     return task_ids, task_attn, task_labels
 
+class SimpleSNLIDatasetCat(Dataset):
+    def __init__(self, data, tokenizerMLM, tokenizerTask, n_samples):
+        #         super(SimpleSNLIDataset, self).__init__()
+        self.premises = data["premise"]
+        self.hypotheses = data["hypothesis"]
+        self.sentences = data['sentences']
+        self.replacements = data['replace']
+        self.labels = data['label']
+        self.n_samples = n_samples
+
+        self.tokenizerMLM = tokenizerMLM
+        self.tokenizerTask = tokenizerTask
+
+        if not self.tokenizerTask.pad_token:
+            self.tokenizerTask.pad_token = self.tokenizerTask.eos_token
+
+    def __len__(self):
+        return len(self.premises)
+
+    def __getitem__(self, idx):
+        premise = self.premises[idx]
+        hypothesis = self.hypotheses[idx]
+        replaced = self.replacements[idx]
+        label = self.labels[idx]
+        sentences = self.sentences[idx]
+
+        if label == -1:
+            return None
+
+        nonce = snli_nonce(replaced.lower())
+
+        premise = re.sub(r"\b({})\b".format(replaced), nonce, premise, flags=re.I)
+        hypothesis = re.sub(r"\b({})\b".format(replaced), nonce, hypothesis, flags=re.I)
+
+        nonceMLM = self.tokenizerMLM.convert_tokens_to_ids(nonce)
+        nonceTask = self.tokenizerTask.convert_tokens_to_ids(nonce)
+
+        do_sample = True
+
+        if self.tokenizerMLM.model_max_length:
+            mlm_length = self.tokenizerMLM.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for MLM")
+
+        if self.tokenizerTask.model_max_length:
+            task_length = self.tokenizerTask.model_max_length
+        else:
+            raise Exception("Model Max Length does not exist for TaskLM")
+
+        #         sentences = [s.strip() for s in sentences]
+        #         sentences = [s.replace('\n', ' ') for s in sentences]
+        # #         print(replaced)
+        # #         print(sentences)
+        #         for s in sentences:
+        #             if not re.search(r"\b({})\b".format(replaced), s):
+        #                 return None
+
+        sentences = [s.strip() for s in sentences]
+        sentences = [s.replace('\n', " ") for s in sentences]
+        sents = []
+
+        if len(sentences) < self.n_samples:
+            return None
+
+        for s in sentences:
+            if not re.search(r"\b({})\b".format(replaced), s, flags=re.I):
+                continue
+            else:
+                sents.append(re.sub(r"\b({})\b".format(replaced), nonce, s, flags=re.I, count=1))
+
+        sentences = sents
+
+        try:
+            if do_sample:
+                sentences = np.random.choice(sentences, size=self.n_samples).tolist()
+        except:
+            return None
+
+        tokensMLM = self.tokenizerMLM(sentences,
+                                      max_length=mlm_length,
+                                      padding='max_length',
+                                      truncation=True,
+                                      return_tensors='pt')
+
+        tokensTask = self.tokenizerTask(sentences,
+                                        premise,
+                                        hypothesis,
+                                        max_length=task_length,
+                                        padding='max_length',
+                                        truncation=True,
+                                        return_tensors='pt',
+                                        return_special_tokens_mask=True)
+
+        return {
+            'mlm_inputs': tokensMLM,  # shape for output is batch (per nonce) x k (examples) x 512 (tokens)
+            'task_inputs': tokensTask,
+            'nonceMLM': nonceMLM,
+            'nonceTask': nonceTask,
+            'task_labels': torch.LongTensor([label])
+        }
 
 def main():
     args = get_arguments().parse_args()
@@ -97,7 +198,10 @@ def main():
         n = args.num_examples
         split = dataset.train_test_split(0.5)
         # train = SimpleSNLIDataset(split["train"], tokenizer, tokenizer, n)
-        test = SimpleSNLIDataset(split["test"], tokenizer, tokenizer, n)
+        if args.cat:
+            test = SimpleSNLIDatasetCat(split["test"], tokenizer, tokenizer, n)
+        else:
+            test = SimpleSNLIDataset(split["test"], tokenizer, tokenizer, n)
 
         # train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
         test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
