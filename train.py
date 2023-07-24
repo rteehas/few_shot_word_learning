@@ -190,6 +190,9 @@ def main():
     accelerator = Accelerator(log_with="wandb")
     save_check_dir = "./model_checkpoints/{}/checkpoints".format(run_name.replace("=", ""))
     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    save_suffix = "/checkpoint_{}"
+    save_ind = 0
+
     device = accelerator.device
 
     mask_token_id = tokenizerMLM.mask_token_id
@@ -558,7 +561,9 @@ def main():
                             # print(chkpt_name)
                             # save(test_model, opt, chkpt_name, accelerator)
                             accelerator.wait_for_everyone()
-                            accelerator.save_state(output_dir = save_check_dir)
+                            save_dir = save_check_dir + save_suffix.format(save_ind)
+                            save_ind += 1
+                            accelerator.save_state(output_dir = save_dir)
                             best_corr = avg_corr
 
                     elif "sanity" in args.data_path:
@@ -582,7 +587,9 @@ def main():
                             # chkpt_name = get_model_name_checkpoint(save_folder + test_model.model_name, epoch)
                             # save(test_model, opt, chkpt_name, accelerator)
                             accelerator.wait_for_everyone()
-                            accelerator.save_state(output_dir = save_check_dir)
+                            save_dir = save_check_dir + save_suffix.format(save_ind)
+                            save_ind += 1
+                            accelerator.save_state(output_dir=save_dir)
                             best_loss = n_loss
 
                     elif "squad" in args.data_path:
@@ -599,7 +606,9 @@ def main():
                             # chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, epoch)
                             # save(test_model, opt, chkpt_name, accelerator)
                             accelerator.wait_for_everyone()
-                            accelerator.save_state(output_dir = save_check_dir)
+                            save_dir = save_check_dir + save_suffix.format(save_ind)
+                            save_ind += 1
+                            accelerator.save_state(output_dir=save_dir)
                             best_loss = avg_test
 
                         accelerator.log({'epoch': epoch, 'average test loss': avg_test})
@@ -624,7 +633,9 @@ def main():
                             # save(test_model, opt, chkpt_name, accelerator)
                             # print("Saved {}".format(chkpt_name))
                             accelerator.wait_for_everyone()
-                            accelerator.save_state(output_dir = save_check_dir)
+                            save_dir = save_check_dir + save_suffix.format(save_ind)
+                            save_ind += 1
+                            accelerator.save_state(output_dir=save_dir)
                             best_acc = acc
 
                     elif "addition" in args.taskName:
@@ -655,7 +666,9 @@ def main():
                             # save(test_model, opt, chkpt_name, accelerator)
                             # print("Saved {}".format(chkpt_name))
                             accelerator.wait_for_everyone()
-                            accelerator.save_state(output_dir = save_check_dir)
+                            save_dir = save_check_dir + save_suffix.format(save_ind)
+                            save_ind += 1
+                            accelerator.save_state(output_dir=save_dir)
                             best_loss = avg_test
 
                     elif args.taskName == "online":
@@ -680,7 +693,9 @@ def main():
                             # save(test_model, opt, chkpt_name, accelerator)
                             # print("Saved {}".format(chkpt_name))
                             accelerator.wait_for_everyone()
-                            accelerator.save_state(output_dir = save_check_dir)
+                            save_dir = save_check_dir + save_suffix.format(save_ind)
+                            save_ind += 1
+                            accelerator.save_state(output_dir=save_dir)
                             best_loss = avg_test
 
         accelerator.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
