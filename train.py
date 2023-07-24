@@ -52,6 +52,7 @@ def get_arguments():
     parser.add_argument("--word_path", type=str, default='')
     parser.add_argument("--finetune", action="store_true")
     parser.add_argument("--random_ex", action="store_true")
+    parser.add_argument("--cat", action="store_true")
     return parser
 
 
@@ -329,7 +330,9 @@ def main():
         test_model = MorphMemoryModel(firstLM, secondLM, new_toks,
                                   device, layers, mask_token_id, memory_config, args.emb_gen)
     elif "wikitext" in args.data_path:
-        buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex)
+        if args.cat:
+            assert args.mempry == "mean"
+        buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
         if "gpt" in args.secondLM:
             test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
                                                    tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer')
