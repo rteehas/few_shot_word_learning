@@ -110,7 +110,8 @@ def main():
             secondLM = GPTJForCausalLM.from_pretrained(
                                     "EleutherAI/gpt-j-6B",
                                     revision="float16",
-                                    torch_dtype=torch.float16)
+                                    torch_dtype=torch.float16,
+                                    low_cpu_mem_usage=True)
 
         else:
             raise NotImplementedError("{} Not Implemented for Task LM".format(args.secondLM))
@@ -358,7 +359,7 @@ def main():
                 eps=epsilon
                 )
 
-    warmup_steps = len(train_dl) // 3
+    warmup_steps = len(train_dl)
     eval_ind = 100
     if args.taskName == "addition":
         eval_ind=30
