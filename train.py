@@ -177,7 +177,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}".format(dataset_name,
+    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat".format(dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -331,7 +331,7 @@ def main():
                                   device, layers, mask_token_id, memory_config, args.emb_gen)
     elif "wikitext" in args.data_path:
         if args.cat:
-            assert args.mempry == "mean"
+            assert args.memory == "mean"
         buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
         if "gpt" in args.secondLM:
             test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
