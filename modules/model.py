@@ -1018,6 +1018,7 @@ class MorphMemoryModelMLMOnline(MorphMemoryModel):
                     nonce_embeds = self.emb_gen(combined[embed_ids[0], embed_ids[1], :])
                 else:
                     raise NotImplementedError("Wrong shape for Combined")
+                nonce_embeds = torch.mean(nonce_embeds, dim=0, keepdim=True)
                 self.memory.store(nonce2, nonce_embeds)
 
     def swap_with_mask(self, inputs):
@@ -1060,7 +1061,7 @@ class MorphMemoryModelMLMOnline(MorphMemoryModel):
 
                 embed_ids = msk.nonzero(as_tuple=True)
                 nonce_embeds = self.emb_gen(combined[embed_ids[0], embed_ids[1], :])
-
+                nonce_embeds = torch.mean(nonce_embeds, dim=0, keepdim=True)
                 self.memory.store(nonce2, nonce_embeds)
 
         # now do task specific stuff
