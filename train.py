@@ -681,10 +681,11 @@ def main():
                                 if sample is not None:
                                     test_model.module.process_memories(sample)
                             t_out = test_model.forward(b)
-
-                            test_losses.append(t_out.loss.item())
+                            all_losses = accelerator.gather(t_out.loss)
+                            test_losses.append(all_losses)
                             test_model.module.memory.memory = {}
-                        avg_test = sum(test_losses) / len(test_losses)
+                        test_losses = torch.cat(test_losses, dim=0)
+                        avg_test = test_losses.sum() / test_losses.shape[0]
                         accelerator.log({'epoch': epoch, 'average test loss': avg_test})
 
                         if avg_test < best_loss:
