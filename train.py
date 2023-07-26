@@ -512,6 +512,7 @@ def main():
 
             opt.step()
             scheduler.step()
+            log_dict['num_words_seen'] = len(buffer.buffer)
             test_model.module.memory.memory = {}
             if args.taskName == "online":
                 buffer.store(batch['mlm_inputs'].to(device))
