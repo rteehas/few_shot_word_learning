@@ -91,8 +91,8 @@ if __name__ == "__main__":
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future_to_word = {executor.submit(process_word, word): word for word in words}
         for future in concurrent.futures.as_completed(future_to_word):
-            print("Scraped word {}".format(w))
             w, year_submitted, year_edited = future.result()
+            print("Scraped word {}".format(w))
             word_data[w] = {
                 'year_submitted': year_submitted,
                 'year_edited': year_edited
