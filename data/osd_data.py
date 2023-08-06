@@ -85,11 +85,13 @@ def scrape_slang(word):
 
 if __name__ == "__main__":
     words = scrape_words()
+    print("scraped words list")
     word_data = {}
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future_to_word = {executor.submit(process_word, word): word for word in words}
         for future in concurrent.futures.as_completed(future_to_word):
+            print("Scraped word {}".format(w))
             w, year_submitted, year_edited = future.result()
             word_data[w] = {
                 'year_submitted': year_submitted,
