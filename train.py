@@ -61,7 +61,7 @@ def main():
 
     print("Arguments: ", args)
 
-    layers = [-1] # add arg to pass this
+    layers = [-1, -2, -3, -4] # add arg to pass this
     print("here")
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
     print("made first tokenizer")
@@ -177,7 +177,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat".format(dataset_name,
+    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_mlmprobdouble".format(dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -185,7 +185,8 @@ def main():
                                                                                                  args.batch_size,
                                                                                                  args.maml,
                                                                                                  args.random_ex,
-                                                                                                 args.finetune)
+                                                                                                 args.finetune,
+                                                                                                 len(layers))
     # proj_conf = ProjectConfiguration(automatic_checkpoint_naming=True)
     accelerator = Accelerator(log_with="wandb")
     save_check_dir = "./model_checkpoints/{}/checkpoints".format(run_name.replace("=", ""))
