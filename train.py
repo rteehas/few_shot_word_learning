@@ -426,6 +426,8 @@ def main():
         train_losses = []
         train_correct = 0
         train_total = 0
+        if "wikitext" in args.data_path:
+            buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
         for i, batch in enumerate(train_dl):
             log_dict = {}
 

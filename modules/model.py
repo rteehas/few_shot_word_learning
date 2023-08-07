@@ -32,7 +32,8 @@ class MorphMemoryModel(nn.Module):
             self.emb_gen = MLP(self.firstLM.config.hidden_size, 384, self.secondLM.config.hidden_size)
 
         elif self.emb_type == "Transformer":
-            encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size, nhead=6, activation='gelu').to(self.device)
+            encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
+                                                       nhead=self.firstLM.config.num_attention_heads, activation='gelu').to(self.device)
             self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
 
         self.nonces = nonces  # for referencing embedding location
