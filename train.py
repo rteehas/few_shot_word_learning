@@ -192,10 +192,7 @@ def main():
                                                                                                  args.binary)
     # proj_conf = ProjectConfiguration(automatic_checkpoint_naming=True)
     accelerator = Accelerator(log_with="wandb")
-    save_check_dir = "./model_checkpoints/{}/checkpoints".format(run_name.replace("=", ""))
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    save_suffix = "/checkpoint_{}"
-    save_ind = 0
+
 
     device = accelerator.device
 
@@ -428,7 +425,11 @@ def main():
     os.makedirs("/scratch/rst306/few_shot_word_learning/checkpoints/{}/{}".format(dataset_name, run_name.replace("=", "")), exist_ok=True)
 
     save_folder = "{}/{}/".format(dataset_name, run_name)
-
+    save_check_dir = "./model_checkpoints/{}/{}/checkpoints".format(run_name.replace("=", ""), test_model.model_name)
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    save_suffix = "/checkpoint_{}"
+    save_ind = 0
+    
     best_corr = 0
     best_acc = 0
     best_loss = 10000
