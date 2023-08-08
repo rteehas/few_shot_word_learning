@@ -179,7 +179,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_mlmprobdouble".format(dataset_name,
+    run_name = "gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_binary_{}".format(dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -188,7 +188,8 @@ def main():
                                                                                                  args.maml,
                                                                                                  args.random_ex,
                                                                                                  args.finetune,
-                                                                                                 len(layers))
+                                                                                                 args.cat,
+                                                                                                 args.binary)
     # proj_conf = ProjectConfiguration(automatic_checkpoint_naming=True)
     accelerator = Accelerator(log_with="wandb")
     save_check_dir = "./model_checkpoints/{}/checkpoints".format(run_name.replace("=", ""))
