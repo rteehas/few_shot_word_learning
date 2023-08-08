@@ -23,7 +23,8 @@ from configs.config import *
 from eval_utils import compute_exact_match
 from modules.buffer import RetrievalBuffer
 from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI, MorphMemoryModelGPT, \
-    MorphMemoryModelGPTOnline, MorphMemoryModelGPTSubtoken, MorphMemoryModelMLMOnline
+    MorphMemoryModelGPTOnline, MorphMemoryModelGPTSubtoken, MorphMemoryModelMLMOnline, MorphMemoryModelGPTOnlineBinary, \
+    MorphMemoryModelMLMOnlineBinary
 from data.data_utils import *
 from train_utils import *
 from data.few_shot_datasets import *
@@ -53,6 +54,7 @@ def get_arguments():
     parser.add_argument("--finetune", action="store_true")
     parser.add_argument("--random_ex", action="store_true")
     parser.add_argument("--cat", action="store_true")
+    parser.add_argument("--binary", action="store_true")
     return parser
 
 
@@ -337,12 +339,22 @@ def main():
             assert args.memory == "mean"
         buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
         if "gpt" in args.secondLM:
-            test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
-                                                   tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer')
+            if not args.binary:
+                test_model = MorphMemoryModelGPTOnline(firstLM, secondLM, new_toks, device, [-1],
+                                                       tokenizerMLM.mask_token_id, memory_config, emb_type='Transformer')
+            else:
+                test_model = MorphMemoryModelGPTOnlineBinary(firstLM, secondLM, new_toks, device, [-1],
+                                                       tokenizerMLM.mask_token_id, memory_config,
+                                                       emb_type='Transformer')
         elif args.secondLM == "roberta":
-            test_model = MorphMemoryModelMLMOnline(firstLM, secondLM, new_toks, device, [-1],
-                                                   tokenizerMLM.mask_token_id, memory_config,
-                                                   emb_type='Transformer')
+            if not args.binary:
+                test_model = MorphMemoryModelMLMOnline(firstLM, secondLM, new_toks, device, [-1],
+                                                       tokenizerMLM.mask_token_id, memory_config,
+                                                       emb_type='Transformer')
+            else:
+                test_model = MorphMemoryModelMLMOnlineBinary(firstLM, secondLM, new_toks, device, [-1],
+                                                       tokenizerMLM.mask_token_id, memory_config,
+                                                       emb_type='Transformer')
     else:
         if args.taskName == "addition":
             test_model = MorphMemoryModelGPT(firstLM, secondLM, new_toks, device, [-1],
