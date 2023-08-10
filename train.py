@@ -24,7 +24,7 @@ from eval_utils import compute_exact_match
 from modules.buffer import RetrievalBuffer
 from modules.model import MorphMemoryModel, MorphMemoryModelSQuAD, MorphMemoryModelSNLI, MorphMemoryModelGPT, \
     MorphMemoryModelGPTOnline, MorphMemoryModelGPTSubtoken, MorphMemoryModelMLMOnline, MorphMemoryModelGPTOnlineBinary, \
-    MorphMemoryModelMLMOnlineBinary
+    MorphMemoryModelMLMOnlineBinary, MorphMemoryModelMLMOnlineFull
 from data.data_utils import *
 from train_utils import *
 from data.few_shot_datasets import *
@@ -347,7 +347,7 @@ def main():
                                                        emb_type='Transformer')
         elif args.secondLM == "roberta":
             if not args.binary:
-                test_model = MorphMemoryModelMLMOnline(firstLM, secondLM, new_toks, device, [-1],
+                test_model = MorphMemoryModelMLMOnlineFull(firstLM, secondLM, new_toks, device, [-1],
                                                        tokenizerMLM.mask_token_id, memory_config,
                                                        emb_type='Transformer')
             else:
