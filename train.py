@@ -55,6 +55,7 @@ def get_arguments():
     parser.add_argument("--random_ex", action="store_true")
     parser.add_argument("--cat", action="store_true")
     parser.add_argument("--binary", action="store_true")
+    parser.add_argument("--mask_new", action="store_true")
     return parser
 
 
@@ -179,7 +180,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "finetuned_sentences_redo_highWD_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_binary_{}".format(dataset_name,
+    run_name = "finetuned_sentences_redo_highWD_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_binary_{}_mask_new={}".format(dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -189,7 +190,8 @@ def main():
                                                                                                  args.random_ex,
                                                                                                  args.finetune,
                                                                                                  args.cat,
-                                                                                                 args.binary)
+                                                                                                 args.binary,
+                                                                                                 args.mask_new)
     # proj_conf = ProjectConfiguration(automatic_checkpoint_naming=True)
     accelerator = Accelerator(log_with="wandb")
 
@@ -256,11 +258,11 @@ def main():
         test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
     elif "wikitext" in args.data_path:
         # split = dataset.train_test_split(0.2)
-
-        train = SimpleOnlineDataset(dataset['train'], tokenizerMLM, tokenizerTask)
+        nt = tokenizerTask.convert_tokens_to_ids(nonces)
+        train = SimpleOnlineDataset(dataset['train'], tokenizerMLM, tokenizerTask, new_tokens=nt, mask_new=args.mask_new)
         train_dl = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
-        test = SimpleOnlineDataset(dataset['test'], tokenizerMLM, tokenizerTask)
+        test = SimpleOnlineDataset(dataset['test'], tokenizerMLM, tokenizerTask, new_tokens=nt, mask_new=args.mask_new)
         test_dl = DataLoader(test, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
     else:

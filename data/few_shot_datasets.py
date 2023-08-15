@@ -779,10 +779,12 @@ class SimpleMathDataset(Dataset):
 
 
 class SimpleOnlineDataset(Dataset):
-    def __init__(self, data, tokenizerMLM, tokenizerTask):
+    def __init__(self, data, tokenizerMLM, tokenizerTask, new_tokens, mask_new):
         self.text = data['text']
         self.tokenizerMLM = tokenizerMLM
         self.tokenizerTask = tokenizerTask
+        self.new_tokens = torch.Tensor(new_tokens)
+        self.mask_new = mask_new
 
         if "roberta" in self.tokenizerTask.name_or_path:
             self.data_collator = DataCollatorForLanguageModeling(self.tokenizerTask, mlm=True, mlm_probability=0.15)
@@ -831,6 +833,8 @@ class SimpleOnlineDataset(Dataset):
             task_ids, task_labels = self.data_collator.torch_mask_tokens(inputs=tokensTask['input_ids'],
                                                                          special_tokens_mask=tokensTask[
                                                                              "special_tokens_mask"])
+            task_labels[torch.isin(task_ids, self.new_tokens)] = task_ids[torch.isin(task_ids, self.new_tokens)]
+            task_ids[torch.isin(task_ids, self.new_tokens)] = self.tokenizerTask.mask_token_id
 
             masked_task = deepcopy(tokensTask)
 
