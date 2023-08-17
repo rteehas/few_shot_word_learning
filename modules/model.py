@@ -1563,7 +1563,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         # embedding generator + store in memory
         losses = []
         for nonce1, nonce2 in zip(self.first_list, self.second_list):
-            if nonce1 in mlm_inputs["input_ids"] and nonce1 not in self.buffer.buffer:
+            if nonce1 in mlm_inputs["input_ids"]:
                 msk = (mlm_inputs["input_ids"].reshape((b * k, l)) == nonce1)
                 src = mlm_inputs["input_ids"].reshape((b * k, l))[msk.nonzero()[:, 0].unique()]
                 src = src.unsqueeze(-1)
