@@ -36,7 +36,7 @@ class MorphMemoryModel(nn.Module):
                                                        nhead=self.firstLM.config.num_attention_heads, activation='gelu').to(self.device)
             self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
 
-        self.nonces = nonces  # for referencing embedding location
+        self.nonces = list(set(nonces))  # for referencing embedding location
 
         # new tokens always at the end
         initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
@@ -49,7 +49,7 @@ class MorphMemoryModel(nn.Module):
         for n_first, n_second in zip(first_list, second_list):
             with torch.no_grad():
                 self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
-                self.secondLM.get_input_embeddings().weight[n_second, :] = (torch.zeros((self.secondLM.config.hidden_size,)) - 10000.0)
+                self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
 
         self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
                                                                 self.secondLM.config.model_type,
