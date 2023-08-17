@@ -49,7 +49,7 @@ class MorphMemoryModel(nn.Module):
         for n_first, n_second in zip(first_list, second_list):
             with torch.no_grad():
                 self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
-                self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
+                self.secondLM.get_input_embeddings().weight[n_second, :] = (torch.zeros((self.secondLM.config.hidden_size,)) - 10000.0)
 
         self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
                                                                 self.secondLM.config.model_type,
