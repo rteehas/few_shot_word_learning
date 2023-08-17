@@ -169,7 +169,7 @@ def main():
     # memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
-        weight_decay = 0.02
+        weight_decay = 0.1
 
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
@@ -180,7 +180,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "finetuned_sentences_redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_binary_{}_mask_new={}".format(dataset_name,
+    run_name = "fixed_eval_finetuned_sentences_highWD_redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_binary_{}_mask_new={}".format(dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -351,7 +351,7 @@ def main():
             if not args.binary:
                 test_model = MorphMemoryModelMLMOnlineFull(firstLM, secondLM, new_toks, device, [-1],
                                                        tokenizerMLM.mask_token_id, memory_config,
-                                                       emb_type='Transformer')
+                                                       'Transformer', buffer)
             else:
                 test_model = MorphMemoryModelMLMOnlineBinary(firstLM, secondLM, new_toks, device, [-1],
                                                        tokenizerMLM.mask_token_id, memory_config,
@@ -444,10 +444,13 @@ def main():
         train_total = 0
         if "wikitext" in args.data_path:
             buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
+            test_model.buffer = buffer
         for i, batch in enumerate(train_dl):
             log_dict = {}
 
             test_model.train()
+            test_model.firstLM.eval()
+            test_model.secondLM.eval()
             if not args.maml:
                 test_model.zero_grad()
                 opt.zero_grad()
