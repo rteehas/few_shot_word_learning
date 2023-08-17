@@ -1482,6 +1482,8 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
         self.buffer = buffer
 
+        self.dropout = nn.Dropout(0.2)
+
     def process_memories(self, mem):
 
         b, l = mem["input_ids"].shape
@@ -1493,7 +1495,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
         first_hidden = first_out.hidden_states
 
-        combined = combine_layers(first_hidden, self.layers)
+        combined = self.dropout(combine_layers(first_hidden, self.layers))
 
         for nonce1, nonce2 in zip(self.first_list, self.second_list):
             if nonce1 in mem["input_ids"]:
@@ -1554,7 +1556,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
         first_hidden = first_out.hidden_states
 
-        combined = combine_layers(first_hidden, self.layers)
+        combined = self.dropout(combine_layers(first_hidden, self.layers))
 
         chunked = torch.chunk(combined, b)  # get different embeds per nonce, shape = k x max_len x hidden
 
