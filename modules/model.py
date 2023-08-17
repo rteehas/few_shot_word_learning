@@ -1459,7 +1459,7 @@ class MorphMemoryModelGPTOnlineBinary(MorphMemoryModel):
 
 class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type, buffer):
         super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
                                                    nhead=self.firstLM.config.num_attention_heads,
@@ -1479,6 +1479,8 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         # self.neg_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
 
         self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
+
+        self.buffer = buffer
 
     def process_memories(self, mem):
 
@@ -1512,17 +1514,15 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
                 src = mem["input_ids"]
                 src = src.unsqueeze(-1)
                 src = src.expand(-1, -1, self.firstLM.config.hidden_size)
-                #                 pos = self.pos_binary.unsqueeze(0).expand(src.shape[0], -1, -1)
-                #                 neg = self.neg_binary.unsqueeze(0).expand(src.shape[0], -1, -1)
-                mask = src == nonce1
-                #                 added = torch.where(mask.to(self.device), pos, neg)
-                #                 cls = self.cls_token.unsqueeze(0).expand(src.shape[0], -1, -1)
-                #                 return added, msk
-                #                 embed_inputs = combined + added
+
                 embed_inputs = combined
+                attn = mlm_attn
+                attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1), attn],
+                                 dim=1)
+
                 #                 print(cls.shape, embed_inputs.shape)
                 embed_inputs = torch.cat([self.cls_token.unsqueeze(0), embed_inputs.unsqueeze(0)], dim=1)
-                nonce_embeds = self.emb_gen(embed_inputs)
+                nonce_embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
                 self.memory.store(nonce2, nonce_embeds[:, 0])
 
     def swap_with_mask(self, inputs):
@@ -1549,7 +1549,8 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
         mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
 
-        first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
+        with torch.no_grad():
+            first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
 
         first_hidden = first_out.hidden_states
 
@@ -1560,7 +1561,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         # embedding generator + store in memory
         losses = []
         for nonce1, nonce2 in zip(self.first_list, self.second_list):
-            if nonce1 in mlm_inputs["input_ids"]:
+            if nonce1 in mlm_inputs["input_ids"] and nonce1 not in self.buffer.buffer:
                 msk = (mlm_inputs["input_ids"].reshape((b * k, l)) == nonce1)
                 src = mlm_inputs["input_ids"].reshape((b * k, l))[msk.nonzero()[:, 0].unique()]
                 src = src.unsqueeze(-1)
@@ -1573,9 +1574,13 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
                 #                 return added, msk
                 #                 embed_inputs = combined[msk.nonzero()[:,0].unique()] + added
                 embed_inputs = combined[msk.nonzero()[:, 0].unique()]
+                attn = mlm_attn[msk.nonzero()[:, 0].unique()]
+                attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1), attn],
+                                 dim=1)
+
                 #                 print(src.shape, mask.shape, embed_inputs.shape, self.cls_token.shape)
                 embed_inputs = torch.cat([cls, embed_inputs], dim=1)
-                nonce_embeds = self.emb_gen(embed_inputs)
+                nonce_embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
                 self.memory.store(nonce2, nonce_embeds[:, 0])
         #                 return added
         #                 src_mask = torch.einsum("bj, ib->bij", msk.float(), msk.float().T).bool()
