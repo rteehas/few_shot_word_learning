@@ -444,13 +444,13 @@ def main():
         train_total = 0
         if "wikitext" in args.data_path:
             buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
-            test_model.buffer = buffer
+            test_model.module.buffer = buffer
         for i, batch in enumerate(train_dl):
             log_dict = {}
 
             test_model.train()
-            test_model.firstLM.eval()
-            test_model.secondLM.eval()
+            test_model.module.firstLM.eval()
+            test_model.module.secondLM.eval()
             if not args.maml:
                 test_model.zero_grad()
                 opt.zero_grad()
