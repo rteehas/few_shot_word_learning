@@ -169,7 +169,7 @@ def main():
     # memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
-        weight_decay = 0.1
+        weight_decay = 0.02
 
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
@@ -180,7 +180,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "finetuned_sentences_redo_highWD_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_binary_{}_mask_new={}".format(dataset_name,
+    run_name = "finetuned_sentences_redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_binary_{}_mask_new={}".format(dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
