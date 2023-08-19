@@ -49,7 +49,7 @@ class MorphMemoryModel(nn.Module):
         for n_first, n_second in zip(first_list, second_list):
             with torch.no_grad():
                 self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
-                self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
+                self.secondLM.get_input_embeddings().weight[n_second, :] = self.secondLM.get_input_embeddings().weight[3,:]
 
         self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
                                                                 self.secondLM.config.model_type,
@@ -1199,7 +1199,7 @@ class MorphMemoryModelMLMOnlineBinary(MorphMemoryModel):
         # embedding generator + store in memory
         losses = []
         for nonce1, nonce2 in zip(self.first_list, self.second_list):
-            if nonce1 in mlm_inputs["input_ids"]:
+            if nonce1 in mlm_inputs["input_ids"] and nonce1 not in self.buffer.buffer:
                 msk = (mlm_inputs["input_ids"].reshape((b * k, l)) == nonce1)
                 src = mlm_inputs["input_ids"].reshape((b * k, l))[msk.nonzero()[:, 0].unique()]
                 src = src.unsqueeze(-1)
