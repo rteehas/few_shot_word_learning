@@ -169,7 +169,7 @@ def main():
     # memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
-        weight_decay = 0.1
+        weight_decay = 0.03
 
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
@@ -180,7 +180,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "fixed_eval_finetuned_sentences_highWD_redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers_binary_{}_mask_new={}".format(dataset_name,
+    run_name = "smaller_warmup_mask_eval2_support_dropout_fixed_finetuned_sentences_redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -349,7 +349,7 @@ def main():
                                                        emb_type='Transformer')
         elif args.secondLM == "roberta":
             if not args.binary:
-                test_model = MorphMemoryModelMLMOnlineFull(firstLM, secondLM, new_toks, device, [-1],
+                test_model = MorphMemoryModelMLMOnlineFull(firstLM, secondLM, new_toks, device, layers,
                                                        tokenizerMLM.mask_token_id, memory_config,
                                                        'Transformer', buffer)
             else:
@@ -378,7 +378,7 @@ def main():
                 eps=epsilon
                 )
 
-    warmup_steps = len(train_dl)
+    warmup_steps = int(len(train_dl) * 0.3)
     eval_ind = 100
     if args.taskName == "addition":
         eval_ind=30
