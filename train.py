@@ -465,7 +465,7 @@ def main():
 
                 epoch_train_set = load_from_disk(base_dir + data_suffix).select([i for i in range(initial_rows)]) #needs check if less than num initial
 
-                train = SimpleOnlineDataset(epoch_train_set, tokenizerMLM, tokenizerTask, new_tokens=nt,
+                train = SimpleOnlineDataset(epoch_train_set, tokenizerMLM, tokenizerTask, new_tokens=new_toks,
                                             mask_new=args.mask_new)
 
                 train_dl = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True)
