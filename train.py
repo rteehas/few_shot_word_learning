@@ -438,6 +438,7 @@ def main():
     best_loss = 10000
     n_inner_iter = 3
     eval_num = 100
+    initial_rows = dataset['train'].num_rows
     for epoch in range(epochs):
         train_corr = []
         train_losses = []
@@ -462,7 +463,7 @@ def main():
 
                 new_toks = tokenizerTask.convert_tokens_to_ids(nonces)
 
-                epoch_train_set = load_from_disk(base_dir + data_suffix)
+                epoch_train_set = load_from_disk(base_dir + data_suffix).select([i for i in range(initial_rows)]) #needs check if less than num initial
 
                 train = SimpleOnlineDataset(epoch_train_set, tokenizerMLM, tokenizerTask, new_tokens=nt,
                                             mask_new=args.mask_new)
