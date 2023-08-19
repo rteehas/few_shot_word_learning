@@ -56,6 +56,7 @@ def get_arguments():
     parser.add_argument("--cat", action="store_true")
     parser.add_argument("--binary", action="store_true")
     parser.add_argument("--mask_new", action="store_true")
+    parser.add_argument("--resample", action="store_true")
     return parser
 
 
@@ -443,8 +444,35 @@ def main():
         train_correct = 0
         train_total = 0
         if "wikitext" in args.data_path:
+            if args.resample and epoch > 0:
+                base_dir = "../wikitext_resamples/redo/"
+                word_suffix = "replacements_{}".format(epoch)
+                data_suffix = "train_{}".format(epoch)
+
+                tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
+                tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
+
+                epoch_word_dict = load_from_disk(base_dir + word_suffix)
+                words = epoch_word_dict['train']['words'] + word_dict['test']['words']
+
+                nonces = list(map(lambda w: "<{}_new>".format(w), words))
+
+                tokenizerMLM.add_tokens(nonces)
+                tokenizerTask.add_tokens(nonces)
+
+                new_toks = tokenizerTask.convert_tokens_to_ids(nonces)
+
+                epoch_train_set = load_from_disk(base_dir + data_suffix)
+
+                train = SimpleOnlineDataset(epoch_train_set, tokenizerMLM, tokenizerTask, new_tokens=nt,
+                                            mask_new=args.mask_new)
+
+                train_dl = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True)
+
             buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
             test_model.module.buffer = buffer
+
+
         for i, batch in enumerate(train_dl):
             log_dict = {}
 
