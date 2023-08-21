@@ -61,11 +61,13 @@ class RetrievalBuffer():
                 samples = np.random.choice(memories, size=k).tolist()
             else:
                 samples = memories
+            if len(samples) == 0:
+                return None
             if not self.cat:
                 tokens = self.tokenizer(samples,
                                         max_length=self.tokenizer.model_max_length,
                                         truncation=True,
-                                        padding='max_length',
+                                        padding='longest',
                                         return_tensors='pt')
             else:
                 sample = " ".join(samples)
