@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class RetrievalBuffer():
 
     def __init__(self, max_num, k, nonce_list, tokenizer, random, cat):
@@ -11,7 +12,6 @@ class RetrievalBuffer():
         self.random = random
         self.cat = cat
 
-
     def store(self, mlm_inputs):
 
         for n in self.nonces:
@@ -21,10 +21,10 @@ class RetrievalBuffer():
                 locs = (mlm_inputs['input_ids'] == n)
                 tups = locs.nonzero(as_tuple=True)
                 b, k, l = tups
-                uq = list(set([(i ,j) for i ,j in zip(b ,k)]))
-                for (i ,j) in uq:
-                    mem = self.tokenizer.decode(mlm_inputs['input_ids'][i ,j ,:], skip_special_tokens=True,
-                                           clean_up_tokenization_spaces=True)
+                uq = list(set([(i, j) for i, j in zip(b, k)]))
+                for (i, j) in uq:
+                    mem = self.tokenizer.decode(mlm_inputs['input_ids'][i, j, :], skip_special_tokens=True,
+                                                clean_up_tokenization_spaces=True)
 
                     if n in self.buffer:
                         self.buffer[n] = [mem] + self.buffer[n]
@@ -36,7 +36,17 @@ class RetrievalBuffer():
             while len(self.buffer[key]) > self.max_num:
                 self.buffer[key].pop()
 
-    def retrieve(self, nonce):
+    def retrieve(self, nonce, mlm_inputs):
+        curr_sentences = locs = (mlm_inputs['input_ids'] == nonce)
+        tups = locs.nonzero(as_tuple=True)
+        b, k, l = tups
+        uq = list(set([(i, j) for i, j in zip(b, k)]))
+        curr_examples = []
+        for (i, j) in uq:
+            mem = self.tokenizer.decode(mlm_inputs['input_ids'][i, j, :], skip_special_tokens=True,
+                                        clean_up_tokenization_spaces=True)
+            curr_examples.append(mem)
+
         if nonce not in self.buffer:
             return None
         else:
@@ -45,16 +55,18 @@ class RetrievalBuffer():
             else:
                 k = self.k
 
-            if len(self.buffer[nonce]) > k:
-                samples = np.random.choice(self.buffer[nonce], size=k).tolist()
+            memories = [s for s in self.buffer[nonce] if s not in curr_examples]
+
+            if len(memories) > k:
+                samples = np.random.choice(memories, size=k).tolist()
             else:
-                samples = self.buffer[nonce]
+                samples = memories
             if not self.cat:
                 tokens = self.tokenizer(samples,
-                                    max_length=self.tokenizer.model_max_length,
-                                    truncation=True,
-                                    padding='max_length',
-                                    return_tensors='pt')
+                                        max_length=self.tokenizer.model_max_length,
+                                        truncation=True,
+                                        padding='max_length',
+                                        return_tensors='pt')
             else:
                 sample = " ".join(samples)
                 tokens = self.tokenizer(sample,
@@ -63,7 +75,3 @@ class RetrievalBuffer():
                                         padding='max_length',
                                         return_tensors='pt')
             return tokens
-
-
-
-
