@@ -353,7 +353,7 @@ def main():
             if not args.binary:
                 test_model = MorphMemoryModelMLMOnlineFull(firstLM, secondLM, new_toks, device, layers,
                                                        tokenizerMLM.mask_token_id, memory_config,
-                                                       'Transformer', buffer)
+                                                       'Transformer')
             else:
                 test_model = MorphMemoryModelMLMOnlineBinary(firstLM, secondLM, new_toks, device, [-1],
                                                        tokenizerMLM.mask_token_id, memory_config,
@@ -445,6 +445,7 @@ def main():
         train_losses = []
         train_correct = 0
         train_total = 0
+        train_new_token_losses = []
         if "wikitext" in args.data_path:
             if args.resample and epoch > 0:
                 base_dir = "../wikitext_resamples/single_example/"
@@ -458,7 +459,8 @@ def main():
                 words = epoch_word_dict['train']['words'] + word_dict['test']['words']
 
                 nonces = list(map(lambda w: "<{}_new>".format(w), words))
-
+                print(data_suffix)
+                print(nonces)
                 tokenizerMLM.add_tokens(nonces)
                 tokenizerTask.add_tokens(nonces)
 
@@ -475,8 +477,6 @@ def main():
             if args.prefill:
                 for batch in train_dl:
                     buffer.store(batch['mlm_inputs'].to(device))
-
-            test_model.module.buffer = buffer
 
 
         for i, batch in enumerate(train_dl):
@@ -500,9 +500,12 @@ def main():
                 out = test_model(batch)
 
                 loss = out.loss
+                train_new_token = get_nonce_loss(batch, out, len(tokenizerTask), torch.tensor(new_toks, device=device).unique(), device)
 
                 log_dict['train loss'] = loss.item()
+                log_dict['train new token loss'] = train_new_token.item()
                 train_losses.append(loss.item())
+                train_new_token_losses.append(train_new_token)
 
             elif args.maml:
                 inner_opt = torch.optim.SGD(filter(lambda p: p.requires_grad, test_model.parameters()),
@@ -731,19 +734,28 @@ def main():
                     elif args.taskName == "online":
                         test_model.eval()
                         test_losses = []
+                        test_buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex,
+                                                 args.cat)
+                        test_nonce_losses = []
                         for b in test_dl:
-                            to_sample = [n for n in buffer.nonces if n in b['mlm_inputs']['input_ids']]
+                            test_buffer.store(b['mlm_inputs'].to(device))
+                        for b in test_dl:
+                            to_sample = [n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids']]
                             for n in to_sample:
-                                sample = buffer.retrieve(n)
+                                sample = test_buffer.retrieve(n)
                                 if sample is not None:
                                     test_model.module.process_memories(sample)
                             t_out = test_model.forward(b)
                             all_losses = accelerator.gather(t_out.loss)
                             test_losses.append(all_losses)
                             test_model.module.memory.memory = {}
+                            new_token_loss = get_nonce_loss(b, t_out, len(tokenizerTask), torch.tensor(new_toks).unique().to(device), device)
+                            if new_token_loss is not None:
+                                test_nonce_losses.append(new_token_loss)
                         test_losses = torch.cat(test_losses, dim=0)
                         avg_test = test_losses.sum() / test_losses.shape[0]
-                        accelerator.log({'epoch': epoch, 'average test loss': avg_test})
+                        avg_new_tok = sum(test_nonce_losses) / len(new_token_loss)
+                        accelerator.log({'epoch': epoch, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
 
                         if avg_test < best_loss:
                             # chkpt_name = get_model_name_checkpoint(save_folder + test_model.module.model_name, eval_ind)
@@ -756,7 +768,8 @@ def main():
                             accelerator.save_state(output_dir=save_dir)
                             best_loss = avg_test
 
-        accelerator.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses)})
+        accelerator.log({"epoch": epoch, 'average train loss': sum(train_losses) / len(train_losses),
+                         "average train new token loss": sum(train_new_token_losses) / len(train_new_token_losses)})
         if "snli" in args.data_path:
             accelerator.log({"epoch": epoch, 'average train acc': train_correct / train_total})
         # if args.taskName == "addition":
