@@ -1459,7 +1459,7 @@ class MorphMemoryModelGPTOnlineBinary(MorphMemoryModel):
 
 class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type, buffer):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
         super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
                                                    nhead=self.firstLM.config.num_attention_heads,
@@ -1479,8 +1479,6 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         # self.neg_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
 
         self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
-
-        self.buffer = buffer
 
         self.dropout = nn.Dropout(0.2)
 
@@ -1575,7 +1573,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         # embedding generator + store in memory
         losses = []
         for nonce1, nonce2 in zip(self.first_list, self.second_list):
-            if nonce1 in mlm_inputs["input_ids"]:
+            if nonce1 in mlm_inputs["input_ids"] and nonce1 not in self.memory.memory:
                 msk = (mlm_inputs["input_ids"].reshape((b * k, l)) == nonce1)
                 src = mlm_inputs["input_ids"].reshape((b * k, l))[msk.nonzero()[:, 0].unique()]
                 src = src.unsqueeze(-1)
