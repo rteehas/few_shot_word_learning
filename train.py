@@ -448,36 +448,38 @@ def main():
         train_new_token_losses = []
         if "wikitext" in args.data_path:
             if args.resample and epoch > 0:
-                base_dir = "../wikitext_resamples/single_example/"
-                word_suffix = "replacements_{}".format(epoch)
-                data_suffix = "train_{}".format(epoch)
+                with accelerator.main_process_first():
+                    base_dir = "../wikitext_resamples/single_example/"
+                    word_suffix = "replacements_{}".format(epoch)
+                    data_suffix = "train_{}".format(epoch)
 
-                tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
-                tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
+                    tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
+                    tokenizerTask = AutoTokenizer.from_pretrained('roberta-base', use_fast=True)
 
-                epoch_word_dict = load_from_disk(base_dir + word_suffix)
-                words = epoch_word_dict['train']['words'] + word_dict['test']['words']
+                    epoch_word_dict = load_from_disk(base_dir + word_suffix)
+                    words = epoch_word_dict['train']['words'] + word_dict['test']['words']
 
-                nonces = list(map(lambda w: "<{}_new>".format(w), words))
-                print(data_suffix)
-                print(nonces)
-                tokenizerMLM.add_tokens(nonces)
-                tokenizerTask.add_tokens(nonces)
+                    nonces = list(map(lambda w: "<{}_new>".format(w), words))
+                    print(data_suffix)
+                    print(nonces)
+                    tokenizerMLM.add_tokens(nonces)
+                    tokenizerTask.add_tokens(nonces)
 
-                new_toks = tokenizerTask.convert_tokens_to_ids(nonces)
+                    new_toks = tokenizerTask.convert_tokens_to_ids(nonces)
 
-                epoch_train_set = load_from_disk(base_dir + data_suffix).select([i for i in range(initial_rows)]) #needs check if less than num initial
+                    epoch_train_set = load_from_disk(base_dir + data_suffix).select([i for i in range(initial_rows)]) #needs check if less than num initial
 
                 train = SimpleOnlineDataset(epoch_train_set, tokenizerMLM, tokenizerTask, new_tokens=new_toks,
-                                            mask_new=args.mask_new)
+                                                mask_new=args.mask_new)
 
                 train_dl = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True)
                 train_dl, test_dl = accelerator.prepare(train_dl, test_dl)
 
             buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
             if args.prefill:
-                for batch in train_dl:
-                    buffer.store(batch['mlm_inputs'])
+                if accelerator.is_local_main_process:
+                    for batch in train_dl:
+                        buffer.store(batch['mlm_inputs'])
 
 
         for i, batch in enumerate(train_dl):
@@ -501,7 +503,7 @@ def main():
                 out = test_model(batch)
 
                 loss = out.loss
-                train_new_token = get_nonce_loss(batch, out, len(tokenizerTask), torch.tensor(new_toks, device=device).unique(), device)
+                train_new_token = accelerator.gather(out.new_token_loss)
 
                 log_dict['train loss'] = loss.item()
                 log_dict['train new token loss'] = train_new_token.item()
@@ -739,7 +741,8 @@ def main():
                                                  args.cat)
                         test_nonce_losses = []
                         for b in test_dl:
-                            test_buffer.store(b['mlm_inputs'].to(device))
+                            if accelerator.is_local_main_process:
+                                test_buffer.store(b['mlm_inputs'].to(device))
                         for b in test_dl:
                             to_sample = [n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids']]
                             for n in to_sample:
@@ -750,12 +753,12 @@ def main():
                             all_losses = accelerator.gather(t_out.loss)
                             test_losses.append(all_losses)
                             test_model.module.memory.memory = {}
-                            new_token_loss = get_nonce_loss(b, t_out, len(tokenizerTask), torch.tensor(new_toks).unique().to(device), device)
-                            if new_token_loss is not None:
-                                test_nonce_losses.append(new_token_loss)
+                            all_new_tokens = accelerator.gather(t_out.new_token_loss)
+                            test_nonce_losses.append(all_new_tokens)
+
                         test_losses = torch.cat(test_losses, dim=0)
                         avg_test = test_losses.sum() / test_losses.shape[0]
-                        avg_new_tok = sum(test_nonce_losses) / len(new_token_loss)
+                        avg_new_tok = sum(test_nonce_losses) / len(test_nonce_losses)
                         accelerator.log({'epoch': epoch, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
 
                         if avg_test < best_loss:

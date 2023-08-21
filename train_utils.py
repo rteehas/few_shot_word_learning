@@ -70,6 +70,14 @@ def get_nonce_loss(batch, out, vocab_size, new_tokens, device):
         return token_loss.mean()
     else:
         return None
+def get_new_token_loss_internal(batch, logits, vocab_size, new_tokens):
+    b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
+    task_labels = batch["task_labels"].to(logits.device).reshape((b_task * k_task, l_task))
+    token_loss = get_per_token_loss(task_labels, logits, new_tokens, vocab_size)
+    if token_loss.numel() > 0:
+        return token_loss.mean()
+    else:
+        return None
 
 def get_model_name_checkpoint(run_name, epoch):
     return "{}_epoch={}".format(run_name, epoch)
