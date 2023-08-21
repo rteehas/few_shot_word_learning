@@ -57,6 +57,7 @@ def get_arguments():
     parser.add_argument("--binary", action="store_true")
     parser.add_argument("--mask_new", action="store_true")
     parser.add_argument("--resample", action="store_true")
+    parser.add_argument("--prefill", action="store_true")
     return parser
 
 
@@ -439,6 +440,9 @@ def main():
     n_inner_iter = 3
     eval_num = 100
     initial_rows = dataset['train'].num_rows
+    if args.prefill:
+        for batch in train_dl:
+            buffer.store(batch['mlm_inputs'].to(device))
     for epoch in range(epochs):
         train_corr = []
         train_losses = []
@@ -565,7 +569,7 @@ def main():
             scheduler.step()
             log_dict['num_words_seen'] = len(buffer.buffer)
             test_model.module.memory.memory = {}
-            if args.taskName == "online":
+            if args.taskName == "online" and not args.prefill:
                 buffer.store(batch['mlm_inputs'].to(device))
                 buffer.cleanup()
             accelerator.log(log_dict)
