@@ -493,7 +493,7 @@ def main():
 
                     to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids']]
                     for n in to_sample:
-                        sample = buffer.retrieve(n)
+                        sample = buffer.retrieve(n, batch['mlm_inputs'])
                         if sample is not None:
                             test_model.module.process_memories(sample)
 
@@ -742,7 +742,7 @@ def main():
                         for b in test_dl:
                             to_sample = [n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids']]
                             for n in to_sample:
-                                sample = test_buffer.retrieve(n)
+                                sample = test_buffer.retrieve(n, b['mlm_inputs'])
                                 if sample is not None:
                                     test_model.module.process_memories(sample)
                             t_out = test_model.forward(b)
