@@ -440,9 +440,6 @@ def main():
     n_inner_iter = 3
     eval_num = 100
     initial_rows = dataset['train'].num_rows
-    if args.prefill:
-        for batch in train_dl:
-            buffer.store(batch['mlm_inputs'].to(device))
     for epoch in range(epochs):
         train_corr = []
         train_losses = []
@@ -475,6 +472,10 @@ def main():
                 train_dl = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
             buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
+            if args.prefill:
+                for batch in train_dl:
+                    buffer.store(batch['mlm_inputs'].to(device))
+
             test_model.module.buffer = buffer
 
 
