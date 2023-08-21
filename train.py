@@ -506,9 +506,9 @@ def main():
                 train_new_token = accelerator.gather(out.new_token_loss)
 
                 log_dict['train loss'] = loss.item()
-                log_dict['train new token loss'] = train_new_token.item()
+                log_dict['train new token loss'] = train_new_token.mean().item()
                 train_losses.append(loss.item())
-                train_new_token_losses.append(train_new_token)
+                train_new_token_losses.append(train_new_token.mean())
 
             elif args.maml:
                 inner_opt = torch.optim.SGD(filter(lambda p: p.requires_grad, test_model.parameters()),
@@ -754,7 +754,7 @@ def main():
                             test_losses.append(all_losses)
                             test_model.module.memory.memory = {}
                             all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                            test_nonce_losses.append(all_new_tokens)
+                            test_nonce_losses.append(all_new_tokens.mean())
 
                         test_losses = torch.cat(test_losses, dim=0)
                         avg_test = test_losses.sum() / test_losses.shape[0]
