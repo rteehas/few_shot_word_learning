@@ -5,9 +5,12 @@ from transformers.modeling_outputs import MaskedLMOutput, QuestionAnsweringModel
     CausalLMOutputWithCrossAttentions
 import math
 from modules.memory import OnlineProtoNet
+from modules.model_outputs import MaskLMOutputWithNewToken
 from modules.utils import combine_layers
 from modules.embedding_generators import MLP
 from transformers.activations import gelu
+
+from train_utils import get_new_token_loss_internal
 
 
 class MorphMemoryModel(nn.Module):
@@ -1644,11 +1647,12 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         loss_fct = nn.CrossEntropyLoss()
         lm_loss = loss_fct(preds.view(-1, self.secondLM.config.vocab_size), task_labels.view(-1))
         # #         l = nn.CrossEntropyLoss(reduction="none")
-
-        out_vals = MaskedLMOutput(
+        new_tok_loss = get_new_token_loss_internal(batch, preds, self.nonces, self.secondLM.config.vocab_size)
+        out_vals = MaskLMOutputWithNewToken(
             loss=lm_loss,
             logits=preds,
             hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions
+            attentions=outputs.attentions,
+            new_token_loss= new_tok_loss
         )
         return out_vals
