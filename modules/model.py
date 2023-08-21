@@ -1647,7 +1647,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         loss_fct = nn.CrossEntropyLoss()
         lm_loss = loss_fct(preds.view(-1, self.secondLM.config.vocab_size), task_labels.view(-1))
         # #         l = nn.CrossEntropyLoss(reduction="none")
-        new_tok_loss = get_new_token_loss_internal(batch, preds, self.nonces, self.secondLM.config.vocab_size)
+        new_tok_loss = get_new_token_loss_internal(batch, preds, self.secondLM.config.vocab_size, self.nonces)
         out_vals = MaskLMOutputWithNewToken(
             loss=lm_loss,
             logits=preds,
