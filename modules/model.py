@@ -1519,11 +1519,23 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
                 embed_inputs = combined
                 attn = mlm_attn
+
+                #                 if len(embed_inputs.shape) == 2:
+                #                     embed_inputs = embed_inputs.unsqueeze(0)
+
+                if len(embed_inputs.shape) == 2:
+                    cls = self.cls_token
+                    embed_inputs = torch.cat([cls, embed_inputs], dim=0).unsqueeze(0)
+                else:
+                    cls = self.cls_token.unsqueeze(0).expand(embed_inputs.shape[0], -1, -1)
+                    embed_inputs = torch.cat([cls, embed_inputs], dim=1)
+
                 attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1), attn],
                                  dim=1)
 
                 #                 print(cls.shape, embed_inputs.shape)
-                embed_inputs = torch.cat([self.cls_token.unsqueeze(0), embed_inputs.unsqueeze(0)], dim=1)
+
+                print(embed_inputs.shape, "after")
                 nonce_embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
                 self.memory.store(nonce2, nonce_embeds[:, 0])
 
