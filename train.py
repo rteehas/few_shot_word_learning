@@ -353,7 +353,7 @@ def main():
             if not args.binary:
                 test_model = MorphMemoryModelMLMOnlineFull(firstLM, secondLM, new_toks, device, layers,
                                                        tokenizerMLM.mask_token_id, memory_config,
-                                                       'Transformer', buffer)
+                                                       'Transformer')
             else:
                 test_model = MorphMemoryModelMLMOnlineBinary(firstLM, secondLM, new_toks, device, [-1],
                                                        tokenizerMLM.mask_token_id, memory_config,
@@ -475,8 +475,6 @@ def main():
             if args.prefill:
                 for batch in train_dl:
                     buffer.store(batch['mlm_inputs'].to(device))
-
-            test_model.module.buffer = buffer
 
 
         for i, batch in enumerate(train_dl):
@@ -731,10 +729,14 @@ def main():
                     elif args.taskName == "online":
                         test_model.eval()
                         test_losses = []
+                        test_buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex,
+                                                 args.cat)
                         for b in test_dl:
-                            to_sample = [n for n in buffer.nonces if n in b['mlm_inputs']['input_ids']]
+                            test_buffer.store(b['mlm_inputs'].to(device))
+                        for b in test_dl:
+                            to_sample = [n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids']]
                             for n in to_sample:
-                                sample = buffer.retrieve(n)
+                                sample = test_buffer.retrieve(n)
                                 if sample is not None:
                                     test_model.module.process_memories(sample)
                             t_out = test_model.forward(b)
