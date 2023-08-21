@@ -1533,7 +1533,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
                 #                 print(cls.shape, embed_inputs.shape)
 
-                print(embed_inputs.shape, "after")
+                #print(embed_inputs.shape, "after")
                 nonce_embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
                 self.memory.store(nonce2, nonce_embeds[:, 0])
 
