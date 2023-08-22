@@ -132,3 +132,6 @@ def main():
 
                 acc = total_correct / total
                 accelerator.log({"{}/{}_examples/average test accuracy".format(chkpt, n): acc})
+
+if __name__ == "__main__":
+    main()
