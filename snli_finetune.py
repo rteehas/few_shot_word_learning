@@ -118,6 +118,7 @@ def main():
     test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test), drop_last=True)
 
     weight_decay = 0.02
+    lr = 1e-5
     param_list = [{'params': filter(lambda p: p.requires_grad, test_model.emb_gen.parameters()), 'lr': lr,
                    'weight_decay': weight_decay}]
 
@@ -127,25 +128,22 @@ def main():
 
     warmup_steps = int(len(train_dl) * 0.3)
     eval_ind = 100
-    if args.taskName == "addition":
-        eval_ind = 30
 
     epochs = args.epochs
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
-    intermediate = args.intermediate_loss
 
     test_model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
         test_model, opt, train_dl, test_dl, scheduler
     )
 
-    for epoch in epochs:
+    for epoch in range(epochs):
         train_accs = []
         for b in train_dl:
             log_dict = {}
 
             test_model.train()
-            test_model.module.firstLM.eval()
-            test_model.module.secondLM.eval()
+            test_model.firstLM.eval()
+            test_model.secondLM.eval()
             test_model.zero_grad()
             opt.zero_grad()
 
@@ -155,7 +153,7 @@ def main():
             preds = t_out.logits
             preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
             true_ans = b['task_labels'].to(device).view(-1)
-            acc = (preds == true_ans).mean()
+            acc = (preds == true_ans).astype(np.float32).mean()
             train_accs.append(acc)
             # all_losses = accelerator.gather(t_out.loss)
             log_dict['train loss'] = t_out.loss.item()
@@ -163,7 +161,7 @@ def main():
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(test_model.parameters(), 1.0)
             # torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
-            for name, param in test_model.module.emb_gen.named_parameters():
+            for name, param in test_model.emb_gen.named_parameters():
                 if param.grad is not None:
                     log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
                     if torch.isnan(torch.norm(param.grad.view(-1))):
@@ -171,7 +169,7 @@ def main():
 
             opt.step()
             scheduler.step()
-            test_model.module.memory.memory = {}
+            test_model.memory.memory = {}
             accelerator.log(log_dict)
 
         accelerator.log({"epoch": epoch, "average train acc": sum(train_accs) / len(train_accs)})
@@ -190,7 +188,7 @@ def main():
                 true_ans = b['task_labels'].to(device).view(-1)
                 print("predicted", preds)
                 print("true", true_ans)
-                test_acc = (preds == true_ans).mean()
+                test_acc = (preds == true_ans).astype(np.float32).mean()
                 accs.append(test_acc)
                 #                     for ind in range(wrong.shape[0]):
                 #     #                     with open("transfer_failures.txt", 'a') as fp:
