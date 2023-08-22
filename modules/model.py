@@ -1475,7 +1475,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
 
-        self.model_name = "MLMonline_memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
+        self.model_name = "MLMonline_memory_model_{}_{}_{}_memory_2layers".format(self.firstLM.config.model_type,
                                                                           self.secondLM.config.model_type,
                                                                           memory_config.agg_method)
         # self.pos_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
