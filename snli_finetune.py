@@ -71,7 +71,7 @@ def main():
     firstLM = RobertaForMaskedLM.from_pretrained('roberta-base')
     print("made firstLM, tokenizer")
 
-    secondLM = AutoModelForSequenceClassification.from_pretrained("./tmp_outputs/snli/checkpoint-85500")
+    secondLM = AutoModelForSequenceClassification.from_pretrained("./tmp_outputs2/snli_ft/checkpoint-137000")
 
     dataset = load_from_disk(args.data_path)
     nonces = list(map(snli_nonce, list(set(dataset['replacements']))))
@@ -102,7 +102,7 @@ def main():
 
     if args.finetune:
         path = "/scratch/rst306/few_shot_repo/model_checkpoints/resample_False_new_tok_warmup_mask_eval2_highWD_support_nodropout_fixed_finetuned_sentences_redo_full_gelu_online_6examples_1e-05_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory/checkpoints/"
-        chkpt = "checkpoint_29"
+        chkpt = "checkpoint_22"
         chkpt_path = path + "{}/".format(chkpt)
         name = "pytorch_model.bin"
 
