@@ -373,7 +373,7 @@ def main():
         param_list = [{"params": filter(lambda p: p.requires_grad, test_model.secondLM.parameters()), 'lr': 1e-5},
                       {'params': filter(lambda p: p.requires_grad, test_model.emb_gen.parameters()), 'lr': lr, 'weight_decay': weight_decay}]
     else:
-        param_list = [{'params': filter(lambda p: p.requires_grad, test_model.emb_gen.parameters()), 'lr': lr,
+        param_list = [{'params': filter(lambda p: p.requires_grad, test_model.parameters()), 'lr': lr,
                        'weight_decay': weight_decay}]
 
     opt = AdamW(param_list,
