@@ -80,7 +80,7 @@ class SimpleSNLIDatasetCat(Dataset):
         self.premises = data["premise"]
         self.hypotheses = data["hypothesis"]
         self.sentences = data['sentences']
-        self.replacements = data['replace']
+        self.replacements = data['replacements']
         self.labels = data['label']
         self.n_samples = n_samples
 
@@ -158,7 +158,7 @@ class SimpleSNLIDatasetCat(Dataset):
                                       truncation=True,
                                       return_tensors='pt')
 
-        modified_premise = " ".join(sentences + [premise])
+        modified_premise = ". ".join(sentences + [premise])
 
         tokensTask = self.tokenizerTask(modified_premise,
                                         hypothesis,
@@ -183,7 +183,7 @@ def main():
     dataset = load_from_disk(args.data_path)
     tokenizer = AutoTokenizer.from_pretrained("roberta-base", use_fast=True)
     if "snli" in args.data_path:
-        nonces = list(map(snli_nonce, list(set(dataset['replace']))))
+        nonces = list(map(snli_nonce, list(set(dataset['replacements']))))
         dataset_name = "snli"
     else:
         raise NotImplementedError
@@ -194,18 +194,8 @@ def main():
     accelerator = Accelerator(log_with="wandb")
     device = accelerator.device
     model = accelerator.prepare(model)
+    split = dataset.train_test_split(0.2)
 
-    if "snli" in args.data_path:
-        n = args.num_examples
-        split = dataset.train_test_split(0.5)
-        # train = SimpleSNLIDataset(split["train"], tokenizer, tokenizer, n)
-        if args.cat:
-            test = SimpleSNLIDatasetCat(split["test"], tokenizer, tokenizer, n)
-        else:
-            test = SimpleSNLIDataset(split["test"], tokenizer, tokenizer, n)
-
-        # train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
-        test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
 
     project = "snli_eval_baselines"
     accelerator.init_trackers(
@@ -214,42 +204,58 @@ def main():
                 },
         # init_kwargs={"wandb": {"name": run_name}},
     )
+    for n in range(1, args.num_examples + 1):
+        for trial in range(5):
+            if "snli" in args.data_path:
+                # n = args.num_examples
 
-    model.eval()
-    total_correct = 0
-    total = 0
-    for b in test_dl:
-        with torch.no_grad():
-            ids, attn, labels = prepare_baseline_batch(b, tokenizer.mask_token_id, device, use_mask=False)
-            t_out = model(input_ids=ids,
-                             attention_mask=attn,
-                             labels=labels.squeeze(1))
-            preds = t_out.logits
-            preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
-            true_ans = b['task_labels'].to(device).view(-1)
-            num_correct = (preds == true_ans).sum()
-            total_correct += num_correct
-            total += b['task_labels'].shape[0]
-    acc = total_correct / total
-    accelerator.log({'average test accuracy no mask': acc})
+                # train = SimpleSNLIDataset(split["train"], tokenizer, tokenizer, n)
+                if args.cat:
+                    test = SimpleSNLIDatasetCat(split["test"], tokenizer, tokenizer, n)
+                else:
+                    test = SimpleSNLIDataset(split["test"], tokenizer, tokenizer, n)
 
-    total_correct = 0
-    total = 0
-    for b in test_dl:
-        with torch.no_grad():
-            ids, attn, labels = prepare_baseline_batch(b, tokenizer.mask_token_id, device, use_mask=False)
-            t_out = model(input_ids=ids,
-                    attention_mask=attn,
-                    labels=labels.squeeze(1))
-            preds = t_out.logits
-            preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
-            true_ans = b['task_labels'].to(device).view(-1)
-            num_correct = (preds == true_ans).sum()
-            total_correct += num_correct
-            total += b['task_labels'].shape[0]
+                # train_dl = DataLoader(train, batch_size=args.batch_size, collate_fn=make_collate(train), shuffle=True)
+                test_dl = DataLoader(test, batch_size=args.batch_size, collate_fn=make_collate(test))
+                test_dl = accelerator.prepare(test_dl)
+            else:
+                raise NotImplementedError
 
-    acc = total_correct / total
-    accelerator.log({'average test accuracy mask': acc})
+            model.eval()
+            total_correct = 0
+            total = 0
+            for b in test_dl:
+                with torch.no_grad():
+                    ids, attn, labels = prepare_baseline_batch(b, tokenizer.mask_token_id, device, use_mask=False)
+                    t_out = model(input_ids=ids,
+                                     attention_mask=attn,
+                                     labels=labels.squeeze(1))
+                    preds = t_out.logits
+                    preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
+                    true_ans = b['task_labels'].to(device).view(-1)
+                    num_correct = (preds == true_ans).sum()
+                    total_correct += num_correct
+                    total += b['task_labels'].shape[0]
+            acc = total_correct / total
+            accelerator.log({'{}_examples/average test accuracy no mask'.format(n): acc})
+
+            total_correct = 0
+            total = 0
+            for b in test_dl:
+                with torch.no_grad():
+                    ids, attn, labels = prepare_baseline_batch(b, tokenizer.mask_token_id, device, use_mask=False)
+                    t_out = model(input_ids=ids,
+                            attention_mask=attn,
+                            labels=labels.squeeze(1))
+                    preds = t_out.logits
+                    preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
+                    true_ans = b['task_labels'].to(device).view(-1)
+                    num_correct = (preds == true_ans).sum()
+                    total_correct += num_correct
+                    total += b['task_labels'].shape[0]
+
+            acc = total_correct / total
+            accelerator.log({'{}_examples/average test accuracy mask'.format(n): acc})
 
 if __name__ == "__main__":
     main()

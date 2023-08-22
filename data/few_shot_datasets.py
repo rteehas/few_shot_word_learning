@@ -377,7 +377,7 @@ class SimpleSNLIDataset(Dataset):
         self.premises = data["premise"]
         self.hypotheses = data["hypothesis"]
         self.sentences = data['sentences']
-        self.replacements = data['replace']
+        self.replacements = data['replacements']
         self.labels = data['label']
         self.n_samples = n_samples
 
@@ -455,7 +455,7 @@ class SimpleSNLIDataset(Dataset):
                                       truncation=True,
                                       return_tensors='pt')
 
-        tokensTask = self.tokenizerTask(premise,
+        tokensTask = self.tokenizerTask(" ".join(sentences + [premise]),
                                         hypothesis,
                                         max_length=task_length,
                                         padding='max_length',
