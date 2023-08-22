@@ -137,7 +137,8 @@ def main():
     )
 
     for epoch in range(epochs):
-        train_accs = []
+        total_correct = 0
+        total = 0
         for b in train_dl:
             log_dict = {}
 
@@ -153,8 +154,9 @@ def main():
             preds = t_out.logits
             preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
             true_ans = b['task_labels'].to(device).view(-1)
-            acc = (preds == true_ans).astype(np.float32).mean()
-            train_accs.append(acc)
+            num_correct = (preds == true_ans).sum()
+            total_correct += num_correct
+            total += b['task_labels'].shape[0]
             # all_losses = accelerator.gather(t_out.loss)
             log_dict['train loss'] = t_out.loss.item()
             accelerator.backward(t_out.loss)
@@ -172,14 +174,15 @@ def main():
             test_model.memory.memory = {}
             accelerator.log(log_dict)
 
-        accelerator.log({"epoch": epoch, "average train acc": sum(train_accs) / len(train_accs)})
+        accelerator.log({"epoch": epoch, "average train acc": total_correct / total})
 
         #         true_fails[n] = []
         #     with open("transfer_failures.txt", 'a') as fp:
         #         fp.write("Writing Failures for n={} examples\n\n".format(n))
-        accs = []
         with torch.no_grad():
             #         print("here")
+            total_correct_test = 0
+            total_test = 0
             for b in test_dl:
                 test_model.process_memories(b['mlm_inputs'])
                 t_out = test_model.forward(b)
@@ -188,8 +191,9 @@ def main():
                 true_ans = b['task_labels'].to(device).view(-1)
                 print("predicted", preds)
                 print("true", true_ans)
-                test_acc = (preds == true_ans).astype(np.float32).mean()
-                accs.append(test_acc)
+                num_correct = (preds == true_ans).sum()
+                total_correct_test += num_correct
+                total_test += b['task_labels'].shape[0]
                 #                     for ind in range(wrong.shape[0]):
                 #     #                     with open("transfer_failures.txt", 'a') as fp:
                 #     #                         fp.write("Premise/Hypothesis: {}\n".format(tokenizerTask.decode(wrong[ind, 0, :], skip_special_tokens=True)))
@@ -197,9 +201,8 @@ def main():
                 #     #                                                                               preds[(preds != true_ans)][ind].item()))
                 #                         true_fails[n].append(true_ans[(preds != true_ans)][ind].item())
                 test_model.memory.memory = {}
-        acc = sum(accs) / len(accs)
         # print("Accuracy for {} examples is: {}".format(n, acc))
-        accelerator.log({"epoch": epoch, "average test accuracy".format(n): acc})
+        accelerator.log({"epoch": epoch, "average test accuracy".format(n): total_correct_test / total_test})
     accelerator.end_training()
 
 if __name__ == "__main__":
