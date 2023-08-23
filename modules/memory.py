@@ -39,13 +39,24 @@ class OnlineProtoNet(nn.Module):
 
             self.memory[word].append(embed)
 
-    def retrieve(self, word):  # retrieves embed after linear layer to fix dims if needed
-
+    def retrieve(self, word, std=0.0, normalize=False):  # retrieves embed after linear layer to fix dims if needed
+        if normalize:
+            assert std != 0.0, "Standard deviation cannot be 0 if we want to normalize outputs"
         ctx = torch.cat(self.memory[word], dim=0)
-        if self.agg_method == "mean":
-            return torch.mean(ctx, dim=0).unsqueeze(0)
-        else:
-            return self.agg(ctx.unsqueeze(0))
+        if not normalize:
+            if self.agg_method == "mean":
+                return torch.mean(ctx, dim=0).unsqueeze(0)
+            else:
+                return self.agg(ctx.unsqueeze(0))
+        elif normalize:
+            if self.agg_method == "mean":
+                emb = torch.mean(ctx, dim=0).unsqueeze(0)
+                sample = torch.distributions.normal.Normal(torch.zeros_like(emb), torch.ones_like(emb)).sample()
+                return std * sample + emb
+            else:
+                emb = self.agg(ctx.unsqueeze(0))
+                sample = torch.distributions.normal.Normal(torch.zeros_like(emb), torch.ones_like(emb)).sample()
+                return std * sample + emb
 
     def detach_past(self):
         for word in self.memory:
