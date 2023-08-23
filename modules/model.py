@@ -1593,11 +1593,13 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
 
-        self.model_name = "MLMonline_memory_model_{}_{}_{}_memory_2layers".format(self.firstLM.config.model_type,
+        self.model_name = "MLMonline_memory_model_{}_{}_{}_memory_NormedOutput".format(self.firstLM.config.model_type,
                                                                           self.secondLM.config.model_type,
                                                                           memory_config.agg_method)
         # self.pos_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
         # self.neg_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+        self.std_second = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).std()
 
         self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
 
@@ -1663,6 +1665,29 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         for nonce in self.first_list:
             inp[inp == nonce] = self.mask_token_id
         return inp
+
+    def get_new_weights(self, task):
+
+        if task == 'MLM':
+            ref_model = self.firstLM
+
+        elif task == "Task":
+            ref_model = self.secondLM
+        else:
+            raise NotImplementedError
+
+        w = ref_model.get_input_embeddings().weight.clone()
+        n, hidden = w.shape
+        if not ref_model.get_input_embeddings().weight.requires_grad:
+            w.requires_grad = True
+
+        msk = torch.zeros_like(w).to(self.device)
+        msk2 = torch.zeros_like(w).to(self.device)
+        for key in self.memory.memory:
+            msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), self.memory.retrieve(key, std=self.std_second, normalize=True))
+            msk2[key, :] = 1.
+
+        return w * (~msk2.bool()) + msk
 
     def forward(self, batch):
 
