@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 from modules.aggregators import *
 
 class OnlineProtoNet(nn.Module):
@@ -51,10 +52,12 @@ class OnlineProtoNet(nn.Module):
         elif normalize:
             if self.agg_method == "mean":
                 emb = torch.mean(ctx, dim=0).unsqueeze(0)
+                emb = F.normalize(emb)
                 sample = torch.distributions.normal.Normal(torch.zeros_like(emb), torch.ones_like(emb)).sample()
                 return std * sample + emb
             else:
                 emb = self.agg(ctx.unsqueeze(0))
+                emb = F.normalize(emb)
                 sample = torch.distributions.normal.Normal(torch.zeros_like(emb), torch.ones_like(emb)).sample()
                 return std * sample + emb
 
