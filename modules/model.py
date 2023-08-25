@@ -1666,28 +1666,28 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
             inp[inp == nonce] = self.mask_token_id
         return inp
 
-    def get_new_weights(self, task):
-
-        if task == 'MLM':
-            ref_model = self.firstLM
-
-        elif task == "Task":
-            ref_model = self.secondLM
-        else:
-            raise NotImplementedError
-
-        w = ref_model.get_input_embeddings().weight.clone()
-        n, hidden = w.shape
-        if not ref_model.get_input_embeddings().weight.requires_grad:
-            w.requires_grad = True
-
-        msk = torch.zeros_like(w).to(self.device)
-        msk2 = torch.zeros_like(w).to(self.device)
-        for key in self.memory.memory:
-            msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), self.memory.retrieve(key, std=self.std_second, normalize=True))
-            msk2[key, :] = 1.
-
-        return w * (~msk2.bool()) + msk
+    # def get_new_weights(self, task):
+    #
+    #     if task == 'MLM':
+    #         ref_model = self.firstLM
+    #
+    #     elif task == "Task":
+    #         ref_model = self.secondLM
+    #     else:
+    #         raise NotImplementedError
+    #
+    #     w = ref_model.get_input_embeddings().weight.clone()
+    #     n, hidden = w.shape
+    #     if not ref_model.get_input_embeddings().weight.requires_grad:
+    #         w.requires_grad = True
+    #
+    #     msk = torch.zeros_like(w).to(self.device)
+    #     msk2 = torch.zeros_like(w).to(self.device)
+    #     for key in self.memory.memory:
+    #         msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), self.memory.retrieve(key, std=self.std_second, normalize=True))
+    #         msk2[key, :] = 1.
+    #
+    #     return w * (~msk2.bool()) + msk
 
     def forward(self, batch):
 
