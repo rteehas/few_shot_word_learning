@@ -575,6 +575,11 @@ def main():
             opt.step()
             scheduler.step()
             log_dict['num_words_seen'] = len(buffer.buffer)
+            for k in test_model.module.memory.memory:
+                with torch.no_grad:
+                    log_dict["embed_norms/token embedding norm"] = test_model.module.memory.retrieve(k).norm()
+            with torch.no_grad:
+                log_dict['embed_norms/cls_token_norm'] = test_model.cls_token.norm()
             test_model.module.memory.memory = {}
             if args.taskName == "online" and not args.prefill:
                 buffer.store(batch['mlm_inputs'].to(device))
