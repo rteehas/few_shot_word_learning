@@ -182,7 +182,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "total_lr_real_norm_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
+    run_name = "grad_test_total_lr_real_norm_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -576,10 +576,10 @@ def main():
             scheduler.step()
             log_dict['num_words_seen'] = len(buffer.buffer)
             for k in test_model.module.memory.memory:
-                with torch.no_grad:
+                with torch.no_grad():
                     log_dict["embed_norms/token embedding norm"] = test_model.module.memory.retrieve(k).norm()
-            with torch.no_grad:
-                log_dict['embed_norms/cls_token_norm'] = test_model.cls_token.norm()
+            with torch.no_grad():
+                log_dict['embed_norms/cls_token_norm'] = test_model.module.cls_token.norm()
             test_model.module.memory.memory = {}
             if args.taskName == "online" and not args.prefill:
                 buffer.store(batch['mlm_inputs'].to(device))
