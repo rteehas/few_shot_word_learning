@@ -171,7 +171,7 @@ def main():
     # memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
-        weight_decay = 0.1
+        weight_decay = 0.02
 
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
@@ -182,7 +182,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "resample_{}_smaller_warmup_mask_eval2_highWD_support_nodropout_fixed_finetuned_sentences_redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
+    run_name = "total_lr_real_norm_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -555,9 +555,9 @@ def main():
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(test_model.parameters(), 1.0)
             # torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
-            for name, param in test_model.module.emb_gen.named_parameters():
-                if param.grad is not None:
-                    log_dict["post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
+            for name, param in test_model.module.named_parameters():
+                if param.grad is not None and param.requires_grad:
+                    log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
                     if torch.isnan(torch.norm(param.grad.view(-1))):
                         raise Exception("Nan Gradient")
 
