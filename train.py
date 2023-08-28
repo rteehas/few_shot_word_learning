@@ -182,7 +182,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "grad_test_total_lr_real_norm_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
+    run_name = "highCLSLR_prenorm_kaimingcls_lower_dropout_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -375,8 +375,8 @@ def main():
     else:
         param_list = [{'params': filter(lambda p: p.requires_grad, test_model.emb_gen.parameters()), 'lr': lr,
                        'weight_decay': weight_decay},
-                      {'params': filter(lambda p: p.requires_grad, test_model.memory.parameters()), 'lr': lr, 'weight_decay': weight_decay}
-                      {'params': test_model.cls_token.parameters(), 'lr': 3e-3, 'weight_decay': weight_decay}]
+                      {'params': filter(lambda p: p.requires_grad, test_model.memory.parameters()), 'lr': lr, 'weight_decay': weight_decay},
+                      {'params': test_model.cls_token, 'lr': 3e-3, 'weight_decay': weight_decay}]
 
     opt = AdamW(param_list,
                 eps=epsilon

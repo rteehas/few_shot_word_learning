@@ -52,7 +52,7 @@ class MorphMemoryModel(nn.Module):
         for n_first, n_second in zip(first_list, second_list):
             with torch.no_grad():
                 self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
-                self.secondLM.get_input_embeddings().weight[n_second, :] = self.secondLM.get_input_embeddings().weight[3,:]
+                self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
 
         self.model_name = "memory_model_{}_{}_{}_memory".format(self.firstLM.config.model_type,
                                                                 self.secondLM.config.model_type,
@@ -1585,6 +1585,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
                                                    nhead=self.firstLM.config.num_attention_heads,
                                                    activation='gelu',
+                                                   norm_first=True,
                                                    batch_first=True).to(self.device)
         self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
         initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
@@ -1600,10 +1601,20 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         # self.neg_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
         initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
         self.std_second = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).std()
-
+        m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0, keepdim=True)
+        
         self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
+        self.reinit_params()
+        self.dropout = nn.Dropout(0.0)
+    
+    def reinit_params(self):
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                #print("Reinitializing {}".format(name))
+                if "cls" in name:
+                    print("Reinitializing {}".format(name))
+                    torch.nn.init.kaiming_uniform_(param)
 
-        self.dropout = nn.Dropout(0.2)
 
     def process_memories(self, mem):
 
@@ -1788,6 +1799,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
         preds = self.calc_second_lmhead(new_w, outputs[0])
         loss_fct = nn.CrossEntropyLoss()
+        #preds[:,:,torch.tensor([n for n in self.nonces if n not in self.memory.memory], device=self.device)] = -100
         lm_loss = loss_fct(preds.view(-1, self.secondLM.config.vocab_size), task_labels.view(-1))
         # #         l = nn.CrossEntropyLoss(reduction="none")
         new_tok_loss = get_new_token_loss_internal(batch, preds, self.secondLM.config.vocab_size, torch.tensor(self.nonces, device=preds.device).unique())
