@@ -1735,7 +1735,8 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
                 logits=preds,
                 hidden_states=outputs.hidden_states,
                 attentions=outputs.attentions,
-                new_token_loss=new_tok_loss
+                new_token_loss=new_tok_loss,
+                memories=memory
             )
             #             print(out_vals, "out{}".format(i))
             #             print(lm_loss, new_tok_loss, i)

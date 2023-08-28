@@ -510,12 +510,12 @@ def main():
                     contexts = []
                     for j in range(batch['mlm_inputs']['input_ids'].shape[0]):
 
-                        to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids'][i]]
+                        to_sample = list(set([n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids'][j]]))
                         assert (len(to_sample) == 1)
                         for n in to_sample:
-                            print(n in buffer.buffer, n)
+                            #print(n in buffer.buffer, n)
                             sample = buffer.retrieve(n, batch['mlm_inputs'])
-                            print("here", sample)
+                            #print("here", sample)
                             if sample is not None:
                                 contexts.append(sample.to(device))
 
@@ -526,7 +526,7 @@ def main():
                 out = test_model(batch)
 
                 loss = out.loss
-                print(loss)
+                #print(loss)
                 train_new_token = accelerator.gather(out.new_token_loss)
 
                 log_dict['train loss'] = loss.item()
@@ -778,11 +778,13 @@ def main():
                         for b in test_dl:
                             contexts = []
                             for j in range(b['mlm_inputs']['input_ids'].shape[0]):
-                                to_sample = [n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids']]
+                                to_sample = list(set([n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids'][j]]))
                                 for n in to_sample:
                                     sample = test_buffer.retrieve(n, b['mlm_inputs'])
                                     if sample is not None:
-                                        contexts.append(sample)
+                                        contexts.append(sample.to(device))
+                            assert len(contexts) == b['mlm_inputs']['input_ids'].shape[0], "Context length is {} should be {}".format(len(contexts), b['mlm_inputs']['input_ids'].shape[0])
+                            b['contexts'] = contexts
                             t_out = test_model(b)
                             all_losses = accelerator.gather(t_out.loss)
                             test_losses.append(all_losses)
