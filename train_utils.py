@@ -58,6 +58,14 @@ def get_per_token_loss(labels, logits, nonces, vocab_size):
 
     return selected
 
+def get_new_token_loss_labels(labels, logits, vocab_size, new_tokens):
+    token_loss = get_per_token_loss(labels, logits, new_tokens, vocab_size)
+    print(token_loss)
+    if token_loss.numel() > 0:
+        return token_loss.mean()
+    else:
+        return None
+
 
 def get_nonce_loss(batch, out, vocab_size, new_tokens, device):
     b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
