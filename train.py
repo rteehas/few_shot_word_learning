@@ -182,7 +182,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    run_name = "highCLSLR_prenorm_kaimingcls_lower_dropout_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
+    run_name = "redone_context_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
@@ -442,6 +442,18 @@ def main():
     n_inner_iter = 3
     eval_num = 100
     initial_rows = dataset['train'].num_rows
+    test_buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
+    print("Storing in test buffer")
+    for b in test_dl:
+        if accelerator.is_local_main_process:
+            test_buffer.store(b['mlm_inputs'])
+
+    buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
+    if args.prefill:
+        if accelerator.is_local_main_process:
+            for batch in train_dl:
+                buffer.store(batch['mlm_inputs'])
+
     for epoch in range(epochs):
         train_corr = []
         train_losses = []
@@ -477,11 +489,12 @@ def main():
                 train_dl = DataLoader(train, batch_size=args.batch_size, shuffle=True, drop_last=True)
                 train_dl, test_dl = accelerator.prepare(train_dl, test_dl)
 
-            buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
-            if args.prefill:
-                if accelerator.is_local_main_process:
-                    for batch in train_dl:
-                        buffer.store(batch['mlm_inputs'])
+                buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
+                if args.prefill:
+                    if accelerator.is_local_main_process:
+                        for batch in train_dl:
+                            buffer.store(batch['mlm_inputs'])
+
 
 
         for i, batch in enumerate(train_dl):
@@ -496,15 +509,24 @@ def main():
 
                 if args.taskName == "online":
 
-                    to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids']]
-                    for n in to_sample:
-                        sample = buffer.retrieve(n, batch['mlm_inputs'])
-                        if sample is not None:
-                            test_model.module.process_memories(sample)
+                    contexts = []
+                    for j in range(batch['mlm_inputs']['input_ids'].shape[0]):
+
+                        to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids'][i]]
+                        assert (len(to_sample) == 1)
+                        for n in to_sample:
+                            sample = buffer.retrieve(n, batch['mlm_inputs'])
+
+                            if sample is not None:
+                                contexts.append(sample.to(device))
+
+                    assert len(contexts) == batch['mlm_inputs']['input_ids'].shape[0]
+
+                    batch['contexts'] = contexts
 
                 out = test_model(batch)
 
-                loss = out.loss
+                loss = accelerator.gather(out.loss).mean()
                 train_new_token = accelerator.gather(out.new_token_loss)
 
                 log_dict['train loss'] = loss.item()
@@ -545,15 +567,9 @@ def main():
                 train_correct += num_correct
                 train_total += batch['task_labels'].shape[0]
 
-            if intermediate:
-                intermediate_loss = torch.sum(torch.Tensor([losses]))
-                log_dict["emb generator loss"] = intermediate_loss.item()
-                final_loss = loss + intermediate_loss
-            else:
-                final_loss = loss
 
             # final_loss.backward()
-            accelerator.backward(final_loss)
+            accelerator.backward(loss)
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(test_model.parameters(), 1.0)
             # torch.nn.utils.clip_grad_norm_(filter(lambda p: p.requires_grad, test_model.parameters()), 1.0)
@@ -577,11 +593,17 @@ def main():
             opt.step()
             scheduler.step()
             log_dict['num_words_seen'] = len(buffer.buffer)
+            norms = []
             for k in test_model.module.memory.memory:
                 with torch.no_grad():
-                    log_dict["embed_norms/token embedding norm"] = test_model.module.memory.retrieve(k).norm()
+                     norms.append(test_model.module.memory.retrieve(k).norm())
+
+            with torch.no_grad():
+                log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
+
             with torch.no_grad():
                 log_dict['embed_norms/cls_token_norm'] = test_model.module.cls_token.norm()
+
             test_model.module.memory.memory = {}
             if args.taskName == "online" and not args.prefill:
                 buffer.store(batch['mlm_inputs'].to(device))
@@ -744,28 +766,30 @@ def main():
                     elif args.taskName == "online":
                         test_model.eval()
                         test_losses = []
-                        test_buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex,
-                                                 args.cat)
+                        # test_buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex,
+                        #                          args.cat)
                         test_nonce_losses = []
+                        # for b in test_dl:
+                        #     if accelerator.is_local_main_process:
+                        #         test_buffer.store(b['mlm_inputs'].to(device))
                         for b in test_dl:
-                            if accelerator.is_local_main_process:
-                                test_buffer.store(b['mlm_inputs'].to(device))
-                        for b in test_dl:
-                            to_sample = [n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids']]
-                            for n in to_sample:
-                                sample = test_buffer.retrieve(n, b['mlm_inputs'])
-                                if sample is not None:
-                                    test_model.module.process_memories(sample)
-                            t_out = test_model.forward(b)
+                            contexts = []
+                            for i in range(b['mlm_inputs']['input_ids'].shape[0]):
+                                to_sample = [n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids']]
+                                for n in to_sample:
+                                    sample = test_buffer.retrieve(n, b['mlm_inputs'])
+                                    if sample is not None:
+                                        contexts.append(sample)
+                            t_out = test_model(b)
                             all_losses = accelerator.gather(t_out.loss)
                             test_losses.append(all_losses)
                             test_model.module.memory.memory = {}
                             all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                            test_nonce_losses.append(all_new_tokens.mean())
+                            test_nonce_losses.append(all_new_tokens)
 
-                        test_losses = torch.cat(test_losses, dim=0)
-                        avg_test = test_losses.sum() / test_losses.shape[0]
-                        avg_new_tok = sum(test_nonce_losses) / len(test_nonce_losses)
+                        # test_losses = torch.cat(test_losses, dim=0)
+                        avg_test = torch.stack(test_losses).mean()
+                        avg_new_tok = torch.stack(test_nonce_losses).mean()
                         accelerator.log({'epoch': epoch, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
 
                         if avg_test < best_loss:
