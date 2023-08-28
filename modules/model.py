@@ -1754,7 +1754,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
             logits=final_logits,
             hidden_states=final_hiddens,
             attentions=final_attentions,
-            new_token_loss=final_new_token_loss
-
+            new_token_loss=final_new_token_loss,
+            memories=memories
         )
 

@@ -594,9 +594,12 @@ def main():
             scheduler.step()
             log_dict['num_words_seen'] = len(buffer.buffer)
             norms = []
-            for k in test_model.module.memory.memory:
+            for m in out.memories:
+                new_ids = list(m.memory.keys())
+                assert len(new_ids) == 1
+                new_id = new_ids[0]
                 with torch.no_grad():
-                     norms.append(test_model.module.memory.retrieve(k).norm())
+                     norms.append(m.retrieve(new_id).norm())
 
             with torch.no_grad():
                 log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
