@@ -445,14 +445,12 @@ def main():
     test_buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
     print("Storing in test buffer")
     for b in test_dl:
-        if accelerator.is_local_main_process:
-            test_buffer.store(b['mlm_inputs'])
+        test_buffer.store(b['mlm_inputs'])
 
     buffer = RetrievalBuffer(15, args.num_examples, new_toks, tokenizerMLM, args.random_ex, args.cat)
     if args.prefill:
-        if accelerator.is_local_main_process:
-            for batch in train_dl:
-                buffer.store(batch['mlm_inputs'])
+        for batch in train_dl:
+            buffer.store(batch['mlm_inputs'])
 
     for epoch in range(epochs):
         train_corr = []
@@ -515,18 +513,20 @@ def main():
                         to_sample = [n for n in buffer.nonces if n in batch['mlm_inputs']['input_ids'][i]]
                         assert (len(to_sample) == 1)
                         for n in to_sample:
+                            print(n in buffer.buffer, n)
                             sample = buffer.retrieve(n, batch['mlm_inputs'])
-
+                            print("here", sample)
                             if sample is not None:
                                 contexts.append(sample.to(device))
 
-                    assert len(contexts) == batch['mlm_inputs']['input_ids'].shape[0]
+                    assert len(contexts) == batch['mlm_inputs']['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['mlm_inputs']['input_ids'].shape[0])
 
                     batch['contexts'] = contexts
 
                 out = test_model(batch)
 
-                loss = accelerator.gather(out.loss).mean()
+                loss = out.loss
+                print(loss)
                 train_new_token = accelerator.gather(out.new_token_loss)
 
                 log_dict['train loss'] = loss.item()
@@ -774,7 +774,7 @@ def main():
                         #         test_buffer.store(b['mlm_inputs'].to(device))
                         for b in test_dl:
                             contexts = []
-                            for i in range(b['mlm_inputs']['input_ids'].shape[0]):
+                            for j in range(b['mlm_inputs']['input_ids'].shape[0]):
                                 to_sample = [n for n in test_buffer.nonces if n in b['mlm_inputs']['input_ids']]
                                 for n in to_sample:
                                     sample = test_buffer.retrieve(n, b['mlm_inputs'])
