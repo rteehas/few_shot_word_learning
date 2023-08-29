@@ -422,13 +422,13 @@ class MorphMemoryModelSQuAD(MorphMemoryModel):
 
 class MorphMemoryModelSNLI(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen):
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen, rescale):
         super(MorphMemoryModelSNLI, self).__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
                                                    memory_config, emb_gen)
 
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
                                                    nhead=self.firstLM.config.num_attention_heads,
-                                                   activation='gelu',
+                                                   activation='relu',
                                                    batch_first=True).to(self.device)
         self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
         self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
@@ -439,6 +439,7 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
         self.memory_config = memory_config
+        self.rescale = rescale
 
     def swap_with_mask(self, inputs):
         inp = inputs.clone()
@@ -467,7 +468,13 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
             #             print(key)
             #             print(hidden)
             #             print(torch.tensor([key]).to(self.device).expand(1, hidden).shape)
-            msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
+            if self.rescale:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key,
+                                                                                                            std=self.std_second,
+                                                                                                            mean=self.mean_norm,
+                                                                                                            normalize=True))
+            else:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
             msk2[key, :] = 1.
 
         return w * (~msk2.bool()) + msk
