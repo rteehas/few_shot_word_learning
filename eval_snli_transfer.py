@@ -97,13 +97,20 @@ def main():
 
     path = "model_checkpoints/wd0.1_resample_False__redo_full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
     split = dataset.train_test_split(0.2)
+    if "rescaleTrue" in path:
+        rescale = True
+
+    else:
+        rescale = False
+
+    print("Running SNLI Transfer eval with rescale = {}".format(rescale))
     for trial in range(5):
         for i in range(args.start_checkpoint, args.end_checkpoint + 1):
             chkpt = "checkpoint_{}".format(i)
             chkpt_path = path + "{}/".format(chkpt)
             name = "pytorch_model.bin"
             test_model = MorphMemoryModelSNLI(firstLM, secondLM, new_toks, device, [-1, -2, -3, -4],
-                                              tokenizerMLM.mask_token_id, memory_config, emb_gen='Transformer').to(device)
+                                              tokenizerMLM.mask_token_id, memory_config, 'Transformer', rescale).to(device)
             test_model = load_model_partial(chkpt_path + name, test_model)
             test_model = accelerator.prepare(test_model)
             test_model.eval()
