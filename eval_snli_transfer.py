@@ -96,6 +96,7 @@ def main():
     #                                   tokenizerMLM.mask_token_id, memory_config, emb_gen='Transformer').to(device)
 
     path = "model_checkpoints/rescaleTrue_wd0.1_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
+    print(path)
     split = dataset.train_test_split(0.2)
     if "rescaleTrue" in path:
         rescale = True

@@ -1420,7 +1420,7 @@ class MorphMemoryModelGPTOnlineBinary(MorphMemoryModel):
 class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
     def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type, rescale):
-        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type, rescale)
+        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
         self.memory_config = memory_config
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
                                                    nhead=self.firstLM.config.num_attention_heads,
