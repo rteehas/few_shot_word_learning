@@ -95,7 +95,7 @@ def main():
     # test_model = MorphMemoryModelSNLI(firstLM, secondLM, list(set(new_toks)), device, layers,
     #                                   tokenizerMLM.mask_token_id, memory_config, emb_gen='Transformer').to(device)
 
-    path = "/scratch/rst306/few_shot_repo/model_checkpoints/resample_False_new_tok_warmup_mask_eval2_highWD_support_nodropout_fixed_finetuned_sentences_redo_full_gelu_online_6examples_1e-05_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory/checkpoints/"
+    path = "/scratch/rst306/few_shot_repo/model_checkpoints/highCLSLR_meaninit_total_lr_real_norm_resample_False__redo_full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
     split = dataset.train_test_split(0.2)
     for i in range(args.start_checkpoint, args.end_checkpoint + 1):
         chkpt = "checkpoint_{}".format(i)
