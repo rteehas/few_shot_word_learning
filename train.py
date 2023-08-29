@@ -169,7 +169,7 @@ def main():
     firstLM.resize_token_embeddings(len(tokenizerMLM))
     secondLM.resize_token_embeddings(len(tokenizerTask))
 
-    memory
+    #memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
         # weight_decay = 0.05
