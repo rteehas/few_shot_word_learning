@@ -59,6 +59,7 @@ def get_arguments():
     parser.add_argument("--resample", action="store_true")
     parser.add_argument("--prefill", action="store_true")
     parser.add_argument("--weight_decay", type=float, default=0.02)
+    parser.add_argument("--rescale", action="store_true")
     return parser
 
 
@@ -184,7 +185,7 @@ def main():
         raise NotImplementedError("This memory aggregation is not implemented")
     weight_decay=args.weight_decay
 
-    run_name = "wd={}_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.weight_decay, args.resample,
+    run_name = "rescale={}_wd={}_resample_{}__full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.rescale, args.weight_decay, args.resample,
                                                                                                  dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
@@ -356,7 +357,7 @@ def main():
             if not args.binary:
                 test_model = MorphMemoryModelMLMOnlineFull(firstLM, secondLM, new_toks, device, layers,
                                                        tokenizerMLM.mask_token_id, memory_config,
-                                                       'Transformer')
+                                                       'Transformer', args.rescale)
             else:
                 test_model = MorphMemoryModelMLMOnlineBinary(firstLM, secondLM, new_toks, device, [-1],
                                                        tokenizerMLM.mask_token_id, memory_config,

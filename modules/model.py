@@ -1412,8 +1412,8 @@ class MorphMemoryModelGPTOnlineBinary(MorphMemoryModel):
 
 class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
 
-    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type):
-        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type, rescale):
+        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type, rescale)
         self.memory_config = memory_config
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
                                                    nhead=self.firstLM.config.num_attention_heads,
@@ -1433,13 +1433,14 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         # self.neg_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
         initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
         self.std_second = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).std()
-        m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0, keepdim=True)
+        self.mean_norm = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).mean()
 
         self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
         self.cls_token.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
         #         self.reinit_params()
         self.emb_gen.apply(self._init_weights)
         self.dropout = nn.Dropout(0.2)
+        self.rescale = rescale
 
     # Copied from transformers.models.bert.modeling_bert.BertPreTrainedModel._init_weights
     def _init_weights(self, module):
@@ -1485,7 +1486,13 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
             #             print(key)
             #             print(hidden)
             #             print(torch.tensor([key]).to(self.device).expand(1, hidden).shape)
-            msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
+            if self.rescale:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key,
+                                                                                                            std=self.std_second,
+                                                                                                            mean=self.mean_norm,
+                                                                                                            normalize=True))
+            else:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
             msk2[key, :] = 1.
 
         return w * (~msk2.bool()) + msk
