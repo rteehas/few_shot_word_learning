@@ -438,137 +438,39 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
 
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+        self.memory_config = memory_config
 
-    #     def store_mem(self, batch):
-    #         mlm_inputs = batch["mlm_inputs"].to(self.device)
-    #         task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
-    #                        'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
-    #         nonceMLM = batch["nonceMLM"]
-    #         nonceTask = batch["nonceTask"]
-    #         if 'task_labels' in batch:
-    #             task_labels = batch["task_labels"].to(self.device)
-
-    #         else:
-    #             task_labels = None
-
-    #         b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
-
-    #         new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
-
-    #         mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
-    #         mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
-
-    #         first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
-
-    #         first_hidden = first_out.hidden_states
-
-    #         combined = self.dropout(combine_layers(first_hidden, self.layers))
-
-    #         chunked = torch.chunk(combined, b)  # get different embeds per nonce, shape = k x max_len x hidden
-
-    #         # embedding generator + store in memory
-    #         losses = []
-    #         for i, chunk in enumerate(chunked):
-    #             msk = (new_inputs[i] == self.mask_token_id)  # mask all but the outputs for the mask
-    # #             if self.emb_type == "Transformer":
-    # #                 generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
-    # #                                                                                                            2)  # permute for shape, mask, permute back
-
-    # #             embed_ids = msk.nonzero(as_tuple=True)
-
-    # #             if self.emb_type == "Transformer":
-    # #                 nonce_embeds = generated_embeds[embed_ids[0], embed_ids[1], :]
-
-    # #             elif self.emb_type == "MLP":
-    # #                 nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
-
-    #             # preds = self.emb_decoder(nonce_embeds)
-    #             # labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
-    #             # l_fct = nn.CrossEntropyLoss()
-    #             # inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
-    #             # losses.append(inter_loss)
-    #             src = new_inputs[i]
-    #             src = src.unsqueeze(-1)
-    #             src = src.expand(-1, -1, self.firstLM.config.hidden_size)
-
-    #             cls = self.cls_token.unsqueeze(0).expand(src.shape[0], -1, -1)
-    #             attn = mlm_attn[i]
-    #             attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1), attn],
-    #                                  dim=1)
-    #             if len(chunk.shape) == 2:
-    #                 embed_inputs = chunk.unsqueeze(0)
-    #             else:
-    #                 embed_inputs = chunk
-
-    #             embed_inputs = torch.cat([cls, embed_inputs], dim=1)
-    #             nonce_embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
-    #             self.memory.store(nonceMLM[i].item(), nonce_embeds[:, 0])
-    # #             self.memory.store(nonceMLM[i].item(), nonce_embeds)
     def swap_with_mask(self, inputs):
         inp = inputs.clone()
         for nonce in self.first_list:
             inp[inp == nonce] = self.mask_token_id
         return inp
 
-    def process_memories(self, mem):
+    def get_new_weights_new(self, task, memory):
 
-        b, k, l = mem["input_ids"].shape
-        mlm_inputs = mem['input_ids'].reshape(b * k, l).to(self.device)
-        mlm_ids = self.swap_with_mask(mlm_inputs)
-        #         mlm_ids = new_inputs.reshape((b * k, l))
-        mlm_attn = mem["attention_mask"].reshape(b * k, l).to(self.device)
-        first_out = self.firstLM(input_ids=mlm_ids,
-                                 attention_mask=mlm_attn, output_hidden_states=True)
+        if task == 'MLM':
+            ref_model = self.firstLM
 
-        first_hidden = first_out.hidden_states
-        #         print("in process")
-        combined = self.dropout(combine_layers(first_hidden, self.layers))
+        elif task == "Task":
+            ref_model = self.secondLM
+        else:
+            raise NotImplementedError
 
-        for nonce1, nonce2 in zip(self.first_list, self.second_list):
-            if nonce1 in mem["input_ids"]:
-                #                 msk = (mem["input_ids"] == nonce1)
+        w = ref_model.get_input_embeddings().weight.clone()
+        n, hidden = w.shape
+        if not ref_model.get_input_embeddings().weight.requires_grad:
+            w.requires_grad = True
 
-                #                 embed_ids = msk.nonzero(as_tuple=True)
-                #                 if len(combined.shape) == 2:
-                #                     nonce_embeds = self.emb_gen(combined[embed_ids[1], :])
-                #                 elif len(combined.shape) == 3:
-                #                     nonce_embeds = self.emb_gen(combined[embed_ids[0], embed_ids[1], :])
-                #                 else:
-                #                     raise NotImplementedError("Wrong shape for Combined")
-                #                 print(nonce_embeds.shape, "before")
-                #                 nonce_embeds = torch.mean(nonce_embeds, dim=0, keepdim=True)
-                #                 print(nonce_embeds.shape, "after")
-                #                 self.memory.store(nonce2, nonce_embeds)
-                msk = mlm_inputs == nonce1
-                #                 print(msk.nonzero())
-                src = mlm_inputs[msk.nonzero()[:, 0].unique()]
-                #                 print(src.shape)
-                src = src.unsqueeze(-1)
-                src = src.expand(-1, -1, self.firstLM.config.hidden_size)
+        msk = torch.zeros_like(w).to(self.device)
+        msk2 = torch.zeros_like(w).to(self.device)
+        for key in memory.memory:
+            #             print(key)
+            #             print(hidden)
+            #             print(torch.tensor([key]).to(self.device).expand(1, hidden).shape)
+            msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
+            msk2[key, :] = 1.
 
-                embed_inputs = combined[msk.nonzero()[:, 0].unique()]
-                attn = mlm_attn[msk.nonzero()[:, 0].unique()]
-
-                #                 if len(embed_inputs.shape) == 2:
-                #                     embed_inputs = embed_inputs.unsqueeze(0)
-
-                if len(embed_inputs.shape) == 2:
-                    cls = self.cls_token
-                    embed_inputs = torch.cat([cls, embed_inputs], dim=0).unsqueeze(0)
-                else:
-                    cls = self.cls_token.unsqueeze(0).expand(embed_inputs.shape[0], -1, -1)
-                    embed_inputs = torch.cat([cls, embed_inputs], dim=1)
-
-                attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1), attn],
-                                 dim=1)
-
-                #                 print(cls.shape, embed_inputs.shape)
-
-                #                 print(embed_inputs.shape, "after")
-                nonce_embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
-                self.memory.store(nonce2, nonce_embeds[:, 0])
-
-    #                 return combined, embed_inputs, attn, nonce_embeds, src, msk, nonce1, nonce2
+        return w * (~msk2.bool()) + msk
 
     def forward(self, batch):
 
@@ -583,125 +485,55 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
         else:
             task_labels = None
 
-        #         b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
+        b_task, k_task, l_task = task_inputs["input_ids"].shape
 
-        #         new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
-
-        #         mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
-        #         mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
-
-        #         first_out = self.firstLM(input_ids=mlm_ids, attention_mask=mlm_attn, output_hidden_states=True)
-
-        #         first_hidden = first_out.hidden_states
-
-        #         combined = self.dropout(combine_layers(first_hidden, self.layers))
-
-        #         chunked = torch.chunk(combined, b)  # get different embeds per nonce, shape = k x max_len x hidden
-
-        #         # embedding generator + store in memory
-        #         losses = []
-        # #         for i, chunk in enumerate(chunked):
-        # #             msk = (new_inputs[i] == self.mask_token_id)  # mask all but the outputs for the mask
-        # #             if self.emb_type == "Transformer":
-        # #                 generated_embeds = self.emb_gen(chunk.permute(1, 0, 2), src_key_padding_mask=~msk).permute(1, 0,
-        # #                                                                                                            2)  # permute for shape, mask, permute back
-
-        # #             embed_ids = msk.nonzero(as_tuple=True)
-
-        # #             if self.emb_type == "Transformer":
-        # # #                 print(generated_embeds[embed_ids[0], embed_ids[1], :].shape, "beforeshape")
-        # #                 nonce_embeds = torch.mean(generated_embeds[embed_ids[0], embed_ids[1], :], dim=0, keepdim=True)
-        # # #                 print(nonce_embeds.shape)
-
-        # #             elif self.emb_type == "MLP":
-        # #                 nonce_embeds = self.emb_gen(chunk[embed_ids[0], embed_ids[1], :])
-
-        #             # preds = self.emb_decoder(nonce_embeds)
-        #             # labs = nonceMLM[i].to(self.device).repeat(preds.shape[0])
-        #             # l_fct = nn.CrossEntropyLoss()
-        #             # inter_loss = l_fct(preds.view(-1, self.firstLM.config.vocab_size), labs.view(-1))
-        #             # losses.append(inter_loss)
-        #         for nonce1, nonce2 in zip(self.first_list, self.second_list):
-        #             if nonce1 in mlm_inputs["input_ids"]:
-        #                 msk = (mlm_inputs["input_ids"].reshape((b * k, l)) == nonce1)
-        #                 src = mlm_inputs["input_ids"].reshape((b * k, l))[msk.nonzero()[:, 0].unique()]
-        #                 src = src.unsqueeze(-1)
-        #                 src = src.expand(-1, -1, self.firstLM.config.hidden_size)
-        #                 #                 pos = self.pos_binary.unsqueeze(0).expand(src.shape[0], -1, -1)
-        #                 #                 neg = self.neg_binary.unsqueeze(0).expand(src.shape[0], -1, -1)
-        #                 mask = src == nonce1
-        #                 #                 added = torch.where(mask, pos, neg)
-        #                 cls = self.cls_token.unsqueeze(0).expand(src.shape[0], -1, -1)
-        #                 #                 return added, msk
-        #                 #                 embed_inputs = combined[msk.nonzero()[:,0].unique()] + added
-        #                 embed_inputs = combined[msk.nonzero()[:, 0].unique()]
-        #                 attn = mlm_attn[msk.nonzero()[:, 0].unique()]
-        #                 attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1), attn],
-        #                                  dim=1)
-
-        #                 #                 print(src.shape, mask.shape, embed_inputs.shape, self.cls_token.shape)
-        #                 embed_inputs = torch.cat([cls, embed_inputs], dim=1)
-        #                 nonce_embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
-        #                 self.memory.store(nonce2, nonce_embeds[:, 0])
-
-        b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
-
-        task_ids = task_inputs["input_ids"].reshape((b_task * k_task, l_task))  # reshape so we have n x seq_len
+        task_ids = task_inputs['input_ids'].reshape(b_task * k_task, l_task)
         task_attn = task_inputs["attention_mask"].reshape((b_task * k_task, l_task))
 
-        new_w = self.get_new_weights(task="Task")
-        input_embeds = F.embedding(task_ids, new_w)
+        outs = []
+        memories = []
+        embs = []
+        #         attns = []
+        for i in range(b_task):
+            contexts = mlm_inputs['input_ids'][[i]]
+            new_token = nonceMLM[i]
+            memory = OnlineProtoNet(self.memory_config, self.device)
+
+            new_inputs = self.swap_with_mask(contexts)
+            attn = mlm_inputs['attention_mask'][i]
+            with torch.no_grad():
+                first_out = self.firstLM(input_ids=new_inputs.squeeze(0), attention_mask=attn,
+                                         output_hidden_states=True)
+
+            first_hidden = first_out.hidden_states
+            combined = self.dropout(combine_layers(first_hidden, self.layers))
+            if len(combined.shape) == 2:
+                combined = combined.unsqueeze(0)
+
+            cls = self.cls_token.unsqueeze(0).expand(combined.shape[0], -1, -1)
+            attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1),
+                              attn], dim=1)
+            embed_inputs = torch.cat([cls, combined], dim=1)
+            embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
+            nonce_embeds = embeds[:, 0]
+            memory.store(new_token, nonce_embeds)
+
+            new_w = self.get_new_weights_new(task="Task", memory=memory)
+
+            input_embeds = F.embedding(task_ids[i], new_w)
+            embs.append(input_embeds)
+
+        inputs_embeds = torch.stack(embs)
+        #         print(inputs_embeds.shape)
+        #         print(task_attn.shape)
+        #         print(task_labels.shape)
         out_vals = self.secondLM(
-            inputs_embeds=input_embeds,
+            inputs_embeds=inputs_embeds,
             attention_mask=task_attn,
-            labels=task_labels.squeeze(1),
+            labels=task_labels,
             output_hidden_states=True
         )
-
         return out_vals
-
-    def forward_inner(self, batch):
-        mlm_inputs = batch["mlm_inputs"].to(self.device)
-        nonceMLM = batch["nonceMLM"]
-
-        b, k, l = batch["mlm_inputs"]["input_ids"].shape  # batch x k examples x max_length toks
-
-        new_inputs = self.swap_with_mask(mlm_inputs["input_ids"], k, nonceMLM)  # replace nonce with mask
-
-        new_labels = new_inputs.clone()
-        new_labels[new_inputs != self.mask_token_id] = -100
-
-        mlm_ids = new_inputs.reshape((b * k, l))  # reshape so we have n x seq_len
-        mlm_attn = mlm_inputs["attention_mask"].reshape((b * k, l))
-
-        new_w = self.get_new_weights('Task')
-
-        embs = F.embedding(mlm_ids, new_w)
-
-        outputs = self.secondLM.roberta(
-            inputs_embeds=embs,
-            attention_mask=mlm_attn,
-            output_hidden_states=True
-        )
-
-        preds = self.calc_first_lmhead(new_w, outputs[0])
-        loss_fct = nn.CrossEntropyLoss()
-        lm_loss = loss_fct(preds.view(-1, self.firstLM.config.vocab_size), new_labels.view(-1))
-        out_vals = MaskedLMOutput(
-            loss=lm_loss,
-            logits=preds,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions
-        )
-
-        return out_vals
-
-    def calc_first_lmhead(self, new_w, last_hidden):
-        x = self.firstLM.lm_head.dense(last_hidden)
-        x = gelu(x)
-        x = self.firstLM.lm_head.layer_norm(x)
-        x = F.linear(x, new_w, bias=self.firstLM.lm_head.bias)
-        return x
 
 
 class MorphMemoryModelGPT(MorphMemoryModel):
