@@ -95,7 +95,7 @@ def main():
     # test_model = MorphMemoryModelSNLI(firstLM, secondLM, list(set(new_toks)), device, layers,
     #                                   tokenizerMLM.mask_token_id, memory_config, emb_gen='Transformer').to(device)
 
-    path = "/scratch/rst306/few_shot_repo/model_checkpoints/highCLSLR_meaninit_total_lr_real_norm_resample_False__redo_full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
+    path = "/scratch/rst306/few_shot_repo/model_checkpoints/redone_context_midWD_resample_False__redo_full_gelu_online_6examples_3e-05_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
     split = dataset.train_test_split(0.2)
     for i in range(args.start_checkpoint, args.end_checkpoint + 1):
         chkpt = "checkpoint_{}".format(i)
@@ -120,8 +120,7 @@ def main():
 
                 with torch.no_grad():
                     for b in test_dl:
-                        test_model.process_memories(b['mlm_inputs'])
-                        t_out = test_model.forward(b)
+                        t_out = test_model(b)
                         preds = t_out.logits
                         preds = F.log_softmax(preds, dim=-1).argmax(dim=1)
                         true_ans = b['task_labels'].to(device).view(-1)
