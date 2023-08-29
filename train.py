@@ -603,9 +603,13 @@ def main():
                 assert len(new_ids) == 1
                 new_id = new_ids[0]
                 with torch.no_grad():
-                     norms.append(m.retrieve(new_id).norm())
+                    if not args.rescale:
+                        norms.append(m.retrieve(new_id).norm())
+                    if args.rescale:
+                        norms.append(m.retrieve(new_id, std=test_model.module.std_second, mean=test_model.module.mean_norm, normalize=True))
 
             with torch.no_grad():
+
                 log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
 
             with torch.no_grad():
