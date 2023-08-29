@@ -58,6 +58,7 @@ def get_arguments():
     parser.add_argument("--mask_new", action="store_true")
     parser.add_argument("--resample", action="store_true")
     parser.add_argument("--prefill", action="store_true")
+    parser.add_argument("--weight_decay", type=float, default=0.02)
     return parser
 
 
@@ -168,21 +169,23 @@ def main():
     firstLM.resize_token_embeddings(len(tokenizerMLM))
     secondLM.resize_token_embeddings(len(tokenizerTask))
 
-    # memory
+    memory
     if args.memory == "mean":
         memory_config = AggregatorConfig()
-        weight_decay = 0.05
+        # weight_decay = 0.05
 
     elif args.memory == "rnn":
         memory_config = RNNAggConfig()
-        weight_decay = 0.015
+        # weight_decay = 0.015
     elif args.memory == "cls":
         memory_config = TransformerCLSConfig()
-        weight_decay = 0.015
+        # weight_decay = 0.015
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
+    weight_decay=args.weight_decay
 
-    run_name = "redone_context_midWD_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.resample, dataset_name,
+    run_name = "wd={}_resample_{}__redo_full_gelu_{}_{}examples_{}_{}_{}_bs={}_modified_maml={}_random={}_finetune={}_cat_{}layers4_binary_{}_mask_new={}".format(args.weight_decay, args.resample,
+                                                                                                 dataset_name,
                                                                                                  args.num_examples,
                                                                                                  args.lr,
                                                                                                  memory_config.agg_method,
