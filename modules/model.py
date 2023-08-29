@@ -438,6 +438,10 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
 
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+
+        self.std_second = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).std()
+        self.mean_norm = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).mean()
+        
         self.memory_config = memory_config
         self.rescale = rescale
 
