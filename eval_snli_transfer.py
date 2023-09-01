@@ -95,7 +95,7 @@ def main():
     # test_model = MorphMemoryModelSNLI(firstLM, secondLM, list(set(new_toks)), device, layers,
     #                                   tokenizerMLM.mask_token_id, memory_config, emb_gen='Transformer').to(device)
 
-    path = "model_checkpoints/rescaleTrue_wd0.1_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
+    path = "model_checkpoints/smallevalind_rescaleFalse_wd0.1_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newTrue/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
     print(path)
     split = dataset.train_test_split(0.2)
     if "rescaleTrue" in path:
@@ -106,7 +106,9 @@ def main():
 
     print("Running SNLI Transfer eval with rescale = {}".format(rescale))
     for trial in range(5):
+        print(trial)
         for i in range(args.start_checkpoint, args.end_checkpoint + 1):
+            print(i)
             chkpt = "checkpoint_{}".format(i)
             chkpt_path = path + "{}/".format(chkpt)
             name = "pytorch_model.bin"
@@ -142,4 +144,5 @@ def main():
                 accelerator.log({"{}/{}_examples/average test accuracy".format(chkpt, n): acc})
 
 if __name__ == "__main__":
+    print("main")
     main()
