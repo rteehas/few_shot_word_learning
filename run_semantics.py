@@ -338,7 +338,7 @@ def train(args, train_dataset, model, reader, tokenizer, accelerator):
     tr_loss, logging_loss = 0.0, 0.0
     model.zero_grad()
     # train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
-    set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
+    # set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
 
     for epoch in args.num_train_epochs:
         # epoch_iterator = tqdm(train_dataloader, desc="Iteration")
@@ -684,7 +684,7 @@ def main():
     device = accelerator.device
 
     tokenizer = AutoTokenizer.from_pretrained("roberta-base")
-    model = RobertaForMultipleChoice.from_pretrained("roberta-base")
+    model = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
     logger.info('loaded a pre-trained model..')
     for param in model.parameters():
         param.requires_grad = False
