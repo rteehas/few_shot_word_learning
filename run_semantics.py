@@ -303,7 +303,7 @@ def set_seed(args):
 def train(args, train_dataset, model, reader, tokenizer, accelerator):
     """ Train the model """
 
-    args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
+    args.train_batch_size = args.per_gpu_train_batch_size * 2
     # train_sampler = RandomSampler(train_dataset) if args.local_rank == -1 else DistributedSampler(train_dataset)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=args.train_batch_size)
     train_dataloader = accelerator.prepare(train_dataloader)
@@ -340,15 +340,15 @@ def train(args, train_dataset, model, reader, tokenizer, accelerator):
     # train_iterator = trange(int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0])
     # set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
 
-    for epoch in args.num_train_epochs:
+    for epoch in range(args.num_train_epochs):
         # epoch_iterator = tqdm(train_dataloader, desc="Iteration")
         for step, batch in enumerate(train_dataloader):
             log_dict = {}
             model.train()
-            batch = tuple(t.to(args.device) for t in batch)
+            #batch = tuple(t.to(args.device) for t in batch)
             inputs = {'input_ids': batch[0],
                       'attention_mask': batch[1],
-                      'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,
+                      #'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,
                       # XLM don't use segment_ids
                       'labels': batch[3]}
             outputs = model(**inputs)
@@ -401,7 +401,7 @@ def train(args, train_dataset, model, reader, tokenizer, accelerator):
     #     if args.local_rank in [-1, 0]:
     #         tb_writer.close()
         eval_log_dict = {}
-        results = evaluate(args, model=model, reader=reader, tokenizer=tokenizer)
+        results = evaluate(args, model=model, reader=reader, tokenizer=tokenizer, accelerator=accelerator)
         for key, value in results.items():
             eval_log_dict['eval_{}'.format(key)] = value
             eval_log_dict['epoch'] = epoch
@@ -423,7 +423,7 @@ def evaluate(args, model, reader, tokenizer, accelerator, prefix="", next_fname=
         # if not os.path.exists(eval_output_dir) :
         #     os.makedirs(eval_output_dir)
 
-        args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
+        args.eval_batch_size = args.per_gpu_eval_batch_size * 2
         # Note that DistributedSampler samples randomly
         # eval_sampler = SequentialSampler(eval_dataset) if args.local_rank == -1 else DistributedSampler(eval_dataset)
         eval_dataloader = DataLoader(eval_dataset, batch_size=args.eval_batch_size)
@@ -438,12 +438,12 @@ def evaluate(args, model, reader, tokenizer, accelerator, prefix="", next_fname=
         out_label_ids = None
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
             model.eval()
-            batch = tuple(t.to(args.device) for t in batch)
+            #batch = tuple(t.to(args.device) for t in batch)
 
             with torch.no_grad():
                 inputs = {'input_ids': batch[0],
                           'attention_mask': batch[1],
-                          'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,
+                          #'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,
                           # XLM don't use segment_ids
                           'labels': batch[3]}
                 outputs = model(**inputs)
@@ -590,7 +590,7 @@ def main():
                         help="Epsilon for Adam optimizer.")
     parser.add_argument("--max_grad_norm", default=1.0, type=float,
                         help="Max gradient norm.")
-    parser.add_argument("--num_train_epochs", default=3.0, type=float,
+    parser.add_argument("--num_train_epochs", default=3, type=int,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--max_steps", default=-1, type=int,
                         help="If > 0: set total number of training steps to perform. Override num_train_epochs.")
@@ -686,11 +686,11 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained("roberta-base")
     model = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
     logger.info('loaded a pre-trained model..')
-    for param in model.parameters():
-        param.requires_grad = False
-
-    for param in model.classifier.parameters():
-        param.requires_grad = True
+    #for param in model.parameters():
+    #    param.requires_grad = False
+    model.get_input_embeddings().weight.requires_grad=False
+    #for param in model.classifier.parameters():
+    #    param.requires_grad = True
 
     project = "semantics"
 
