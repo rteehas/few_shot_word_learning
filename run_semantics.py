@@ -679,7 +679,7 @@ def main():
     #                    args.local_rank, device, args.n_gpu, bool(args.local_rank != -1), args.fp16)
 
     # Set seed
-    set_seed(args)
+    # set_seed(args)
     accelerator = Accelerator(log_with="wandb")
     device = accelerator.device
 
