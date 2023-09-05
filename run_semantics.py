@@ -1046,7 +1046,9 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained("roberta-base")
     if args.use_morph:
         firstLM = RobertaForMaskedLM.from_pretrained("roberta-base")
-        secondLM = RobertaForMultipleChoice.from_pretrained(args.load_baseline_checkpoint)
+        secondLM = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
+        state_dict = torch.load(args.load_baseline_checkpoint + "/" + "pytorch_model.bin")
+        secondLM.load_state_dict(state_dict)
     else:
         model = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
     assert not (args.do_train and args.eval_new_token), "Only eval if you're evaluating with new tokens"
