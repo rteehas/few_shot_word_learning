@@ -439,7 +439,7 @@ def convert_examples_to_features(examples, max_seq_length,
 
         label_id = example.label
         if isinstance(example, ARCExampleMorph):
-            if len(example.sentences) == 0:
+            if len(example.sentences) == 0 or len(example.sentences) > 5:
                 continue
             mlm_inputs = tokenizer(example.sentences, padding="max_length", max_length=max_seq_length, return_tensors='pt')
             nonceMLM = tokenizer.convert_tokens_to_ids("<nonce>")
@@ -540,7 +540,7 @@ class ARCExampleReader:
 
     def _create_examples(self, json_stream, for_training, max_choices, new_tok=False, morph=False):
         """Creates examples for the training and dev sets."""
-        assert (morph and new_tok) or (not morph and not new_tok), "Morph is only used when doing new token eval"
+        assert (morph and new_tok) or (not morph), "Morph is only used when doing new token eval"
         for input_json in json_stream:
             if "answerKey" not in input_json and for_training:
                 raise ValueError("No answer key provided for training in {}".format(input_json))
@@ -577,7 +577,7 @@ class ARCExampleReader:
                     examples = wn.synset(gold).examples()
                     sentences = [s for s in examples if word in s]
                     sentences = [re.sub(r"\b({})\b".format(word), new_token, s, flags=re.I) for s in sentences]
-                    if len(sentences) > 0:
+                    if len(sentences) == 2:
                         arc_example = ARCExample(
                             arc_id=input_json["id"],
                             question=question,
@@ -1140,7 +1140,7 @@ def main():
 
         else:
             rescale = False
-        chkpt = "checkpoint_7"
+        chkpt = "checkpoint_8"
         chkpt_path = path + "{}/".format(chkpt)
         name = "pytorch_model.bin"
         model=MorphMemoryModelMC(firstLM, secondLM, new_toks, device, [-1, -2, -3, -4],
