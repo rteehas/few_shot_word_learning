@@ -60,9 +60,9 @@ class MyDataset(Dataset):
         # print(batch, "batch")
         out_batch = []
         for i in range(4):
-            out_batch.append(default_collate([b for b in batch[i]]))
+            out_batch.append(default_collate([b[i] for b in batch]))
         for i in range(4,7):
-            out_batch.append([b for b in batch[i]])
+            out_batch.append([b[i] for b in batch])
         return out_batch
 
 
