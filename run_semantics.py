@@ -148,8 +148,8 @@ class MorphMemoryModelMC(MorphMemoryModel):
         # nonceTask = batch["nonceTask"]
         task_labels = batch['labels']
 
-
-        b_task, k_task, l_task = mlm_inputs.shape
+        b_task = len(mlm_inputs)
+        k_task, l_task = mlm_inputs[0].shape
 
         task_ids = batch['input_ids']
         task_attn = batch["attention_mask"]
@@ -165,9 +165,9 @@ class MorphMemoryModelMC(MorphMemoryModel):
             
             new_inputs = self.swap_with_mask(contexts)
             attn = attn_mask[i]
-            print(attn.shape, new_inputs.shape)
+            #print(attn.shape, new_inputs.shape)
             with torch.no_grad():
-                first_out = self.firstLM(input_ids=new_inputs, attention_mask=attn.unsqueeze(0),
+                first_out = self.firstLM(input_ids=new_inputs, attention_mask=attn,
                                          output_hidden_states=True)
 
             first_hidden = first_out.hidden_states
@@ -756,7 +756,7 @@ def evaluate(args, model, reader, tokenizer, accelerator, prefix="", next_fname=
                 preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
                 out_label_ids = np.append(out_label_ids, inputs['labels'].detach().cpu().numpy(), axis=0)
 
-            # print(preds)
+            # erint(preds)
             # print(np.argmax(preds,axis=1))
             # print(out_label_ids)
             # print("============")
@@ -882,7 +882,7 @@ def evaluate_morph(args, model, reader, tokenizer, accelerator, prefix="", next_
 def load_model_partial(fname, model):
     model_dict = model.state_dict()
     state_dict = torch.load(fname)
-    partial_states = {k:v for k, v in state_dict.items() if "emb_gen" in k or "memory" in k or "cls" in k or "dropout" in k}
+    partial_states = {k:v for k, v in state_dict.items() if "emb_gen" in k or "memory" in k or "cls" in k}
 #     print(partial_states)
     model_dict.update(partial_states)
     model.load_state_dict(model_dict)
@@ -1091,8 +1091,12 @@ def main():
     if args.use_morph:
         firstLM = RobertaForMaskedLM.from_pretrained("roberta-base")
         secondLM = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
+        logger.info("initial state dict: {}".format(secondLM.state_dict()))
         state_dict = torch.load(args.load_baseline_checkpoint + "/" + "pytorch_model.bin")
         secondLM.load_state_dict(state_dict)
+        logger.info("first lm weights {}".format(firstLM.get_input_embeddings().weight))
+        logger.info("second lm weights {}".format(secondLM.get_input_embeddings().weight))
+
     else:
         model = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
     assert not (args.do_train and args.eval_new_token), "Only eval if you're evaluating with new tokens"
@@ -1120,6 +1124,7 @@ def main():
     else:
         memory_config = AggregatorConfig()
         new_toks = list(set(tokenizer.convert_tokens_to_ids(['<nonce>'])))
+        print(new_toks)
         path = "model_checkpoints/smallevalind_rescaleFalse_wd0.1_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newFalse/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
         print(path)
         if "rescaleTrue" in path:
@@ -1132,8 +1137,14 @@ def main():
         name = "pytorch_model.bin"
         model=MorphMemoryModelMC(firstLM, secondLM, new_toks, device, [-1, -2, -3, -4],
                                               tokenizer.mask_token_id, memory_config, 'Transformer', rescale=rescale)
+        with torch.no_grad():
+            norm = model.cls_token.norm()
+        logger.info("pre loading norm {}".format(norm.item()))
         model = load_model_partial(chkpt_path + name, model)
+        with torch.no_grad():
+            logger.info("post loading norm {}".format(model.cls_token.norm().item()))
 
+        logger.info("secondLM state dict after {}".format(model.secondLM.state_dict()))
 
     project = "semantics"
 
