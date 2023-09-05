@@ -712,9 +712,10 @@ def main():
 
     if args.eval_new_token:
         tokenizer.add_tokens(['<nonce>'])
-        mean_embed = torch.mean(model.get_input_embeddings().weight, dim=0)
-        model.resize_token_embeddings(len(tokenizer))
-        model.get_input_embeddings().weight[-1, :] = mean_embed
+        with torch.no_grad():
+            mean_embed = torch.mean(model.get_input_embeddings().weight, dim=0)
+        #    model.resize_token_embeddings(len(tokenizer))
+        #    model.get_input_embeddings().weight[-1, :] = mean_embed
 
 
     logger.info('loaded a pre-trained model..')
@@ -764,11 +765,13 @@ def main():
         accelerator.load_state(args.load_baseline_checkpoint)
     if args.eval_new_token:
         logger.info("Resizing embeds for new token")
-        model.resize_token_embeddings(len(tokenizer))
-        if args.eval_mask:
-            model.get_input_embeddings().weight[-1, :] = model.get_input_embeddings().weight[tokenizer.mask_token_id, :]
-        else:
-            model.get_input_embeddings().weight[-1, :] = mean_embed
+
+        with torch.no_grad():
+            model.module.resize_token_embeddings(len(tokenizer))
+            if args.eval_mask:
+                model.get_input_embeddings().weight[-1, :] = model.get_input_embeddings().weight[tokenizer.mask_token_id, :]
+            else:
+                model.get_input_embeddings().weight[-1, :] = mean_embed
     if args.do_eval:
 
         ## the actual evaluation
