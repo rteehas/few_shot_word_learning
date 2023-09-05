@@ -18,6 +18,7 @@ from torch import nn
 from tqdm import tqdm, trange
 import wandb
 from accelerate import Accelerator
+from torch.utils.data import Dataset
 from transformers import AutoTokenizer, RobertaForMultipleChoice, RobertaForMaskedLM
 import logging
 # from
@@ -30,6 +31,27 @@ from modules.model import MorphMemoryModel
 from modules.utils import combine_layers
 
 logger = logging.getLogger(__name__)
+
+class MyDataset(Dataset):
+    # TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce)
+    def __init__(self, all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce):
+        self.base_dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label)
+        self.mlm_input = all_mlms
+        self.mlm_mask = all_mlm_masks
+        self.nonceMLM = all_nonce
+    def __getitem__(self, idx):
+
+        b = self.base_dataset.__getitem__(idx)
+        mlm_input = self.mlm_input[idx]
+        mlm_mask = self.mlm_mask[idx]
+        nonceMLM = self.nonceMLM[idx]
+
+        return (b[0], b[1], b[2], b[3], mlm_input, mlm_mask, nonceMLM)
+
+    def __len__(self):
+        return len(self.base_dataset)
+
+
 
 def simple_accuracy(preds, labels):
     return (preds == labels).mean()
@@ -908,7 +930,7 @@ def load_and_cache_examples(args, reader, tokenizer, evaluate=False, next_fname=
         all_mlms = torch.stack([f.mlm_inputs for f in features])
         all_mlm_masks = torch.stack([f.mlm_mask for f in features])
         all_nonce = torch.tensor(select_field(features, 'nonceMLM'), dtype=torch.long)
-        dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce)
+        dataset = MyDataset(all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce)
     else:
         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label)
     return dataset
