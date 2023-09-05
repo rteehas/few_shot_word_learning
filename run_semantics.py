@@ -53,8 +53,12 @@ class MyDataset(Dataset):
         return len(self.base_dataset)
 
     def collate(self, batch):
-
-        return default_collate(batch[0]), default_collate(batch[1]), default_collate(batch[2]), default_collate(batch[3]), batch[4], batch[5], batch[6]
+        #for i in range(len(batch[4])):
+         #   for k in range(len(batch)):
+          #      if k != 6:
+           #         print(batch[k][i].shape)
+        print(batch, "batch")
+        return default_collate(batch[0]), default_collate(batch[1]), default_collate(batch[2]), default_collate(batch[3]), [b for b in batch[4]], [b for b in batch[5]],[b for b in batch[6]]
 
 
 
@@ -158,7 +162,7 @@ class MorphMemoryModelMC(MorphMemoryModel):
             attn = attn_mask[i]
             print(attn.shape, new_inputs.shape)
             with torch.no_grad():
-                first_out = self.firstLM(input_ids=new_inputs, attention_mask=attn.squeeze(0),
+                first_out = self.firstLM(input_ids=new_inputs, attention_mask=attn.unsqueeze(0),
                                          output_hidden_states=True)
 
             first_hidden = first_out.hidden_states
@@ -502,6 +506,8 @@ class ARCExampleReader:
             max_choices=max_choices)
 
     def get_dev_examples(self, data_dir, max_choices, new_token, morph, exclusion=""):
+        print("dev","new", new_token)
+        print("dev", "morph", morph)
         return self._create_examples(
             self._read_jsonl(data_dir, exclusion), for_training=False,
             max_choices=max_choices, new_tok=new_token, morph=morph)
@@ -796,7 +802,7 @@ def evaluate_morph(args, model, reader, tokenizer, accelerator, prefix="", next_
         args.eval_batch_size = args.per_gpu_eval_batch_size * 2
         # Note that DistributedSampler samples randomly
         # eval_sampler = SequentialSampler(eval_dataset) if args.local_rank == -1 else DistributedSampler(eval_dataset)
-        eval_dataloader = DataLoader(eval_dataset, batch_size=args.eval_batch_size)
+        eval_dataloader = DataLoader(eval_dataset, batch_size=args.eval_batch_size, collate_fn=eval_dataset.collate)
         eval_dataloader = accelerator.prepare(eval_dataloader)
         # Eval!
         logger.info("***** Running evaluation {} *****".format(prefix))
@@ -937,6 +943,7 @@ def load_and_cache_examples(args, reader, tokenizer, evaluate=False, next_fname=
         all_mlms = [f.mlm_inputs for f in features]
         all_mlm_masks = [f.mlm_mask for f in features]
         all_nonce = [f.nonceMLM for f in features]
+        print("here")
         dataset = MyDataset(all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce)
     else:
         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label)
