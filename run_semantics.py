@@ -12,6 +12,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
 # from tensorboardX import SummaryWriter
+import re
 from tqdm import tqdm, trange
 import wandb
 from accelerate import Accelerator
@@ -250,10 +251,10 @@ class ARCExampleReader:
             self._read_jsonl(data_dir, exclusion), for_training=True,
             max_choices=max_choices)
 
-    def get_dev_examples(self, data_dir, max_choices, exclusion=""):
+    def get_dev_examples(self, data_dir, max_choices, new_token, exclusion=""):
         return self._create_examples(
             self._read_jsonl(data_dir, exclusion), for_training=False,
-            max_choices=max_choices)
+            max_choices=max_choices, new_tok=new_token)
 
     def _read_jsonl(self, filepath, exclusion):
         excluded_set = set([d.strip() for d in exclusion.split(',')]) if exclusion else None
@@ -274,22 +275,42 @@ class ARCExampleReader:
                     # print(dataset["source"])
                 yield json.loads(line.strip())
 
-    def _create_examples(self, json_stream, for_training, max_choices):
+    def _create_examples(self, json_stream, for_training, max_choices, new_tok=False):
         """Creates examples for the training and dev sets."""
         for input_json in json_stream:
             if "answerKey" not in input_json and for_training:
                 raise ValueError("No answer key provided for training in {}".format(input_json))
 
             ###
+            if new_tok:
+                word = input_json['notes']['surface_form']
+                new_token = "<nonce>"
 
-            arc_example = ARCExample(
-                arc_id=input_json["id"],
-                question=input_json["question"]["stem"],
-                para=input_json.get("para", ""),
-                choices=input_json["question"]["choices"],
-                num_choices=max_choices,
-                label=input_json.get("answerKey")
-            )
+                question = re.sub(r"\b({})\b".format(word), new_token, input_json["question"]["stem"], flags=re.I)
+                choices = input_json["question"]["choices"]
+                new_choices = []
+                for c in choices:
+                    new_c = {'text': re.sub(r"\b({})\b".format(word), new_token, c['text'], flags=re.I),
+                             'label': c['label']}
+                    new_choices.append(new_c)
+
+                arc_example = ARCExample(
+                    arc_id=input_json["id"],
+                    question=question,
+                    para=input_json.get("para", ""),
+                    choices=new_choices,
+                    num_choices=max_choices,
+                    label=input_json.get("answerKey")
+                )
+            else:
+                arc_example = ARCExample(
+                    arc_id=input_json["id"],
+                    question=input_json["question"]["stem"],
+                    para=input_json.get("para", ""),
+                    choices=input_json["question"]["choices"],
+                    num_choices=max_choices,
+                    label=input_json.get("answerKey")
+                )
             yield arc_example
 
 def set_seed(args):
@@ -533,7 +554,7 @@ def load_and_cache_examples(args, reader, tokenizer, evaluate=False, next_fname=
                 data_file = os.path.join(args.data_dir, "train.jsonl")
 
         # examples = reader.get_dev_examples(args.data_dir, args.num_choices) if evaluate else reader.get_train_examples(args.data_dir, args.num_choices)
-        examples = reader.get_dev_examples(data_file, args.num_choices, exclusion=args.limit_test) if evaluate else \
+        examples = reader.get_dev_examples(data_file, args.num_choices, exclusion=args.limit_test, new_token=args.eval_new_token) if evaluate else \
             reader.get_train_examples(data_file, args.num_choices, exclusion=args.limit_train)
         features = convert_examples_to_features(examples, args.max_seq_length, tokenizer,
                                                 cls_token_at_end=False,
@@ -564,6 +585,8 @@ def main():
                         help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument("--dataset", default="definition", type=str)
     ## Other parameters
+    parser.add_argument("--eval_new_token", action="store_true")
+    parser.add_argument("--eval_mask", action="store_true")
     parser.add_argument('--num_choices',
                         type=int,
                         default=4,
@@ -609,7 +632,7 @@ def main():
                         help="Overwrite the cached training and evaluation sets")
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
-
+    parser.add_argument("--load_baseline_checkpoint", type="str")
 
     ###########################
     # ### KYLES NEW SETTINGS  #
@@ -685,6 +708,15 @@ def main():
 
     tokenizer = AutoTokenizer.from_pretrained("roberta-base")
     model = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
+    assert not (args.do_train and args.eval_new_token), "Only eval if you're evaluating with new tokens"
+
+    if args.eval_new_token:
+        tokenizer.add_tokens(['<nonce>'])
+        mean_embed = torch.mean(model.get_input_embeddings().weight, dim=0)
+        model.resize_token_embeddings(len(tokenizer))
+        model.get_input_embeddings().weight[-1, :] = mean_embed
+
+
     logger.info('loaded a pre-trained model..')
     #for param in model.parameters():
     #    param.requires_grad = False
@@ -727,6 +759,13 @@ def main():
     ###################################
 
     results = {}
+    if args.load_baseline_checkpoint:
+        logger.info("loading checkpoint {}".format(args.load_baseline_checkpoint))
+        accelerator.load_state(args.load_baseline_checkpoint)
+    if args.eval_new_token:
+        logger.info("Resizing embeds for new token")
+        model.resize_token_embeddings(len(tokenizer))
+        model.get_input_embeddings().weight[-1, :] = mean_embed
     if args.do_eval:
 
         ## the actual evaluation
