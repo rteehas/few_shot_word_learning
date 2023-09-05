@@ -57,8 +57,13 @@ class MyDataset(Dataset):
          #   for k in range(len(batch)):
           #      if k != 6:
            #         print(batch[k][i].shape)
-        print(batch, "batch")
-        return default_collate(batch[0]), default_collate(batch[1]), default_collate(batch[2]), default_collate(batch[3]), [b for b in batch[4]], [b for b in batch[5]],[b for b in batch[6]]
+        # print(batch, "batch")
+        out_batch = []
+        for i in range(4):
+            out_batch.append(default_collate([b for b in batch[i]]))
+        for i in range(4,7):
+            out_batch.append([b for b in batch[i]])
+        return out_batch
 
 
 
