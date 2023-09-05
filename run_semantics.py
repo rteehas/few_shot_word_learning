@@ -765,7 +765,10 @@ def main():
     if args.eval_new_token:
         logger.info("Resizing embeds for new token")
         model.resize_token_embeddings(len(tokenizer))
-        model.get_input_embeddings().weight[-1, :] = mean_embed
+        if args.eval_mask:
+            model.get_input_embeddings().weight[-1, :] = model.get_input_embeddings().weight[tokenizer.mask_token_id, :]
+        else:
+            model.get_input_embeddings().weight[-1, :] = mean_embed
     if args.do_eval:
 
         ## the actual evaluation
