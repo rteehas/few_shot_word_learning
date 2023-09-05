@@ -439,7 +439,7 @@ def convert_examples_to_features(examples, max_seq_length,
 
         label_id = example.label
         if isinstance(example, ARCExampleMorph):
-            if len(example.sentences) == 0 or len(example.sentences) > 5:
+            if len(example.sentences) != 4:
                 continue
             mlm_inputs = tokenizer(example.sentences, padding="max_length", max_length=max_seq_length, return_tensors='pt')
             nonceMLM = tokenizer.convert_tokens_to_ids("<nonce>")
@@ -577,7 +577,7 @@ class ARCExampleReader:
                     examples = wn.synset(gold).examples()
                     sentences = [s for s in examples if word in s]
                     sentences = [re.sub(r"\b({})\b".format(word), new_token, s, flags=re.I) for s in sentences]
-                    if len(sentences) == 2:
+                    if len(sentences) != 0 and len(sentences) <5:
                         arc_example = ARCExample(
                             arc_id=input_json["id"],
                             question=question,
