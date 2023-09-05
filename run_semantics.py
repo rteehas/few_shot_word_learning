@@ -1133,14 +1133,14 @@ def main():
     else:
         memory_config = AggregatorConfig()
         new_toks = list(set(tokenizer.convert_tokens_to_ids(['<nonce>'])))
-        path = "model_checkpoints/e20_smallevalind_rescaleFalse_wd0.03_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newFalse/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
+        path = "model_checkpoints/smallevalind_rescaleFalse_wd0.1_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newFalse/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
         print(path)
         if "rescaleTrue" in path:
             rescale = True
 
         else:
             rescale = False
-        chkpt = "checkpoint_8"
+        chkpt = "checkpoint_1"
         chkpt_path = path + "{}/".format(chkpt)
         name = "pytorch_model.bin"
         model=MorphMemoryModelMC(firstLM, secondLM, new_toks, device, [-1, -2, -3, -4],
