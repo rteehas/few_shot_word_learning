@@ -148,11 +148,12 @@ class MorphMemoryModelMC(MorphMemoryModel):
             contexts = mlm_inputs[i]
             new_token = nonceMLM[i]
             memory = OnlineProtoNet(self.memory_config, self.device)
-
+            
             new_inputs = self.swap_with_mask(contexts)
-            attn = mlm_inputs['attention_mask'][i]
+            attn = attn_mask[i]
+            print(attn.shape, new_inputs.shape)
             with torch.no_grad():
-                first_out = self.firstLM(input_ids=new_inputs.squeeze(0), attention_mask=attn,
+                first_out = self.firstLM(input_ids=new_inputs, attention_mask=attn.squeeze(0),
                                          output_hidden_states=True)
 
             first_hidden = first_out.hidden_states
