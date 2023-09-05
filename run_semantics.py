@@ -361,6 +361,8 @@ def convert_examples_to_features(examples, max_seq_length,
 
     features = []
     for (ex_index, example) in enumerate(examples):
+        if example is None:
+            continue
         if ex_index % 10000 == 0:
             logger.info("Writing example %d" % ex_index)
 
@@ -571,14 +573,21 @@ class ARCExampleReader:
                         sentences=sentences
                     )
                 else:
-                    arc_example = ARCExample(
-                        arc_id=input_json["id"],
-                        question=question,
-                        para=input_json.get("para", ""),
-                        choices=new_choices,
-                        num_choices=max_choices,
-                        label=input_json.get("answerKey")
-                    )
+                    gold = input_json['notes']['gold_synset']
+                    examples = wn.synset(gold).examples()
+                    sentences = [s for s in examples if word in s]
+                    sentences = [re.sub(r"\b({})\b".format(word), new_token, s, flags=re.I) for s in sentences]
+                    if len(sentences) > 0:
+                        arc_example = ARCExample(
+                            arc_id=input_json["id"],
+                            question=question,
+                            para=input_json.get("para", ""),
+                            choices=new_choices,
+                            num_choices=max_choices,
+                            label=input_json.get("answerKey")
+                        )
+                    else:
+                        arc_example = None
             else:
                 arc_example = ARCExample(
                     arc_id=input_json["id"],
@@ -1120,14 +1129,14 @@ def main():
     else:
         memory_config = AggregatorConfig()
         new_toks = list(set(tokenizer.convert_tokens_to_ids(['<nonce>'])))
-        path = "model_checkpoints/smallevalind_rescaleFalse_wd0.1_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newFalse/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
+        path = "model_checkpoints/e20_smallevalind_rescaleFalse_wd0.03_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newFalse/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
         print(path)
         if "rescaleTrue" in path:
             rescale = True
 
         else:
             rescale = False
-        chkpt = "checkpoint_1"
+        chkpt = "checkpoint_7"
         chkpt_path = path + "{}/".format(chkpt)
         name = "pytorch_model.bin"
         model=MorphMemoryModelMC(firstLM, secondLM, new_toks, device, [-1, -2, -3, -4],
