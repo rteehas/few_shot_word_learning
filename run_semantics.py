@@ -6,6 +6,7 @@ import os
 import sys
 import random
 import shutil
+import torch.nn.functional as F
 import numpy as np
 import torch
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
@@ -13,13 +14,20 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
 from torch.utils.data.distributed import DistributedSampler
 # from tensorboardX import SummaryWriter
 import re
+from torch import nn
 from tqdm import tqdm, trange
 import wandb
 from accelerate import Accelerator
-from transformers import AutoTokenizer, RobertaForMultipleChoice
+from transformers import AutoTokenizer, RobertaForMultipleChoice, RobertaForMaskedLM
 import logging
 # from
 from transformers import AdamW, get_linear_schedule_with_warmup
+from nltk.corpus import wordnet as wn
+
+from configs.config import AggregatorConfig
+from modules.memory import OnlineProtoNet
+from modules.model import MorphMemoryModel
+from modules.utils import combine_layers
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +38,131 @@ def simple_accuracy(preds, labels):
 def compute_metrics(preds, labels):
     assert len(preds) == len(labels)
     return {"acc": simple_accuracy(preds, labels)}
+
+class MorphMemoryModelMC(MorphMemoryModel):
+
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen, rescale):
+        super(MorphMemoryModelMC, self).__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
+                                                   memory_config, emb_gen)
+
+        encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
+                                                   nhead=self.firstLM.config.num_attention_heads,
+                                                   activation='relu',
+                                                   batch_first=True).to(self.device)
+        self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
+        self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
+        self.dropout = nn.Dropout(0.2)
+        initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+
+        self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
+        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+
+        self.std_second = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).std()
+        self.mean_norm = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).mean()
+
+        self.memory_config = memory_config
+        self.rescale = rescale
+
+    def swap_with_mask(self, inputs):
+        inp = inputs.clone()
+        for nonce in self.first_list:
+            inp[inp == nonce] = self.mask_token_id
+        return inp
+
+    def get_new_weights_new(self, task, memory):
+
+        if task == 'MLM':
+            ref_model = self.firstLM
+
+        elif task == "Task":
+            ref_model = self.secondLM
+        else:
+            raise NotImplementedError
+
+        w = ref_model.get_input_embeddings().weight.clone()
+        n, hidden = w.shape
+        if not ref_model.get_input_embeddings().weight.requires_grad:
+            w.requires_grad = True
+
+        msk = torch.zeros_like(w).to(self.device)
+        msk2 = torch.zeros_like(w).to(self.device)
+        for key in memory.memory:
+            #             print(key)
+            #             print(hidden)
+            #             print(torch.tensor([key]).to(self.device).expand(1, hidden).shape)
+            if self.rescale:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key,
+                                                                                                            std=self.std_second,
+                                                                                                            mean=self.mean_norm,
+                                                                                                            normalize=True))
+            else:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
+            msk2[key, :] = 1.
+
+        return w * (~msk2.bool()) + msk
+
+    def forward(self, batch):
+
+        mlm_inputs = batch["mlm_inputs"]
+        attn_mask = batch['mlm_mask']
+        # task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+        #                'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        nonceMLM = batch["nonceMLM"]
+        # nonceTask = batch["nonceTask"]
+        task_labels = batch['label']
+
+
+        b_task, k_task, l_task = mlm_inputs.shape
+
+        task_ids = batch['input_ids']
+        task_attn = batch["input_mask"]
+
+        outs = []
+        memories = []
+        embs = []
+        #         attns = []
+        for i in range(b_task):
+            contexts = mlm_inputs[i]
+            new_token = nonceMLM[i]
+            memory = OnlineProtoNet(self.memory_config, self.device)
+
+            new_inputs = self.swap_with_mask(contexts)
+            attn = mlm_inputs['attention_mask'][i]
+            with torch.no_grad():
+                first_out = self.firstLM(input_ids=new_inputs.squeeze(0), attention_mask=attn,
+                                         output_hidden_states=True)
+
+            first_hidden = first_out.hidden_states
+            combined = self.dropout(combine_layers(first_hidden, self.layers))
+            if len(combined.shape) == 2:
+                combined = combined.unsqueeze(0)
+
+            cls = self.cls_token.unsqueeze(0).expand(combined.shape[0], -1, -1)
+            attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1),
+                              attn], dim=1)
+            embed_inputs = torch.cat([cls, combined], dim=1)
+            embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
+            nonce_embeds = embeds[:, 0]
+            memory.store(new_token, nonce_embeds)
+
+            new_w = self.get_new_weights_new(task="Task", memory=memory)
+
+            input_embeds = F.embedding(task_ids[i], new_w)
+            embs.append(input_embeds)
+
+        inputs_embeds = torch.stack(embs)
+        #         print(inputs_embeds.shape)
+        #         print(task_attn.shape)
+        #         print(task_labels.shape)
+        out_vals = self.secondLM(
+            inputs_embeds=inputs_embeds,
+            attention_mask=task_attn,
+            labels=task_labels,
+            output_hidden_states=True
+        )
+        return out_vals
+
 
 
 class ARCExample(object):
@@ -100,6 +233,80 @@ class InputFeatures(object):
         ]
         self.label = label
 
+class InputFeaturesMorph(object):
+    def __init__(self,
+                 example_id,
+                 choices_features,
+                 mlm_inputs,
+                 mlm_mask,
+                 nonceMLM,
+                 label):
+        self.example_id = example_id
+        self.choices_features = [
+            {
+                'input_ids': input_ids,
+                'input_mask': input_mask,
+                'segment_ids': segment_ids,
+            }
+            for _, input_ids, input_mask, segment_ids  in choices_features
+        ]
+        self.label = label
+        self.mlm_inputs = mlm_inputs
+        self.mlm_mask = mlm_mask
+        self.nonceMLM = nonceMLM
+
+class ARCExampleMorph(object):
+    """A single training/test example for the ARC dataset."""
+
+    def __init__(self,
+                 arc_id,
+                 question,
+                 para,
+                 choices,
+                 num_choices,
+                 sentences,
+                 label=None):
+        self.arc_id = arc_id
+        self.question = question
+        self.para = para
+        self.sentences = sentences
+        if len(choices) > num_choices:
+            raise ValueError("More choices: {} in question: {} than allowed: {}".format(
+                choices, question, num_choices
+            ))
+        self.choices = [choice["text"] for choice in choices]
+        self.choice_paras = [choice.get("para") for choice in choices]
+        if len(choices) < num_choices:
+            add_num = num_choices - len(choices)
+            self.choices.extend([""] * add_num)
+            self.choice_paras.extend([None] * add_num)
+        label_id = None
+        if label is not None:
+            for (idx, ch) in enumerate(choices):
+                if ch["label"] == label:
+                    label_id = idx
+                    break
+            if label_id is None:
+                raise ValueError("No answer found matching the answer key:{} in {}".format(
+                    label, choices
+                ))
+        self.label = label_id
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        l = [
+            f"arc_id: {self.arc_id}",
+            f"para: {self.para}",
+            f"question: {self.question}",
+            f"choices: {self.choices}"
+        ]
+
+        if self.label is not None:
+            l.append(f"label: {self.label}")
+
+        return ", ".join(l)
 
 def convert_examples_to_features(examples, max_seq_length,
                                  tokenizer,
@@ -192,6 +399,22 @@ def convert_examples_to_features(examples, max_seq_length,
             choices_features.append((tokens, input_ids, input_mask, segment_ids))
 
         label_id = example.label
+        if isinstance(example, ARCExampleMorph):
+            mlm_inputs = tokenizer(example.sentences, padding="max_length", max_length=max_seq_length, return_tensors='pt')
+            nonceMLM = tokenizer.convert_tokens_to_ids("<nonce>")
+            input_features = InputFeaturesMorph(
+                example_id=example.arc_id,
+                choices_features=choices_features,
+                label=label_id,
+                mlm_inputs=mlm_inputs['input_ids'],
+                nonceMLM=nonceMLM
+            )
+        else:
+            input_features = InputFeatures(
+                example_id=example.arc_id,
+                choices_features=choices_features,
+                label=label_id
+            )
         if ex_index < 5:
             logger.info("*** Example ***")
             logger.info(f"arc_id: {example.arc_id}")
@@ -205,11 +428,7 @@ def convert_examples_to_features(examples, max_seq_length,
                 logger.info(f"label: {label_id}")
 
         features.append(
-            InputFeatures(
-                example_id=example.arc_id,
-                choices_features=choices_features,
-                label=label_id
-            )
+            input_features
         )
     return features
 
@@ -251,10 +470,10 @@ class ARCExampleReader:
             self._read_jsonl(data_dir, exclusion), for_training=True,
             max_choices=max_choices)
 
-    def get_dev_examples(self, data_dir, max_choices, new_token, exclusion=""):
+    def get_dev_examples(self, data_dir, max_choices, new_token, morph, exclusion=""):
         return self._create_examples(
             self._read_jsonl(data_dir, exclusion), for_training=False,
-            max_choices=max_choices, new_tok=new_token)
+            max_choices=max_choices, new_tok=new_token, morph=morph)
 
     def _read_jsonl(self, filepath, exclusion):
         excluded_set = set([d.strip() for d in exclusion.split(',')]) if exclusion else None
@@ -275,8 +494,9 @@ class ARCExampleReader:
                     # print(dataset["source"])
                 yield json.loads(line.strip())
 
-    def _create_examples(self, json_stream, for_training, max_choices, new_tok=False):
+    def _create_examples(self, json_stream, for_training, max_choices, new_tok=False, morph=False):
         """Creates examples for the training and dev sets."""
+        assert (morph and new_tok) or (not morph and not new_tok), "Morph is only used when doing new token eval"
         for input_json in json_stream:
             if "answerKey" not in input_json and for_training:
                 raise ValueError("No answer key provided for training in {}".format(input_json))
@@ -294,14 +514,29 @@ class ARCExampleReader:
                              'label': c['label']}
                     new_choices.append(new_c)
 
-                arc_example = ARCExample(
-                    arc_id=input_json["id"],
-                    question=question,
-                    para=input_json.get("para", ""),
-                    choices=new_choices,
-                    num_choices=max_choices,
-                    label=input_json.get("answerKey")
-                )
+                if morph:
+                    gold = input_json['notes']['gold_synset']
+                    examples = wn.synset(gold).examples()
+                    sentences = [s for s in examples if word in s]
+                    sentences = [re.sub(r"\b({})\b".format(word), new_token, s, flags=re.I) for s in sentences]
+                    arc_example = ARCExampleMorph(
+                        arc_id=input_json["id"],
+                        question=question,
+                        para=input_json.get("para", ""),
+                        choices=new_choices,
+                        num_choices=max_choices,
+                        label=input_json.get("answerKey"),
+                        sentences=sentences
+                    )
+                else:
+                    arc_example = ARCExample(
+                        arc_id=input_json["id"],
+                        question=question,
+                        para=input_json.get("para", ""),
+                        choices=new_choices,
+                        num_choices=max_choices,
+                        label=input_json.get("answerKey")
+                    )
             else:
                 arc_example = ARCExample(
                     arc_id=input_json["id"],
@@ -515,6 +750,101 @@ def evaluate(args, model, reader, tokenizer, accelerator, prefix="", next_fname=
 
     return results
 
+def evaluate_morph(args, model, reader, tokenizer, accelerator, prefix="", next_fname=""):
+    eval_task_names = ["qa"]
+    eval_outputs_dirs = [args.output_dir]
+
+    results = {}
+    for eval_task, eval_output_dir in zip(eval_task_names, eval_outputs_dirs):
+        eval_dataset = load_and_cache_examples(args, reader, tokenizer, evaluate=True, next_fname=next_fname)
+
+        # if not os.path.exists(eval_output_dir) :
+        #     os.makedirs(eval_output_dir)
+
+        args.eval_batch_size = args.per_gpu_eval_batch_size * 2
+        # Note that DistributedSampler samples randomly
+        # eval_sampler = SequentialSampler(eval_dataset) if args.local_rank == -1 else DistributedSampler(eval_dataset)
+        eval_dataloader = DataLoader(eval_dataset, batch_size=args.eval_batch_size)
+        eval_dataloader = accelerator.prepare(eval_dataloader)
+        # Eval!
+        logger.info("***** Running evaluation {} *****".format(prefix))
+        logger.info("  Num examples = %d", len(eval_dataset))
+        logger.info("  Batch size = %d", args.eval_batch_size)
+        eval_loss = 0.0
+        nb_eval_steps = 0
+        preds = None
+        out_label_ids = None
+        for batch in tqdm(eval_dataloader, desc="Evaluating"):
+            model.eval()
+            #batch = tuple(t.to(args.device) for t in batch)
+
+            with torch.no_grad():
+                inputs = {'input_ids': batch[0],
+                          'attention_mask': batch[1],
+                          #'token_type_ids': batch[2] if args.model_type in ['bert', 'xlnet'] else None,
+                          # XLM don't use segment_ids
+                          'labels': batch[3],
+                          'mlm_inputs': batch[4],
+                          'mlm_mask': batch[5],
+                          'nonceMLM': batch[6]}
+                outputs = model(inputs)
+                tmp_eval_loss, logits = outputs[:2]
+                eval_loss += tmp_eval_loss.mean().item()
+            nb_eval_steps += 1
+            if preds is None:
+                preds = logits.detach().cpu().numpy()
+                out_label_ids = inputs['labels'].detach().cpu().numpy()
+            else:
+                preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
+                out_label_ids = np.append(out_label_ids, inputs['labels'].detach().cpu().numpy(), axis=0)
+
+            # print(preds)
+            # print(np.argmax(preds,axis=1))
+            # print(out_label_ids)
+            # print("============")
+            ## record out labels
+
+        eval_loss = eval_loss / nb_eval_steps
+        ## print out logits before
+        final_logits = preds
+        preds = np.argmax(preds, axis=1)
+
+        #         model_output_file = os.path.join(args.output_dir,"model_output.txt")
+        #         if next_fname:
+        #             model_output_file = os.path.join(args.output_dir,"model_output_next.txt")
+
+        #         with open(model_output_file,'w') as s_output:
+        #             logger.info('Printing model (i.e., raw logits, label predictions) output to file...')
+        #             for i in range(preds.shape[0]):
+        #                 print("%s\t%s\t%s\t%s" % (out_label_ids[i],preds[i],
+        #                                               str(out_label_ids[i]==preds[i]),
+        #                                               ' '.join([str(l) for l in final_logits[i]])),file=s_output)
+
+        ## spit out predictions to file
+        result = compute_metrics(preds, out_label_ids)
+        results.update(result)
+    #         output_eval_file = os.path.join(eval_output_dir, "eval_results.txt")
+    #         if next_fname:
+    #             output_eval_file = os.path.join(eval_output_dir, "eval_results_next.txt")
+
+    #         with open(output_eval_file, "w") as writer:
+    #             logger.info("***** Eval results {} *****".format(prefix))
+    #             for key in sorted(result.keys()):
+    #                 logger.info("  %s = %s", key, str(result[key]))
+    #                 writer.write("%s = %s\n" % (key, str(result[key])))
+
+    return results
+
+
+def load_model_partial(fname, model):
+    model_dict = model.state_dict()
+    state_dict = torch.load(fname)
+    partial_states = {k:v for k, v in state_dict.items() if "emb_gen" in k or "memory" in k or "cls" in k or "dropout" in k}
+#     print(partial_states)
+    model_dict.update(partial_states)
+    model.load_state_dict(model_dict)
+    return model
+
 
 def select_field(features, field):
     return [
@@ -554,7 +884,7 @@ def load_and_cache_examples(args, reader, tokenizer, evaluate=False, next_fname=
                 data_file = os.path.join(args.data_dir, "train.jsonl")
 
         # examples = reader.get_dev_examples(args.data_dir, args.num_choices) if evaluate else reader.get_train_examples(args.data_dir, args.num_choices)
-        examples = reader.get_dev_examples(data_file, args.num_choices, exclusion=args.limit_test, new_token=args.eval_new_token) if evaluate else \
+        examples = reader.get_dev_examples(data_file, args.num_choices, exclusion=args.limit_test, morph=args.use_morph, new_token=args.eval_new_token) if evaluate else \
             reader.get_train_examples(data_file, args.num_choices, exclusion=args.limit_train)
         features = convert_examples_to_features(examples, args.max_seq_length, tokenizer,
                                                 cls_token_at_end=False,
@@ -571,7 +901,13 @@ def load_and_cache_examples(args, reader, tokenizer, evaluate=False, next_fname=
     all_input_mask = torch.tensor(select_field(features, 'input_mask'), dtype=torch.long)
     all_segment_ids = torch.tensor(select_field(features, 'segment_ids'), dtype=torch.long)
     all_label = torch.tensor([f.label for f in features], dtype=torch.long)
-    dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label)
+    if isinstance(features[0], InputFeaturesMorph):
+        all_mlms = torch.stack(select_field(features, "mlm_inputs"))
+        all_mlm_masks = torch.stack(select_field(features, "mlm_mask"))
+        all_nonce = torch.tensor(select_field(features, 'nonceMLM'), dtype=torch.long)
+        dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce)
+    else:
+        dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label)
     return dataset
 
 
@@ -585,6 +921,7 @@ def main():
                         help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument("--dataset", default="definition", type=str)
     ## Other parameters
+    parser.add_argument("--use_morph", action="store_true")
     parser.add_argument("--eval_new_token", action="store_true")
     parser.add_argument("--eval_mask", action="store_true")
     parser.add_argument('--num_choices',
@@ -707,13 +1044,22 @@ def main():
     device = accelerator.device
 
     tokenizer = AutoTokenizer.from_pretrained("roberta-base")
-    model = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
+    if args.use_morph:
+        firstLM = RobertaForMaskedLM.from_pretrained("roberta-base")
+        secondLM = RobertaForMultipleChoice.from_pretrained(args.load_baseline_checkpoint)
+    else:
+        model = RobertaForMultipleChoice.from_pretrained("tmp/test-mlm2/checkpoint-22000")
     assert not (args.do_train and args.eval_new_token), "Only eval if you're evaluating with new tokens"
 
     if args.eval_new_token:
         tokenizer.add_tokens(['<nonce>'])
-        with torch.no_grad():
-            mean_embed = torch.mean(model.get_input_embeddings().weight, dim=0)
+        if not args.morph:
+            with torch.no_grad():
+                mean_embed = torch.mean(model.get_input_embeddings().weight, dim=0)
+        else:
+            firstLM.resize_token_embeddings(len(tokenizer))
+            secondLM.resize_token_embeddings(len(tokenizer))
+
         #    model.resize_token_embeddings(len(tokenizer))
         #    model.get_input_embeddings().weight[-1, :] = mean_embed
 
@@ -721,9 +1067,27 @@ def main():
     logger.info('loaded a pre-trained model..')
     #for param in model.parameters():
     #    param.requires_grad = False
-    model.get_input_embeddings().weight.requires_grad=False
+    if not args.morph:
+        model.get_input_embeddings().weight.requires_grad=False
     #for param in model.classifier.parameters():
     #    param.requires_grad = True
+    else:
+        memory_config = AggregatorConfig()
+        new_toks = list(set(tokenizer.convert_tokens_to_ids(['<nonce>'])))
+        path = "model_checkpoints/smallevalind_rescaleFalse_wd0.1_resample_False__full_gelu_online_6examples_0.003_mean_Transformer_bs8_modified_mamlFalse_randomTrue_finetuneFalse_cat_Falselayers4_binary_False_mask_newFalse/MLMonline_memory_model_roberta_roberta_mean_memory_NormedOutput/checkpoints/"
+        print(path)
+        if "rescaleTrue" in path:
+            rescale = True
+
+        else:
+            rescale = False
+        chkpt = "checkpoint_1"
+        chkpt_path = path + "{}/".format(chkpt)
+        name = "pytorch_model.bin"
+        model=MorphMemoryModelMC(firstLM, secondLM, new_toks, device, [-1, -2, -3, -4],
+                                              tokenizer.mask_token_id, memory_config, 'Transformer', rescale=rescale)
+        model = load_model_partial(chkpt_path + name, model)
+
 
     project = "semantics"
 
@@ -775,13 +1139,22 @@ def main():
     if args.do_eval:
 
         ## the actual evaluation
-        global_step = ""
-        result = evaluate(args, model, reader, tokenizer, prefix=global_step, accelerator=accelerator)
-        result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
-        results.update(result)
-        eval_log_dict = {}
-        for key, value in results.items():
-            eval_log_dict['eval_{}'.format(key)] = value
+        if args.use_morph:
+            global_step = ""
+            result = evaluate_morph(args, model, reader, tokenizer, prefix=global_step, accelerator=accelerator)
+            result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
+            results.update(result)
+            eval_log_dict = {}
+            for key, value in results.items():
+                eval_log_dict['eval_{}'.format(key)] = value
+        else:
+            global_step = ""
+            result = evaluate(args, model, reader, tokenizer, prefix=global_step, accelerator=accelerator)
+            result = dict((k + '_{}'.format(global_step), v) for k, v in result.items())
+            results.update(result)
+            eval_log_dict = {}
+            for key, value in results.items():
+                eval_log_dict['eval_{}'.format(key)] = value
             # eval_log_dict['epoch'] = epoch
 
         accelerator.log(eval_log_dict)
