@@ -1128,6 +1128,7 @@ def main():
     results = {}
     if args.load_baseline_checkpoint != "":
         logger.info("loading checkpoint {}".format(args.load_baseline_checkpoint))
+        print("loading checkpoint")
         accelerator.load_state(args.load_baseline_checkpoint)
     if args.eval_new_token:
         logger.info("Resizing embeds for new token")
@@ -1135,9 +1136,9 @@ def main():
         with torch.no_grad():
             model.module.resize_token_embeddings(len(tokenizer))
             if args.eval_mask:
-                model.get_input_embeddings().weight[-1, :] = model.get_input_embeddings().weight[tokenizer.mask_token_id, :]
+                model.module.get_input_embeddings().weight[-1, :] = model.module.get_input_embeddings().weight[tokenizer.mask_token_id, :]
             else:
-                model.get_input_embeddings().weight[-1, :] = mean_embed
+                model.module.get_input_embeddings().weight[-1, :] = mean_embed
     if args.do_eval:
 
         ## the actual evaluation
