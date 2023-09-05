@@ -12,6 +12,7 @@ import torch
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import default_collate
 # from tensorboardX import SummaryWriter
 import re
 from torch import nn
@@ -50,6 +51,10 @@ class MyDataset(Dataset):
 
     def __len__(self):
         return len(self.base_dataset)
+
+    def collate(self, batch):
+
+        return default_collate(batch[0]), default_collate(batch[1]), default_collate(batch[2]), default_collate(batch[3]), batch[4], batch[5], batch[6]
 
 
 
@@ -708,7 +713,8 @@ def evaluate(args, model, reader, tokenizer, accelerator, prefix="", next_fname=
         args.eval_batch_size = args.per_gpu_eval_batch_size * 2
         # Note that DistributedSampler samples randomly
         # eval_sampler = SequentialSampler(eval_dataset) if args.local_rank == -1 else DistributedSampler(eval_dataset)
-        eval_dataloader = DataLoader(eval_dataset, batch_size=args.eval_batch_size)
+        eval_dataloader = DataLoader(eval_dataset, batch_size=args.eval_batch_size,
+                                     collate_fn = eval_dataset.collate if isinstance(eval_dataset, MyDataset) else default_collate)
         eval_dataloader = accelerator.prepare(eval_dataloader)
         # Eval!
         logger.info("***** Running evaluation {} *****".format(prefix))
