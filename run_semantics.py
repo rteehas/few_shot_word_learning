@@ -132,13 +132,13 @@ class MorphMemoryModelMC(MorphMemoryModel):
         #                'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
         nonceMLM = batch["nonceMLM"]
         # nonceTask = batch["nonceTask"]
-        task_labels = batch['label']
+        task_labels = batch['labels']
 
 
         b_task, k_task, l_task = mlm_inputs.shape
 
         task_ids = batch['input_ids']
-        task_attn = batch["input_mask"]
+        task_attn = batch["attention_mask"]
 
         outs = []
         memories = []
@@ -929,7 +929,7 @@ def load_and_cache_examples(args, reader, tokenizer, evaluate=False, next_fname=
     if isinstance(features[0], InputFeaturesMorph):
         all_mlms = [f.mlm_inputs for f in features]
         all_mlm_masks = [f.mlm_mask for f in features]
-        all_nonce = [f.nonceMLm for f in features]
+        all_nonce = [f.nonceMLM for f in features]
         dataset = MyDataset(all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce)
     else:
         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label)
