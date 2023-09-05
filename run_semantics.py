@@ -927,9 +927,9 @@ def load_and_cache_examples(args, reader, tokenizer, evaluate=False, next_fname=
     all_segment_ids = torch.tensor(select_field(features, 'segment_ids'), dtype=torch.long)
     all_label = torch.tensor([f.label for f in features], dtype=torch.long)
     if isinstance(features[0], InputFeaturesMorph):
-        all_mlms = torch.stack([f.mlm_inputs for f in features])
-        all_mlm_masks = torch.stack([f.mlm_mask for f in features])
-        all_nonce = torch.tensor(select_field(features, 'nonceMLM'), dtype=torch.long)
+        all_mlms = [f.mlm_inputs for f in features]
+        all_mlm_masks = [f.mlm_mask for f in features]
+        all_nonce = [f.nonceMLm for f in features]
         dataset = MyDataset(all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce)
     else:
         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label)
