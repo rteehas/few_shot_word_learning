@@ -632,7 +632,7 @@ def main():
                         help="Overwrite the cached training and evaluation sets")
     parser.add_argument('--seed', type=int, default=42,
                         help="random seed for initialization")
-    parser.add_argument("--load_baseline_checkpoint", type="str")
+    parser.add_argument("--load_baseline_checkpoint", default="", type=str)
 
     ###########################
     # ### KYLES NEW SETTINGS  #
@@ -759,7 +759,7 @@ def main():
     ###################################
 
     results = {}
-    if args.load_baseline_checkpoint:
+    if args.load_baseline_checkpoint != "":
         logger.info("loading checkpoint {}".format(args.load_baseline_checkpoint))
         accelerator.load_state(args.load_baseline_checkpoint)
     if args.eval_new_token:
