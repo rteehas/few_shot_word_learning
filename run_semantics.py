@@ -400,6 +400,8 @@ def convert_examples_to_features(examples, max_seq_length,
 
         label_id = example.label
         if isinstance(example, ARCExampleMorph):
+            if len(example.sentences) == 0:
+                continue
             mlm_inputs = tokenizer(example.sentences, padding="max_length", max_length=max_seq_length, return_tensors='pt')
             nonceMLM = tokenizer.convert_tokens_to_ids("<nonce>")
             input_features = InputFeaturesMorph(
@@ -407,6 +409,7 @@ def convert_examples_to_features(examples, max_seq_length,
                 choices_features=choices_features,
                 label=label_id,
                 mlm_inputs=mlm_inputs['input_ids'],
+                mlm_mask=mlm_inputs['attention_mask'],
                 nonceMLM=nonceMLM
             )
         else:
@@ -902,8 +905,8 @@ def load_and_cache_examples(args, reader, tokenizer, evaluate=False, next_fname=
     all_segment_ids = torch.tensor(select_field(features, 'segment_ids'), dtype=torch.long)
     all_label = torch.tensor([f.label for f in features], dtype=torch.long)
     if isinstance(features[0], InputFeaturesMorph):
-        all_mlms = torch.stack(select_field(features, "mlm_inputs"))
-        all_mlm_masks = torch.stack(select_field(features, "mlm_mask"))
+        all_mlms = torch.stack([f.mlm_inputs for f in features])
+        all_mlm_masks = torch.stack([f.mlm_mask for f in features])
         all_nonce = torch.tensor(select_field(features, 'nonceMLM'), dtype=torch.long)
         dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label, all_mlms, all_mlm_masks, all_nonce)
     else:
@@ -1055,7 +1058,7 @@ def main():
 
     if args.eval_new_token:
         tokenizer.add_tokens(['<nonce>'])
-        if not args.morph:
+        if not args.use_morph:
             with torch.no_grad():
                 mean_embed = torch.mean(model.get_input_embeddings().weight, dim=0)
         else:
@@ -1069,7 +1072,7 @@ def main():
     logger.info('loaded a pre-trained model..')
     #for param in model.parameters():
     #    param.requires_grad = False
-    if not args.morph:
+    if not args.use_morph:
         model.get_input_embeddings().weight.requires_grad=False
     #for param in model.classifier.parameters():
     #    param.requires_grad = True
@@ -1126,7 +1129,7 @@ def main():
     ###################################
 
     results = {}
-    if args.load_baseline_checkpoint != "":
+    if args.load_baseline_checkpoint != "" and not args.use_morph:
         logger.info("loading checkpoint {}".format(args.load_baseline_checkpoint))
         print("loading checkpoint")
         accelerator.load_state(args.load_baseline_checkpoint)
@@ -1134,11 +1137,12 @@ def main():
         logger.info("Resizing embeds for new token")
 
         with torch.no_grad():
-            model.module.resize_token_embeddings(len(tokenizer))
-            if args.eval_mask:
-                model.module.get_input_embeddings().weight[-1, :] = model.module.get_input_embeddings().weight[tokenizer.mask_token_id, :]
-            else:
-                model.module.get_input_embeddings().weight[-1, :] = mean_embed
+            if not args.use_morph:
+                model.module.resize_token_embeddings(len(tokenizer))
+                if args.eval_mask:
+                    model.module.get_input_embeddings().weight[-1, :] = model.module.get_input_embeddings().weight[tokenizer.mask_token_id, :]
+                else:
+                    model.module.get_input_embeddings().weight[-1, :] = mean_embed
     if args.do_eval:
 
         ## the actual evaluation
