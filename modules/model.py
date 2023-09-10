@@ -506,7 +506,7 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
         embs = []
         #         attns = []
         for i in range(b_task):
-            contexts = mlm_inputs['input_ids'][[i]]
+            contexts = mlm_inputs['input_ids'][i]
             new_token = nonceMLM[i]
             memory = OnlineProtoNet(self.memory_config, self.device)
 
@@ -1598,7 +1598,7 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
         final_logits = torch.cat([o.logits for o in outs], dim=0)
         final_hiddens = [o.hidden_states for o in outs]
         final_attentions = [o.attentions for o in outs]
-        final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
+        final_new_token_loss = torch.stack([o.new_token_loss for o in outs if o.new_token_loss is not None]).mean()
 
         return MaskLMOutputWithNewToken(
             loss=final_loss,
