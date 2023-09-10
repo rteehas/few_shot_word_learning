@@ -323,7 +323,7 @@ def main():
     print("Arguments: ", args)
 
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-large")
-    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama/tokenizer", legacy=False)
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama/tokenizer", legacy=False, use_fast=False)
     tokenizerTask.add_bos_token = True
     tokenizerTask.add_eos_token = True
 
@@ -362,12 +362,12 @@ def main():
 
     accelerator = Accelerator(log_with="wandb")
 
-    #with init_empty_weights():
+    # with init_empty_weights():
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", device_map="auto")
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", torch_dtype=torch.float16)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", torch_dtype=torch.float16, device_map="auto")
 
-    #firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
-    secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
+    # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
+    # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
     firstLM.resize_token_embeddings(len(tokenizerMLM))
     secondLM.resize_token_embeddings(len(tokenizerTask), pad_to_multiple_of=64) # pad for speed
