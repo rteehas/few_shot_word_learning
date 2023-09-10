@@ -305,7 +305,7 @@ def create_checkpoint_directories(args):
 
     path = "model_checkpoints/llama/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
     path = path.format(args.memory, args.num_examples, args.lr, args.weight_decay)
-    os.make_directs(path, exist_ok=True)
+    os.makedirs(path, exist_ok=True)
 
     return path
 
@@ -534,3 +534,7 @@ def main():
                         checkpoint_id += 1
 
     accelerator.end_training()
+
+if __name__ == "__main__":
+    main()
+
