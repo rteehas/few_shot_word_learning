@@ -362,11 +362,11 @@ def main():
 
     accelerator = Accelerator(log_with="wandb")
 
-    with init_empty_weights():
-        firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", device_map="auto")
-        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", torch_dtype=torch.float16)
+    #with init_empty_weights():
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", device_map="auto")
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", torch_dtype=torch.float16)
 
-    firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
+    #firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
     secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
     firstLM.resize_token_embeddings(len(tokenizerMLM))
