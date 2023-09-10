@@ -18,7 +18,7 @@ class BiGRUSummarizer(nn.Module):
 
 
 class TransformerSummarizerWithCLS(nn.Module):
-    def __init__(self, input_size, nhead, num_layers, hidden_size, num_positions, device):
+    def __init__(self, input_size, nhead, num_layers, hidden_size, num_positions):
         super(TransformerSummarizerWithCLS, self).__init__()
 
         self.embedding = nn.Embedding(num_positions, input_size)
@@ -26,7 +26,6 @@ class TransformerSummarizerWithCLS(nn.Module):
         self.pos_encoder = self.positional_encoding(input_size, num_positions + 1)  # +1 for the [CLS] token
         encoder_layers = TransformerEncoderLayer(input_size, nhead, hidden_size)
         self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers)
-        self.device = device
 
     def forward(self, token_embeddings):
         batch_size = token_embeddings.shape[0]
@@ -34,7 +33,7 @@ class TransformerSummarizerWithCLS(nn.Module):
         token_embeddings = torch.cat([cls_token, token_embeddings], dim=1)  # Prepend [CLS] tokens to the input
 
         seq_len = token_embeddings.shape[1]
-        pos = torch.arange(seq_len, dtype=torch.long).unsqueeze(0).to(self.device)
+        pos = torch.arange(seq_len, dtype=torch.long).unsqueeze(0)
         pos_embeddings = self.embedding(pos)
         token_embeddings = token_embeddings + pos_embeddings
 

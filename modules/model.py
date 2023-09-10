@@ -441,7 +441,7 @@ class MorphMemoryModelSNLI(MorphMemoryModel):
 
         self.std_second = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).std()
         self.mean_norm = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).mean()
-        
+
         self.memory_config = memory_config
         self.rescale = rescale
 
@@ -1609,3 +1609,316 @@ class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
             memories=memories
         )
 
+class MorphMemoryModelMLMOnlineFull(MorphMemoryModel):
+
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type, rescale):
+        super().__init__(firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_type)
+        self.memory_config = memory_config
+        encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
+                                                   nhead=self.firstLM.config.num_attention_heads,
+                                                   activation='relu',
+                                                   batch_first=True).to(self.device)
+        self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
+        initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+
+        self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
+        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+
+        self.model_name = "MLMonline_memory_model_{}_{}_{}_memory_NormedOutput".format(self.firstLM.config.model_type,
+                                                                                       self.secondLM.config.model_type,
+                                                                                       memory_config.agg_method)
+        # self.pos_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
+        # self.neg_binary = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+        self.std_second = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).std()
+        self.mean_norm = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).mean()
+
+        self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
+        self.cls_token.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
+        #         self.reinit_params()
+        self.emb_gen.apply(self._init_weights)
+        self.dropout = nn.Dropout(0.2)
+        self.rescale = rescale
+
+    # Copied from transformers.models.bert.modeling_bert.BertPreTrainedModel._init_weights
+    def _init_weights(self, module):
+        """Initialize the weights"""
+        if isinstance(module, nn.Linear):
+            # Slightly different from the TF version which uses truncated_normal for initialization
+            # cf https://github.com/pytorch/pytorch/pull/5617
+            module.weight.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
+            if module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.Embedding):
+            module.weight.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
+            if module.padding_idx is not None:
+                module.weight.data[module.padding_idx].zero_()
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
+
+    def swap_with_mask(self, inputs):
+        inp = inputs.clone()
+        for nonce in self.first_list:
+            inp[inp == nonce] = self.mask_token_id
+        return inp
+
+    def get_new_weights_new(self, task, memory):
+
+        if task == 'MLM':
+            ref_model = self.firstLM
+
+        elif task == "Task":
+            ref_model = self.secondLM
+        else:
+            raise NotImplementedError
+
+        w = ref_model.get_input_embeddings().weight.clone()
+        n, hidden = w.shape
+        if not ref_model.get_input_embeddings().weight.requires_grad:
+            w.requires_grad = True
+
+        msk = torch.zeros_like(w).to(self.device)
+        msk2 = torch.zeros_like(w).to(self.device)
+        for key in memory.memory:
+            #             print(key)
+            #             print(hidden)
+            #             print(torch.tensor([key]).to(self.device).expand(1, hidden).shape)
+            if self.rescale:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key,
+                                                                                                            std=self.std_second,
+                                                                                                            mean=self.mean_norm,
+                                                                                                            normalize=True))
+            else:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
+            msk2[key, :] = 1.
+
+        return w * (~msk2.bool()) + msk
+
+    def forward(self, batch):
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        if 'task_labels' in batch:
+            task_labels = batch["task_labels"].to(self.device)
+
+        else:
+            task_labels = None
+
+        contexts = batch['contexts']
+
+        b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
+
+        assert k_task == 1
+
+        task_ids = task_inputs["input_ids"].reshape((b_task * k_task, l_task))  # reshape so we have n x seq_len
+        task_attn = task_inputs["attention_mask"].reshape((b_task * k_task, l_task))
+
+        if 'task_labels' in batch:
+            task_labels = task_labels.reshape((b_task * k_task, l_task))
+
+        outs = []
+        assert len(contexts) == b_task
+        memories = []
+        for i in range(b_task):
+            c = contexts[i]
+            new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.nonces, device=self.device))].unique()[0].item()
+            memory = OnlineProtoNet(self.memory_config, self.device)
+            if self.memory.agg_method != "mean":
+                memory.agg = self.memory.agg
+            mlm_ids = self.swap_with_mask(c['input_ids'].to(self.device))
+
+            with torch.no_grad():
+                first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
+                                         output_hidden_states=True)
+
+            first_hidden = first_out.hidden_states
+            combined = self.dropout(combine_layers(first_hidden, self.layers))
+
+            #             print(combined.shape)
+            #             print(c['attention_mask'].shape)
+            if len(combined.shape) == 2:
+                combined = combined.unsqueeze(0)
+            #                 c['attention_mask'] = c['attention_mask'].unsqueeze(0)
+            cls = self.cls_token.unsqueeze(0).expand(combined.shape[0], -1, -1)
+            attn = torch.cat(
+                [torch.tensor([1], device=self.device).unsqueeze(0).expand(c['attention_mask'].shape[0], -1),
+                 c['attention_mask']],
+                dim=1)
+            embed_inputs = torch.cat([cls, combined], dim=1)
+            #             print(embed_inputs.shape, "input_shape")
+            embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
+            #             print(embeds.shape, "before")
+            nonce_embeds = embeds[:, 0]
+            #             print(nonce_embeds.shape, "after")
+            memory.store(new_token, nonce_embeds)
+
+            new_w = self.get_new_weights_new(task="Task", memory=memory)
+            input_embeds = F.embedding(task_ids[i], new_w)
+            outputs = self.secondLM.roberta(
+                inputs_embeds=input_embeds.unsqueeze(0),
+                attention_mask=task_attn[i].unsqueeze(0),
+                output_hidden_states=True
+            )
+
+            preds = self.calc_second_lmhead(new_w, outputs[0])
+            loss_fct = nn.CrossEntropyLoss()
+            lm_loss = loss_fct(preds.view(-1, self.secondLM.config.vocab_size), task_labels[i].unsqueeze(0).view(-1))
+            new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), preds,
+                                                     self.secondLM.config.vocab_size,
+                                                     torch.tensor(self.nonces, device=preds.device).unique())
+            out_vals = MaskLMOutputWithNewToken(
+                loss=lm_loss,
+                logits=preds,
+                hidden_states=outputs.hidden_states,
+                attentions=outputs.attentions,
+                new_token_loss=new_tok_loss,
+                memories=memory
+            )
+            #             print(out_vals, "out{}".format(i))
+            #             print(lm_loss, new_tok_loss, i)
+            outs.append(out_vals)
+            memories.append(memory)
+
+        #         print(outs, "output list")
+        final_loss = torch.stack([o.loss for o in outs]).mean()
+        final_logits = torch.cat([o.logits for o in outs], dim=0)
+        final_hiddens = [o.hidden_states for o in outs]
+        final_attentions = [o.attentions for o in outs]
+        final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
+
+        return MaskLMOutputWithNewToken(
+            loss=final_loss,
+            logits=final_logits,
+            hidden_states=final_hiddens,
+            attentions=final_attentions,
+            new_token_loss=final_new_token_loss,
+            memories=memories
+        )
+
+class MorphMemoryModelMC(MorphMemoryModel):
+
+    def __init__(self, firstLM, secondLM, nonces, device, layers, mask_token_id, memory_config, emb_gen, rescale):
+        super(MorphMemoryModelMC, self).__init__(firstLM, secondLM, nonces, device, layers, mask_token_id,
+                                                   memory_config, emb_gen)
+
+        encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
+                                                   nhead=self.firstLM.config.num_attention_heads,
+                                                   activation='relu',
+                                                   batch_first=True).to(self.device)
+        self.emb_gen = nn.TransformerEncoder(encoder_layer, num_layers=1).to(self.device)
+        self.cls_token = nn.Parameter(torch.randn(1, self.firstLM.config.hidden_size, device=self.device))
+        self.dropout = nn.Dropout(0.2)
+        initial_first_ind = int(self.firstLM.config.vocab_size - len(self.nonces))
+        initial_second_ind = int(self.secondLM.config.vocab_size - len(self.nonces))
+
+        self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
+        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+
+        self.std_second = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).std()
+        self.mean_norm = self.secondLM.get_input_embeddings().weight[:initial_second_ind, :].norm(dim=1).mean()
+
+        self.memory_config = memory_config
+        self.rescale = rescale
+
+    def swap_with_mask(self, inputs):
+        inp = inputs.clone()
+        for nonce in self.first_list:
+            inp[inp == nonce] = self.mask_token_id
+        return inp
+
+    def get_new_weights_new(self, task, memory):
+
+        if task == 'MLM':
+            ref_model = self.firstLM
+
+        elif task == "Task":
+            ref_model = self.secondLM
+        else:
+            raise NotImplementedError
+
+        w = ref_model.get_input_embeddings().weight.clone()
+        n, hidden = w.shape
+        if not ref_model.get_input_embeddings().weight.requires_grad:
+            w.requires_grad = True
+
+        msk = torch.zeros_like(w).to(self.device)
+        msk2 = torch.zeros_like(w).to(self.device)
+        for key in memory.memory:
+            #             print(key)
+            #             print(hidden)
+            #             print(torch.tensor([key]).to(self.device).expand(1, hidden).shape)
+            if self.rescale:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key,
+                                                                                                            std=self.std_second,
+                                                                                                            mean=self.mean_norm,
+                                                                                                            normalize=True))
+            else:
+                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
+            msk2[key, :] = 1.
+
+        return w * (~msk2.bool()) + msk
+
+    def forward(self, batch):
+
+        mlm_inputs = batch["mlm_inputs"].to(self.device)
+        task_inputs = {'input_ids': batch["task_inputs"]['input_ids'].to(self.device),
+                       'attention_mask': batch["task_inputs"]['attention_mask'].to(self.device)}
+        nonceMLM = batch["nonceMLM"]
+        # nonceTask = batch["nonceTask"]
+        if 'task_labels' in batch:
+            task_labels = batch["task_labels"].to(self.device)
+
+        else:
+            task_labels = None
+
+        b_task, k_task, l_task = task_inputs["input_ids"].shape
+
+        task_ids = task_inputs['input_ids'].reshape(b_task * k_task, l_task)
+        task_attn = task_inputs["attention_mask"].reshape((b_task * k_task, l_task))
+
+        outs = []
+        memories = []
+        embs = []
+        #         attns = []
+        for i in range(b_task):
+            contexts = mlm_inputs['input_ids'][[i]]
+            new_token = nonceMLM[i]
+            memory = OnlineProtoNet(self.memory_config, self.device)
+
+            new_inputs = self.swap_with_mask(contexts)
+            attn = mlm_inputs['attention_mask'][i]
+            with torch.no_grad():
+                first_out = self.firstLM(input_ids=new_inputs.squeeze(0), attention_mask=attn,
+                                         output_hidden_states=True)
+
+            first_hidden = first_out.hidden_states
+            combined = self.dropout(combine_layers(first_hidden, self.layers))
+            if len(combined.shape) == 2:
+                combined = combined.unsqueeze(0)
+
+            cls = self.cls_token.unsqueeze(0).expand(combined.shape[0], -1, -1)
+            attn = torch.cat([torch.tensor([1], device=self.device).unsqueeze(0).expand(attn.shape[0], -1),
+                              attn], dim=1)
+            embed_inputs = torch.cat([cls, combined], dim=1)
+            embeds = self.emb_gen(embed_inputs, src_key_padding_mask=~attn.bool())
+            nonce_embeds = embeds[:, 0]
+            memory.store(new_token, nonce_embeds)
+
+            new_w = self.get_new_weights_new(task="Task", memory=memory)
+
+            input_embeds = F.embedding(task_ids[i], new_w)
+            embs.append(input_embeds)
+
+        inputs_embeds = torch.stack(embs)
+        #         print(inputs_embeds.shape)
+        #         print(task_attn.shape)
+        #         print(task_labels.shape)
+        out_vals = self.secondLM(
+            inputs_embeds=inputs_embeds,
+            attention_mask=task_attn,
+            labels=task_labels,
+            output_hidden_states=True
+        )
+        return out_vals

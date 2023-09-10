@@ -5,14 +5,17 @@ from modules.aggregators import *
 
 class OnlineProtoNet(nn.Module):
 
-    def __init__(self, config, device):
+    def __init__(self, config, base_memory=None):
         super(OnlineProtoNet, self).__init__()
 
-        self.config = config
-        self.agg_method = self.config.agg_method
-
-        self.device = device
         self.memory = {}
+
+        if base_memory is None:
+            self.config = config
+        else:
+            self.config = base_memory.config
+
+        self.agg_method = self.config.agg_method
 
         if self.agg_method == "CLS":
 
@@ -22,15 +25,23 @@ class OnlineProtoNet(nn.Module):
             hidden_size = self.config.hidden_size
             num_positions = self.config.num_positions
 
-            self.agg = TransformerSummarizerWithCLS(input_size, nhead, num_layers, hidden_size, num_positions,
-                                                    self.device).to(self.device)
+            if base_memory is None:
+                self.agg = TransformerSummarizerWithCLS(input_size, nhead, num_layers, hidden_size, num_positions)
+
+            else:
+                self.agg = base_memory.agg
 
         elif self.agg_method == "RNN":
 
             input_size = self.config.input_size
             output_size = self.config.output_size
+            if base_memory is None:
+                self.agg = BiGRUSummarizer(input_size, output_size)
+            else:
+                self.agg = base_memory.agg
 
-            self.agg = BiGRUSummarizer(input_size, output_size).to(self.device)
+    def __contains__(self, item):
+        return item in self.memory
 
     def store(self, word, embed):
 
@@ -40,26 +51,12 @@ class OnlineProtoNet(nn.Module):
 
             self.memory[word].append(embed)
 
-    def retrieve(self, word, std=0.0, mean=0.0, normalize=False):  # retrieves embed after linear layer to fix dims if needed
-        if normalize:
-            assert std != 0.0, "Standard deviation cannot be 0 if we want to normalize outputs"
+    def retrieve(self, word):  # retrieves embed after linear layer to fix dims if needed
         ctx = torch.cat(self.memory[word], dim=0)
-        if not normalize:
-            if self.agg_method == "mean":
-                return torch.mean(ctx, dim=0).unsqueeze(0)
-            else:
-                return self.agg(ctx.unsqueeze(0))
-        elif normalize:
-            if self.agg_method == "mean":
-                emb = torch.mean(ctx, dim=0).unsqueeze(0)
-                emb = F.normalize(emb)
-                sample = torch.distributions.normal.Normal(mean, std).sample()
-                return sample * emb
-            else:
-                emb = self.agg(ctx.unsqueeze(0))
-                emb = F.normalize(emb)
-                sample = torch.distributions.normal.Normal(mean, std).sample()
-                return sample * emb
+        if self.agg_method == "mean":
+            return torch.mean(ctx, dim=0).unsqueeze(0)
+        else:
+            return self.agg(ctx.unsqueeze(0))
 
     def detach_past(self):
         for word in self.memory:
@@ -67,3 +64,5 @@ class OnlineProtoNet(nn.Module):
 
     def clear_memory(self):
         self.memory = {}
+
+
