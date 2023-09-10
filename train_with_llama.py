@@ -184,8 +184,8 @@ class MorphMemoryModelLLAMA(nn.Module):
 
     def forward(self, batch):
         # nonceMLM = batch["nonceMLM"]
-        assert "task_labels" in batch, "You need labels"
-        task_labels = batch["task_labels"]
+        assert "labels" in batch, "You need labels"
+        task_labels = batch["labels"]
 
         contexts = batch['contexts']
 
@@ -196,7 +196,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         task_ids = batch['input_ids']
         task_attn = batch["attention_mask"]
 
-        if 'task_labels' in batch:
+        if 'labels' in batch:
             task_labels = task_labels.reshape((b_task * k_task, l_task))
 
         outs = []
@@ -355,7 +355,7 @@ def main():
     tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
     test_dl = DataLoader(tokenized_test, shuffle=True, batch_size=args.batch_size, collate_fn=data_collator)
 
-    test_for_buffer = dataset['test'].map(tokenized_for_buffer, remove_columns=dataset['train'].column_names)
+    test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
     buffer_test_dl = DataLoader(test_for_buffer)
     for inp in buffer_test_dl:
         test_buffer.store(inp)
