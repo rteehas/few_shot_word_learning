@@ -461,7 +461,7 @@ def main():
                     if sample is not None:
                         contexts.append(sample)
 
-            assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts))
+            assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
             batch['contexts'] = contexts
 
             out = model(batch)
@@ -515,7 +515,7 @@ def main():
                                 sample = test_buffer.retrieve(n, b)
                                 if sample is not None:
                                     contexts.append(sample)
-                        assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts))
+                        assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
                         b['contexts'] = contexts
                         t_out = model(b)
                         all_losses = accelerator.gather(t_out.loss)
