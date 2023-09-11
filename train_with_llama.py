@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader, TensorDataset
 from torch.utils.data.dataloader import default_collate
 
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
-    get_linear_schedule_with_warmup, DataCollatorForSeq2Seq, AdamW
+    get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling
 import accelerate
 from accelerate import init_empty_weights, Accelerator
 from accelerate import load_checkpoint_and_dispatch
@@ -22,7 +22,7 @@ from modules.utils import combine_layers
 from train_utils import get_new_token_loss_labels
 import os
 from configs.config import *
-
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class EmbeddingGenerator(nn.Module):
 
@@ -191,25 +191,24 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         contexts = batch['contexts']
 
-        b_task, k_task, l_task = batch["input_ids"].shape
-
-        assert k_task == 1
+        b_task, l_task = batch["input_ids"].shape
 
         task_ids = batch['input_ids']
         task_attn = batch["attention_mask"]
 
-        if 'labels' in batch:
-            task_labels = task_labels.reshape((b_task * k_task, l_task))
+        #if 'labels' in batch:
+         #   task_labels = task_labels.reshape((b_task * k_task, l_task))
 
+        task_labels = batch['labels']
         outs = []
         assert len(contexts) == b_task
         memories = []
         for i in range(b_task):
             c = contexts[i].to(self.firstLM.device)
-            new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.nonces, device=c.device))].unique()[0].item()
+            new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[0].item()
             memory = OnlineProtoNet(self.memory_config, memory=self.memory)
 
-            mlm_ids = self.swap_with_mask(c['input_ids'].to(c.device))
+            mlm_ids = self.swap_with_mask(c['input_ids'])
 
             with torch.no_grad():
                 first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
@@ -324,7 +323,7 @@ def main():
 
     print("Arguments: ", args)
 
-    tokenizerMLM = AutoTokenizer.from_pretrained("roberta-large")
+    tokenizerMLM = AutoTokenizer.from_pretrained("roberta-large", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama/tokenizer", legacy=False, use_fast=False)
     tokenizerTask.add_bos_token = True
     tokenizerTask.add_eos_token = True
@@ -342,25 +341,32 @@ def main():
 
     token_mapping = {v: k for k, v in zip(tokenizerTask.convert_tokens_to_ids(nonces), tokenizerMLM.convert_tokens_to_ids(nonces))}
 
-    data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizerTask, return_tensors="pt", padding=True)
+    #data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizerTask, return_tensors="pt", padding=True)
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
     tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
     train_dl = DataLoader(tokenized_train, shuffle=True, batch_size=args.batch_size, collate_fn=data_collator)
 
     buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, args.random_ex, args.cat)
     test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, args.random_ex, args.cat)
     tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    buffer_dl = DataLoader(tokenized_for_buffer)
+    buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
 
     for inp in buffer_dl:
         buffer.store(inp)
+
+    print("Buffer has {} elements".format(len(buffer.buffer)))
 
     tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
     test_dl = DataLoader(tokenized_test, shuffle=True, batch_size=args.batch_size, collate_fn=data_collator)
 
     test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    buffer_test_dl = DataLoader(test_for_buffer)
+    buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
     for inp in buffer_test_dl:
         test_buffer.store(inp)
+
+    print("Test buffer has {} elements".format(len(test_buffer.buffer)))
+
+    print("Total nonces = {}".format(len(nonces)))
 
     accelerator = Accelerator(log_with="wandb")
 
@@ -458,8 +464,11 @@ def main():
 
                 for n in to_sample:
                     sample = buffer.retrieve(n, batch)
+                    print(sample)
                     if sample is not None:
                         contexts.append(sample)
+                    else:
+                        print("Null context for {}".format(n))
 
             assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
             batch['contexts'] = contexts

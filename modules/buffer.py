@@ -39,11 +39,11 @@ class RetrievalBuffer():
     def retrieve(self, nonce, mlm_inputs):
         curr_sentences = locs = (mlm_inputs['input_ids'] == nonce)
         tups = locs.nonzero(as_tuple=True)
-        b, k, l = tups
-        uq = list(set([(i, j) for i, j in zip(b, k)]))
+        b, l = tups
+        uq = list(set([i for i in b]))
         curr_examples = []
-        for (i, j) in uq:
-            mem = self.tokenizer.decode(mlm_inputs['input_ids'][i, j, :], skip_special_tokens=True,
+        for i in uq:
+            mem = self.tokenizer.decode(mlm_inputs['input_ids'][i, :], skip_special_tokens=True,
                                         clean_up_tokenization_spaces=True)
             curr_examples.append(mem)
 
