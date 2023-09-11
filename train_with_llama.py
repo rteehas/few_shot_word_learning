@@ -27,13 +27,15 @@ from configs.config import *
 class EmbeddingGenerator(nn.Module):
 
     def __init__(self, firstLM, secondLM):
-
+        super().__init__()
+        self.firstLM = firstLM
+        self.secondLM = secondLM
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
                                                    nhead=self.firstLM.config.num_attention_heads,
                                                    activation='relu',
                                                    batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
-
+        
         if self.firstLM.config.hidden_size < self.secondLM.config.hidden_size: # needs linear layer
             self.linear = nn.Linear(self.firstLM.config.hidden_size, self.secondLM.config.hidden_size)
 
@@ -59,7 +61,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.firstLM = firstLM
         self.secondLM = secondLM
         self.memory_config = memory_config
-        self.memory = OnlineProtoNet(memory_config, self.device)
+        self.memory = OnlineProtoNet(memory_config)
         self.num_new_tokens = num_new_tokens
 
         self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM)
@@ -130,8 +132,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         if not ref_model.get_input_embeddings().weight.requires_grad:
             w.requires_grad = True
 
-        msk = torch.zeros_like(w).to(self.device)
-        msk2 = torch.zeros_like(w).to(self.device)
+        msk = torch.zeros_like(w).to(w.device)
+        msk2 = torch.zeros_like(w).to(w.device)
         for key in memory.memory:
             if self.rescale:
                 msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key,
@@ -139,7 +141,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                                                                             mean=self.mean_norm,
                                                                                                             normalize=True))
             else:
-                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key))
+                msk = msk.scatter(0, torch.tensor([key]).to(w.device).expand(1, hidden), memory.retrieve(key))
             msk2[key, :] = 1.
 
         return w * (~msk2.bool()) + msk
@@ -204,10 +206,10 @@ class MorphMemoryModelLLAMA(nn.Module):
         memories = []
         for i in range(b_task):
             c = contexts[i].to(self.firstLM.device)
-            new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.nonces, device=self.device))].unique()[0].item()
+            new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.nonces, device=c.device))].unique()[0].item()
             memory = OnlineProtoNet(self.memory_config, memory=self.memory)
 
-            mlm_ids = self.swap_with_mask(c['input_ids'].to(self.device))
+            mlm_ids = self.swap_with_mask(c['input_ids'].to(c.device))
 
             with torch.no_grad():
                 first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
@@ -363,13 +365,13 @@ def main():
     accelerator = Accelerator(log_with="wandb")
 
     # with init_empty_weights():
-    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", device_map="auto")
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", torch_dtype=torch.float16, device_map="auto")
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large")
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", torch_dtype=torch.float16)
 
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
     # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
-    firstLM.resize_token_embeddings(len(tokenizerMLM))
+    firstLM.resize_token_embeddings(len(tokenizerMLM), pad_to_multiple_of=64)
     secondLM.resize_token_embeddings(len(tokenizerTask), pad_to_multiple_of=64) # pad for speed
     firstLM.eval()
     secondLM.eval()
@@ -389,10 +391,10 @@ def main():
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config)
 
     ##pad to multiple of 64
-    for param in firstLM:
-        param.requires_grad=False
-    for param in secondLM:
-        param.requires_grad = False
+    #for param in firstLM:
+     #   param.requires_grad=False
+    #for param in secondLM:
+     #   param.requires_grad = False
 
     epochs = args.epochs
     lr = args.lr
