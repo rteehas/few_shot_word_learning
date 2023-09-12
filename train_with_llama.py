@@ -280,6 +280,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         return self.secondLM(
             inputs_embeds=task_embeds,
             attention_mask=task_attn,
+            labels=task_labels,
             output_hidden_states=True
         )
         # return self.llama_forward(task_labels, outputs)
@@ -492,6 +493,7 @@ def main():
 
             out = model(batch)
             loss = out.loss
+            print(loss)
             # train_new_token = accelerator.gather(out.new_token_loss)
             log_dict['train loss'] = loss.item()
             # log_dict['train new token loss'] = train_new_token.mean().item()
