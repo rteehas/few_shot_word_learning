@@ -78,6 +78,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.dropout = nn.Dropout(0.2)
         self.freeze()
 
+        self.secondLM.config.vocab_size = self.secondLM.lm_head.weight.shape[0]
+
         #initialize new token embeddings
         with torch.no_grad():
             m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:initial_first_ind, :], dim=0)
@@ -269,13 +271,18 @@ class MorphMemoryModelLLAMA(nn.Module):
         #     memories=None
         # )
         task_embeds = torch.stack(mem_embeds)
-        outputs = self.secondLM.model(
+        # outputs = self.secondLM.model(
+        #     inputs_embeds=task_embeds,
+        #     attention_mask=task_attn,
+        #     output_hidden_states=True
+        # )
+        #
+        return self.secondLM(
             inputs_embeds=task_embeds,
             attention_mask=task_attn,
             output_hidden_states=True
         )
-
-        return self.llama_forward(task_labels, outputs)
+        # return self.llama_forward(task_labels, outputs)
 
 # class FewShotLlamaDataset(Dataset):
 #     def __init__(self, tokenized_dataset, data_collator):
