@@ -38,8 +38,8 @@ class EmbeddingGenerator(nn.Module):
                                                    batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
         
-        if self.firstLM.config.hidden_size < self.secondLM.config.hidden_size: # needs linear layer
-            self.linear = nn.Linear(self.firstLM.config.hidden_size, self.secondLM.config.hidden_size)
+        self.input_emb_head = nn.Linear(self.firstLM.config.hidden_size, self.secondLM.config.hidden_size)
+        self.output_emb_head = nn.Linear(self.firstLM.config.hidden_size, self.secondLM.config.hidden_size)
 
     def forward(self, inputs, attn_mask):
 
@@ -47,10 +47,10 @@ class EmbeddingGenerator(nn.Module):
 
         mean_pool = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
 
-        if self.firstLM.config.hidden_size < self.secondLM.config.hidden_size:
-            output = self.linear(mean_pool)
+        inp_embeds = self.input_emb_head(mean_pool)
+        out_embeds = self.output_emb_head(mean_pool)
 
-        return output
+        return inp_embeds, out_embeds
 
 
 class MorphMemoryModelLLAMA(nn.Module):
@@ -122,6 +122,20 @@ class MorphMemoryModelLLAMA(nn.Module):
             inp[inp == nonce] = self.mask_token_id
         return inp
 
+    def get_new_output_weights(self, memory):
+        w = self.secondLM.lm_head.weight.clone()
+        n, hidden = w.shape
+        w.requires_grad=True
+        msk = torch.zeros_like(w).to(w.device)
+        msk2 = torch.zeros_like(w).to(w.device)
+        token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
+        for key in memory.memory:
+            msk = msk.scatter(0, torch.tensor([token_mapping[key]]).to(w.device).expand(1, hidden),
+                              memory.retrieve(key).to(w.dtype))
+            msk2[token_mapping[key], :] = 1.
+
+        return w * (~msk2.bool()) + msk
+
     def get_new_weights(self, task, memory):
 
         if task == 'MLM':
@@ -146,7 +160,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         return w * (~msk2.bool()) + msk
 
-    def llama_forward(self, labels, outputs):
+    def llama_forward(self, labels, outputs, new_w):
         '''
         Copied from https://github.com/huggingface/transformers/blob/18ee1fe76295239335bf1528c744fe1cfba21cc8/src/transformers/models/llama/modeling_llama.py#L742C7-L742C7
         Note: Output layer weights are not tied to word embedding weights https://github.com/facebookresearch/llama/issues/138
@@ -156,11 +170,11 @@ class MorphMemoryModelLLAMA(nn.Module):
         '''
         hidden_states = outputs[0]
         if self.secondLM.config.pretraining_tp > 1:
-            lm_head_slices = self.secondLM.lm_head.weight.split(self.secondLM.vocab_size // self.secondLM.config.pretraining_tp, dim=0)
+            lm_head_slices = new_w.split(self.secondLM.vocab_size // self.secondLM.config.pretraining_tp, dim=0)
             logits = [F.linear(hidden_states, lm_head_slices[i]) for i in range(self.secondLM.config.pretraining_tp)]
             logits = torch.cat(logits, dim=-1)
         else:
-            logits = self.secondLM.lm_head(hidden_states)
+            logits = F.linear(hidden_states, new_w, bias=self.secondLM.lm_head.bias)
         logits = logits.float()
         print(logits.shape, "logits")
         print(self.secondLM.lm_head.weight.shape, "lm_logits")
@@ -171,7 +185,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             shift_labels = labels[..., 1:].contiguous()
             # Flatten the tokens
             loss_fct = CrossEntropyLoss()
-            shift_logits = shift_logits.view(-1, self.secondLM.lm_head.weight.shape[0])
+            shift_logits = shift_logits.view(-1, new_w.shape[0])
             shift_labels = shift_labels.view(-1)
             # Enable model parallelism
             shift_labels = shift_labels.to(shift_logits.device)
@@ -208,7 +222,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         for i in range(b_task):
             c = contexts[i].to(self.firstLM.device)
             new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[0].item()
-            memory = OnlineProtoNet(self.memory_config, base_memory=self.memory)
+            input_memory = OnlineProtoNet(self.memory_config, base_memory=self.memory)
+            output_memory = OnlineProtoNet(self.memory_config, base_memory=self.memory)
 
             mlm_ids = self.swap_with_mask(c['input_ids'])
 
@@ -224,68 +239,68 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             attn = c['attention_mask']
             embed_inputs = combined
-            embeds = self.emb_gen(embed_inputs, attn)
+            inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
 
-            memory.store(new_token, embeds)
+            input_memory.store(new_token, inp_embs)
+            output_memory.store(new_token, out_embs)
 
-            new_w = self.get_new_weights(task="Task", memory=memory)
+            new_w = self.get_new_weights(task="Task", memory=input_memory)
             input_embeds = F.embedding(task_ids[i], new_w)
-            # outputs = self.secondLM.model(
-            #     inputs_embeds=input_embeds.unsqueeze(0),
-            #     attention_mask=task_attn[i].unsqueeze(0),
-            #     output_hidden_states=True
-            # )
+            outputs = self.secondLM.model(
+                inputs_embeds=input_embeds.unsqueeze(0),
+                attention_mask=task_attn[i].unsqueeze(0),
+                output_hidden_states=True
+            )
             # print(task_labels[i].shape, "label_shape")
             # print(outputs[0].shape)
-            # llama_outputs = self.llama_forward(task_labels[i], outputs)
-            # new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
-            #                                          self.secondLM.lm_head.weight.shape[0],
-            #                                          torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
+            output_weights = self.get_new_output_weights(output_memory)
+            llama_outputs = self.llama_forward(task_labels[i], output_weights)
+            new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
+                                                     self.secondLM.lm_head.weight.shape[0],
+                                                     torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
             print("before mem forward")
             mem_embeds.append(input_embeds)
-            # out_vals = CausalLMOutputWithNewToken(
-            #     loss=llama_outputs.loss,
-            #     logits=llama_outputs.logits,
-            #     past_key_values=llama_outputs.past_key_values,
-            #     hidden_states=llama_outputs.hidden_states,
-            #     attentions=llama_outputs.attentions,
-            #     new_token_loss=new_tok_loss,
-            #     memories=None
-            # )
+            out_vals = CausalLMOutputWithNewToken(
+                loss=llama_outputs.loss,
+                logits=llama_outputs.logits,
+                past_key_values=llama_outputs.past_key_values,
+                hidden_states=llama_outputs.hidden_states,
+                attentions=llama_outputs.attentions,
+                new_token_loss=new_tok_loss,
+            )
             # print("after mem forward")
-            # outs.append(out_vals)
+            outs.append(out_vals)
             # memories.append(memory)
 
         #         print(outs, "output list")
-        # final_loss = torch.stack([o.loss for o in outs]).mean()
-        # final_logits = torch.cat([o.logits for o in outs], dim=0)
-        # final_hiddens = [o.hidden_states for o in outs]
-        # final_past_key_values = [o.past_key_values for o in outs]
-        # final_attentions = [o.attentions for o in outs]
-        # final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
+        final_loss = torch.stack([o.loss for o in outs]).mean()
+        final_logits = torch.cat([o.logits for o in outs], dim=0)
+        final_hiddens = [o.hidden_states for o in outs]
+        final_past_key_values = [o.past_key_values for o in outs]
+        final_attentions = [o.attentions for o in outs]
+        final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
         # print("before return")
-        # return CausalLMOutputWithNewToken(
-        #     loss=final_loss,
-        #     logits=final_logits,
-        #     hidden_states=final_hiddens,
-        #     attentions=final_attentions,
-        #     past_key_values=None,
-        #     new_token_loss=final_new_token_loss,
-        #     memories=None
-        # )
-        task_embeds = torch.stack(mem_embeds)
+        return CausalLMOutputWithNewToken(
+            loss=final_loss,
+            logits=final_logits,
+            hidden_states=final_hiddens,
+            attentions=final_attentions,
+            past_key_values=final_past_key_values,
+            new_token_loss=final_new_token_loss
+        )
+        # task_embeds = torch.stack(mem_embeds)
         # outputs = self.secondLM.model(
         #     inputs_embeds=task_embeds,
         #     attention_mask=task_attn,
         #     output_hidden_states=True
         # )
         #
-        return self.secondLM(
-            inputs_embeds=task_embeds,
-            attention_mask=task_attn,
-            labels=task_labels,
-            output_hidden_states=True
-        )
+        # return self.secondLM(
+        #     inputs_embeds=task_embeds,
+        #     attention_mask=task_attn,
+        #     labels=task_labels,
+        #     output_hidden_states=True
+        # )
         # return self.llama_forward(task_labels, outputs)
 
 # class FewShotLlamaDataset(Dataset):
@@ -321,12 +336,13 @@ def get_arguments():
     parser.add_argument("--resample", action="store_true")
     parser.add_argument("--prefill", action="store_true")
     parser.add_argument("--weight_decay", type=float, default=0.02)
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     return parser
 
 
 def create_checkpoint_directories(args):
 
-    path = "model_checkpoints/layers/no_mp/llama/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
     path = path.format(args.batch_size,args.memory, args.num_examples, args.lr, args.weight_decay)
     os.makedirs(path, exist_ok=True)
 
@@ -418,7 +434,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1, -2, -3, -4], mask_token_id, memory_config)
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config)
 
     ##pad to multiple of 64
     #for param in firstLM:
@@ -475,11 +491,14 @@ def main():
         train_new_token_losses = []
         train_losses = []
         for i, batch in enumerate(train_dl):
+
             log_dict = {}
 
             model.train()
             model.module.firstLM.eval()
             model.module.secondLM.eval()
+            model.zero_grad()
+            opt.zero_grad()
 
             contexts = []
             for j in range(batch['input_ids'].shape[0]):
@@ -495,15 +514,15 @@ def main():
 
             assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
             batch['contexts'] = contexts
-            print(batch['input_ids'].shape[0])
+            # print(batch['input_ids'].shape[0])
             out = model(batch)
             loss = out.loss
-            print(loss)
-            # train_new_token = accelerator.gather(out.new_token_loss)
+            # print(loss)
+            train_new_token = accelerator.gather(out.new_token_loss)
             log_dict['train loss'] = loss.item()
-            # log_dict['train new token loss'] = train_new_token.mean().item()
+            log_dict['train new token loss'] = train_new_token.mean().item()
             train_losses.append(loss.item())
-            # train_new_token_losses.append(train_new_token.mean())
+            train_new_token_losses.append(train_new_token.mean())
             accelerator.backward(loss)
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
@@ -511,13 +530,13 @@ def main():
                 if param.grad is not None and param.requires_grad:
                     log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
                     if torch.isnan(torch.norm(param.grad.view(-1))):
-                        raise Exception("Nan Gradient")
+                        raise Exception("Nan Gradient for {}".format(name))
 
             opt.step()
             scheduler.step()
             log_dict['num_words_seen'] = len(buffer.buffer)
 
-            norms = []
+            # norms = []
             #for m in out.memories:
             #    new_ids = list(m.memory.keys())
             #    assert len(new_ids) == 1
@@ -554,19 +573,19 @@ def main():
                         all_losses = accelerator.gather(t_out.loss)
                         test_losses.append(all_losses)
                         model.module.memory.memory = {}
-                        # all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                        # test_nonce_losses.append(all_new_tokens)
+                        all_new_tokens = accelerator.gather(t_out.new_token_loss)
+                        test_nonce_losses.append(all_new_tokens)
 
-                        avg_test = torch.stack(test_losses).mean()
-                        # avg_new_tok = torch.stack(test_nonce_losses).mean()
-                        accelerator.log(
-                            {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test})
+                    avg_test = torch.stack(test_losses).mean()
+                    avg_new_tok = torch.stack(test_nonce_losses).mean()
+                    accelerator.log(
+                        {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
 
-                        accelerator.wait_for_everyone()
-                        save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
-                        os.makedirs(save_dir, exist_ok=True)
-                        accelerator.save_state(save_dir)
-                        checkpoint_id += 1
+                    accelerator.wait_for_everyone()
+                    save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
+                    os.makedirs(save_dir, exist_ok=True)
+                    accelerator.save_state(save_dir)
+                    checkpoint_id += 1
 
     accelerator.end_training()
 
