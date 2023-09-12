@@ -238,6 +238,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             out_vals = CausalLMOutputWithNewToken(
                 loss=llama_outputs.loss,
                 logits=llama_outputs.logits,
+                past_key_values=outputs.past_key_values,
                 hidden_states=llama_outputs.hidden_states,
                 attentions=llama_outputs.attentions,
                 new_token_loss=new_tok_loss,
@@ -251,6 +252,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_loss = torch.stack([o.loss for o in outs]).mean()
         final_logits = torch.cat([o.logits for o in outs], dim=0)
         final_hiddens = [o.hidden_states for o in outs]
+        final_past_key_values = [o.past_key_values for o in outs]
         final_attentions = [o.attentions for o in outs]
         final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
 
@@ -259,6 +261,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             logits=final_logits,
             hidden_states=final_hiddens,
             attentions=final_attentions,
+            past_key_values=final_past_key_values,
             new_token_loss=final_new_token_loss,
             memories=memories
         )
