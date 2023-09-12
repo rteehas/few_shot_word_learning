@@ -23,6 +23,8 @@ from train_utils import get_new_token_loss_labels
 import os
 from configs.config import *
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+from accelerate import DistributedDataParallelKwargs
+
 
 class EmbeddingGenerator(nn.Module):
 
@@ -75,6 +77,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.model_name = "{}_{}".format(self.secondLM.config.model_type,memory_config.agg_method)
 
         self.emb_gen.apply(self._init_weights)
+        self.emb_gen = self.emb_gen
         self.dropout = nn.Dropout(0.2)
         self.freeze()
 
@@ -323,8 +326,8 @@ def get_arguments():
 
 def create_checkpoint_directories(args):
 
-    path = "model_checkpoints/llama/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
-    path = path.format(args.memory, args.num_examples, args.lr, args.weight_decay)
+    path = "model_checkpoints/layers/no_mp/llama/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
+    path = path.format(args.batch_size,args.memory, args.num_examples, args.lr, args.weight_decay)
     os.makedirs(path, exist_ok=True)
 
     return path
@@ -363,7 +366,7 @@ def main():
     #data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizerTask, return_tensors="pt", padding=True)
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
     tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
-    train_dl = DataLoader(tokenized_train, shuffle=True, batch_size=args.batch_size, collate_fn=data_collator)
+    train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size, collate_fn=data_collator)
 
     buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, args.random_ex, args.cat)
     test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, args.random_ex, args.cat)
@@ -376,7 +379,7 @@ def main():
     print("Buffer has {} elements".format(len(buffer.buffer)))
 
     tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
-    test_dl = DataLoader(tokenized_test, shuffle=True, batch_size=args.batch_size, collate_fn=data_collator)
+    test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True,batch_size=args.batch_size, collate_fn=data_collator)
 
     test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
     buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
@@ -387,7 +390,9 @@ def main():
 
     print("Total nonces = {}".format(len(nonces)))
 
-    accelerator = Accelerator(log_with="wandb")
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
+
+    accelerator = Accelerator(log_with="wandb", kwargs_handlers=[ddp_kwargs])
 
     # with init_empty_weights():
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", torch_dtype=torch.float16)
@@ -413,7 +418,7 @@ def main():
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config)
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1, -2, -3, -4], mask_token_id, memory_config)
 
     ##pad to multiple of 64
     #for param in firstLM:
@@ -490,7 +495,7 @@ def main():
 
             assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
             batch['contexts'] = contexts
-
+            print(batch['input_ids'].shape[0])
             out = model(batch)
             loss = out.loss
             print(loss)
