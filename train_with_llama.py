@@ -134,15 +134,10 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         msk = torch.zeros_like(w).to(w.device)
         msk2 = torch.zeros_like(w).to(w.device)
+        token_mapping = {k:v for k,v in zip(self.first_list, self.second_list)}
         for key in memory.memory:
-            if self.rescale:
-                msk = msk.scatter(0, torch.tensor([key]).to(self.device).expand(1, hidden), memory.retrieve(key,
-                                                                                                            std=self.std_second,
-                                                                                                            mean=self.mean_norm,
-                                                                                                            normalize=True))
-            else:
-                msk = msk.scatter(0, torch.tensor([key]).to(w.device).expand(1, hidden), memory.retrieve(key))
-            msk2[key, :] = 1.
+            msk = msk.scatter(0, torch.tensor([token_mapping[key]]).to(w.device).expand(1, hidden), memory.retrieve(key).to(w.dtype))
+            msk2[token_mapping[key], :] = 1.
 
         return w * (~msk2.bool()) + msk
 
@@ -160,9 +155,10 @@ class MorphMemoryModelLLAMA(nn.Module):
             logits = [F.linear(hidden_states, lm_head_slices[i]) for i in range(self.secondLM.config.pretraining_tp)]
             logits = torch.cat(logits, dim=-1)
         else:
-            logits = self.lm_head(hidden_states)
+            logits = self.secondLM.lm_head(hidden_states)
         logits = logits.float()
-
+        print(logits.shape, "logits")
+        print(self.secondLM.lm_head.weight.shape, "lm_logits")
         loss = None
         if labels is not None:
             # Shift so that tokens < n predict n
@@ -170,7 +166,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             shift_labels = labels[..., 1:].contiguous()
             # Flatten the tokens
             loss_fct = CrossEntropyLoss()
-            shift_logits = shift_logits.view(-1, self.config.vocab_size)
+            shift_logits = shift_logits.view(-1, self.secondLM.lm_head.weight.shape[0])
             shift_labels = shift_labels.view(-1)
             # Enable model parallelism
             shift_labels = shift_labels.to(shift_logits.device)
@@ -206,7 +202,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         for i in range(b_task):
             c = contexts[i].to(self.firstLM.device)
             new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[0].item()
-            memory = OnlineProtoNet(self.memory_config, memory=self.memory)
+            memory = OnlineProtoNet(self.memory_config, base_memory=self.memory)
 
             mlm_ids = self.swap_with_mask(c['input_ids'])
 
@@ -233,11 +229,12 @@ class MorphMemoryModelLLAMA(nn.Module):
                 attention_mask=task_attn[i].unsqueeze(0),
                 output_hidden_states=True
             )
-
+            print(task_labels[i].shape, "label_shape")
+            print(outputs[0].shape)
             llama_outputs = self.llama_forward(task_labels[i], outputs)
             new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
-                                                     self.secondLM.config.vocab_size,
-                                                     torch.tensor(self.nonces, device=llama_outputs.logits.device).unique())
+                                                     self.secondLM.lm_head.weight.shape[0],
+                                                     torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
             out_vals = CausalLMOutputWithNewToken(
                 loss=llama_outputs.loss,
                 logits=llama_outputs.logits,
@@ -371,7 +368,7 @@ def main():
     accelerator = Accelerator(log_with="wandb")
 
     # with init_empty_weights():
-    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large")
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", torch_dtype=torch.float16)
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", torch_dtype=torch.float16)
 
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
@@ -464,7 +461,6 @@ def main():
 
                 for n in to_sample:
                     sample = buffer.retrieve(n, batch)
-                    print(sample)
                     if sample is not None:
                         contexts.append(sample)
                     else:
