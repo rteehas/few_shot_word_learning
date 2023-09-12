@@ -238,7 +238,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             out_vals = CausalLMOutputWithNewToken(
                 loss=llama_outputs.loss,
                 logits=llama_outputs.logits,
-                past_key_values=outputs.past_key_values,
+                past_key_values=llama_outputs.past_key_values,
                 hidden_states=llama_outputs.hidden_states,
                 attentions=llama_outputs.attentions,
                 new_token_loss=new_tok_loss,
@@ -261,9 +261,9 @@ class MorphMemoryModelLLAMA(nn.Module):
             logits=final_logits,
             hidden_states=final_hiddens,
             attentions=final_attentions,
-            past_key_values=final_past_key_values,
+            past_key_values=None,
             new_token_loss=final_new_token_loss,
-            memories=memories
+            memories=None
         )
 
 # class FewShotLlamaDataset(Dataset):
@@ -493,16 +493,16 @@ def main():
             log_dict['num_words_seen'] = len(buffer.buffer)
 
             norms = []
-            for m in out.memories:
-                new_ids = list(m.memory.keys())
-                assert len(new_ids) == 1
-                new_id = new_ids[0]
-                with torch.no_grad():
-                    norms.append(m.retrieve(new_id).norm())
+            #for m in out.memories:
+            #    new_ids = list(m.memory.keys())
+            #    assert len(new_ids) == 1
+            #    new_id = new_ids[0]
+            #    with torch.no_grad():
+            #        norms.append(m.retrieve(new_id).norm())
 
-            with torch.no_grad():
+            #with torch.no_grad():
 
-                log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
+             #   log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
 
             accelerator.log(log_dict)
 
