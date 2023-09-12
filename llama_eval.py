@@ -62,7 +62,7 @@ def prepare_for_top_2_selection(ex):
 def get_sentence_probs(model, tokenizer, sequences):
     probs = []
     for seq in sequences:
-        toks = tokenizer(seq, return_tensors="pt")
+        toks = tokenizer(seq, return_tensors="pt").to(model.device)
         labels = toks['input_ids'].clone()
         out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
         probs.append(-out.loss.item())
