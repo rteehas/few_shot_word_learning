@@ -499,7 +499,6 @@ def main():
             model.module.secondLM.eval()
             model.zero_grad()
             opt.zero_grad()
-
             contexts = []
             for j in range(batch['input_ids'].shape[0]):
                 to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
