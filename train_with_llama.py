@@ -199,6 +199,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         outs = []
         assert len(contexts) == b_task
         memories = []
+        mem_embeds = []
         for i in range(b_task):
             c = contexts[i].to(self.firstLM.device)
             new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[0].item()
@@ -224,47 +225,55 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             new_w = self.get_new_weights(task="Task", memory=memory)
             input_embeds = F.embedding(task_ids[i], new_w)
-            outputs = self.secondLM.model(
-                inputs_embeds=input_embeds.unsqueeze(0),
-                attention_mask=task_attn[i].unsqueeze(0),
-                output_hidden_states=True
-            )
-            print(task_labels[i].shape, "label_shape")
-            print(outputs[0].shape)
-            llama_outputs = self.llama_forward(task_labels[i], outputs)
-            new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
-                                                     self.secondLM.lm_head.weight.shape[0],
-                                                     torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
+            # outputs = self.secondLM.model(
+            #     inputs_embeds=input_embeds.unsqueeze(0),
+            #     attention_mask=task_attn[i].unsqueeze(0),
+            #     output_hidden_states=True
+            # )
+            # print(task_labels[i].shape, "label_shape")
+            # print(outputs[0].shape)
+            # llama_outputs = self.llama_forward(task_labels[i], outputs)
+            # new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
+            #                                          self.secondLM.lm_head.weight.shape[0],
+            #                                          torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
             print("before mem forward")
-            out_vals = CausalLMOutputWithNewToken(
-                loss=llama_outputs.loss,
-                logits=llama_outputs.logits,
-                past_key_values=llama_outputs.past_key_values,
-                hidden_states=llama_outputs.hidden_states,
-                attentions=llama_outputs.attentions,
-                new_token_loss=new_tok_loss,
-                memories=None
-            )
-            print("after mem forward")
-            outs.append(out_vals)
-            memories.append(memory)
+            mem_embeds.append(input_embeds)
+            # out_vals = CausalLMOutputWithNewToken(
+            #     loss=llama_outputs.loss,
+            #     logits=llama_outputs.logits,
+            #     past_key_values=llama_outputs.past_key_values,
+            #     hidden_states=llama_outputs.hidden_states,
+            #     attentions=llama_outputs.attentions,
+            #     new_token_loss=new_tok_loss,
+            #     memories=None
+            # )
+            # print("after mem forward")
+            # outs.append(out_vals)
+            # memories.append(memory)
 
         #         print(outs, "output list")
-        final_loss = torch.stack([o.loss for o in outs]).mean()
-        final_logits = torch.cat([o.logits for o in outs], dim=0)
-        final_hiddens = [o.hidden_states for o in outs]
-        final_past_key_values = [o.past_key_values for o in outs]
-        final_attentions = [o.attentions for o in outs]
-        final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
-        print("before return")
-        return CausalLMOutputWithNewToken(
-            loss=final_loss,
-            logits=final_logits,
-            hidden_states=final_hiddens,
-            attentions=final_attentions,
-            past_key_values=None,
-            new_token_loss=final_new_token_loss,
-            memories=None
+        # final_loss = torch.stack([o.loss for o in outs]).mean()
+        # final_logits = torch.cat([o.logits for o in outs], dim=0)
+        # final_hiddens = [o.hidden_states for o in outs]
+        # final_past_key_values = [o.past_key_values for o in outs]
+        # final_attentions = [o.attentions for o in outs]
+        # final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
+        # print("before return")
+        # return CausalLMOutputWithNewToken(
+        #     loss=final_loss,
+        #     logits=final_logits,
+        #     hidden_states=final_hiddens,
+        #     attentions=final_attentions,
+        #     past_key_values=None,
+        #     new_token_loss=final_new_token_loss,
+        #     memories=None
+        # )
+        task_embeds = torch.stack(mem_embeds)
+        return self.secondLM(
+            inputs_embeds=task_embeds,
+            attention_mask=task_attn,
+            labels=task_labels,
+            output_hidden_states=True
         )
 
 # class FewShotLlamaDataset(Dataset):
@@ -475,11 +484,11 @@ def main():
 
             out = model(batch)
             loss = out.loss
-            train_new_token = accelerator.gather(out.new_token_loss)
+            # train_new_token = accelerator.gather(out.new_token_loss)
             log_dict['train loss'] = loss.item()
-            log_dict['train new token loss'] = train_new_token.mean().item()
+            # log_dict['train new token loss'] = train_new_token.mean().item()
             train_losses.append(loss.item())
-            train_new_token_losses.append(train_new_token.mean())
+            # train_new_token_losses.append(train_new_token.mean())
             accelerator.backward(loss)
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(filter(p for p in model.parameters() if p.requires_grad), 1.0)
@@ -530,13 +539,13 @@ def main():
                         all_losses = accelerator.gather(t_out.loss)
                         test_losses.append(all_losses)
                         model.module.memory.memory = {}
-                        all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                        test_nonce_losses.append(all_new_tokens)
+                        # all_new_tokens = accelerator.gather(t_out.new_token_loss)
+                        # test_nonce_losses.append(all_new_tokens)
 
                         avg_test = torch.stack(test_losses).mean()
-                        avg_new_tok = torch.stack(test_nonce_losses).mean()
+                        # avg_new_tok = torch.stack(test_nonce_losses).mean()
                         accelerator.log(
-                            {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
+                            {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test})
 
                         accelerator.wait_for_everyone()
                         save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
