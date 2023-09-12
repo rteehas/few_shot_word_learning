@@ -269,12 +269,13 @@ class MorphMemoryModelLLAMA(nn.Module):
         #     memories=None
         # )
         task_embeds = torch.stack(mem_embeds)
-        return self.secondLM(
+        outputs = self.secondLM.model(
             inputs_embeds=task_embeds,
             attention_mask=task_attn,
-            labels=task_labels,
             output_hidden_states=True
         )
+
+        return self.llama_forward(task_labels, outputs)
 
 # class FewShotLlamaDataset(Dataset):
 #     def __init__(self, tokenized_dataset, data_collator):
