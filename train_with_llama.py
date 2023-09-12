@@ -235,6 +235,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
                                                      self.secondLM.lm_head.weight.shape[0],
                                                      torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
+            print("before mem forward")
             out_vals = CausalLMOutputWithNewToken(
                 loss=llama_outputs.loss,
                 logits=llama_outputs.logits,
@@ -242,9 +243,9 @@ class MorphMemoryModelLLAMA(nn.Module):
                 hidden_states=llama_outputs.hidden_states,
                 attentions=llama_outputs.attentions,
                 new_token_loss=new_tok_loss,
-                memories=memory
+                memories=None
             )
-
+            print("after mem forward")
             outs.append(out_vals)
             memories.append(memory)
 
@@ -255,7 +256,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_past_key_values = [o.past_key_values for o in outs]
         final_attentions = [o.attentions for o in outs]
         final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
-
+        print("before return")
         return CausalLMOutputWithNewToken(
             loss=final_loss,
             logits=final_logits,
