@@ -368,7 +368,7 @@ def main():
 
     tokenizerTask.pad_token = tokenizerTask.unk_token
     word_dict = load_from_disk(args.word_path)
-    dataset = load_from_disk(args.data_path)
+
 
     words = word_dict['train']['words'] + word_dict['test']['words']
     nonces = list(map(lambda w: "<{}_new>".format(w), words))
@@ -380,15 +380,6 @@ def main():
     token_mapping = {v: k for k, v in zip(tokenizerTask.convert_tokens_to_ids(nonces), tokenizerMLM.convert_tokens_to_ids(nonces))}
 
     #data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizerTask, return_tensors="pt", padding=True)
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
-    tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
-    train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size, collate_fn=data_collator)
-
-    buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, args.random_ex, args.cat)
-    test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, args.random_ex, args.cat)
-
-    tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
-    test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True,batch_size=args.batch_size, collate_fn=data_collator)
 
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 
@@ -431,8 +422,6 @@ def main():
     lr = args.lr
     epsilon = 1e-8
 
-
-
     no_decay = ["bias", "layer_norm.weight"]
     optimizer_grouped_parameters = [
             {
@@ -445,20 +434,34 @@ def main():
             },
         ]
 
+    model = accelerator.prepare(
+        model
+    )
+    
+    dataset = load_from_disk(args.data_path)
+    print("tokenizing")
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
+    tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
+    train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
+                          collate_fn=data_collator)
+
+    buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
+                             args.random_ex, args.cat)
+    test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
+                                  args.random_ex, args.cat)
+
+    tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
+    test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
+                         collate_fn=data_collator)
     eval_ind = int(len(train_dl) // 3)
 
-
-
     opt = AdamW(optimizer_grouped_parameters,
-                    eps=epsilon,
-                    lr=lr
-                    )
+                eps=epsilon,
+                lr=lr
+                )
+
     warmup_steps = int(len(train_dl) * 0.03)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
-
-    model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
-        model, opt, train_dl, test_dl, scheduler
-    )
 
     print("loading buffer")
     tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
@@ -476,6 +479,10 @@ def main():
     print("Test buffer has {} elements".format(len(test_buffer.buffer)))
 
     print("Total nonces = {}".format(len(nonces)))
+
+    opt, train_dl, test_dl, scheduler = accelerator.prepare(
+        opt, train_dl, test_dl, scheduler
+    )
 
     accelerator.register_for_checkpointing(opt)
     accelerator.register_for_checkpointing(scheduler)
