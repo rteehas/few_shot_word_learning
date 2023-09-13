@@ -386,31 +386,16 @@ def main():
 
     buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, args.random_ex, args.cat)
     test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, args.random_ex, args.cat)
-    tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
-
-    for inp in buffer_dl:
-        buffer.store(inp)
-
-    print("Buffer has {} elements".format(len(buffer.buffer)))
 
     tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
     test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True,batch_size=args.batch_size, collate_fn=data_collator)
-
-    test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
-    for inp in buffer_test_dl:
-        test_buffer.store(inp)
-
-    print("Test buffer has {} elements".format(len(test_buffer.buffer)))
-
-    print("Total nonces = {}".format(len(nonces)))
 
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 
     accelerator = Accelerator(log_with="wandb", kwargs_handlers=[ddp_kwargs])
 
     # with init_empty_weights():
+    print("loading models")
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-large")
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b")
 
@@ -474,6 +459,23 @@ def main():
     model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
         model, opt, train_dl, test_dl, scheduler
     )
+
+    print("loading buffer")
+    tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
+    buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
+    for inp in buffer_dl:
+        buffer.store(inp)
+
+    print("Buffer has {} elements".format(len(buffer.buffer)))
+
+    test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
+    buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
+    for inp in buffer_test_dl:
+        test_buffer.store(inp)
+
+    print("Test buffer has {} elements".format(len(test_buffer.buffer)))
+
+    print("Total nonces = {}".format(len(nonces)))
 
     accelerator.register_for_checkpointing(opt)
     accelerator.register_for_checkpointing(scheduler)
