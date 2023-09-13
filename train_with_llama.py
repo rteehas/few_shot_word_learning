@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader, TensorDataset
 from torch.utils.data.dataloader import default_collate
 
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
-    get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling
+    get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig
 import accelerate
 from accelerate import init_empty_weights, Accelerator
 from accelerate import load_checkpoint_and_dispatch
@@ -361,7 +361,7 @@ def main():
 
     print("Arguments: ", args)
 
-    tokenizerMLM = AutoTokenizer.from_pretrained("roberta-large", use_fast=False)
+    tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama/tokenizer", legacy=False, use_fast=False)
     tokenizerTask.add_bos_token = True
     tokenizerTask.add_eos_token = True
@@ -384,14 +384,14 @@ def main():
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 
     accelerator = Accelerator(log_with="wandb", kwargs_handlers=[ddp_kwargs])
-
-    # with init_empty_weights():
-    print("loading models")
-    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", low_cpu_mem_usage=True)
+    roberta_config = AutoConfig.from_pretrained("roberta-base")
+    llama_config = AutoConfig.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b")
+    firstLM = RobertaForMaskedLM.from_config(roberta_config)
+    with init_empty_weights():
+        secondLM = LlamaForCausalLM.from_config(llama_config)
 
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
-    # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
+    secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
     firstLM.resize_token_embeddings(len(tokenizerMLM), pad_to_multiple_of=64)
     secondLM.resize_token_embeddings(len(tokenizerTask), pad_to_multiple_of=64) # pad for speed
@@ -433,10 +433,6 @@ def main():
                 "weight_decay": 0.0,
             },
         ]
-
-    model = accelerator.prepare(
-        model
-    )
 
     dataset = load_from_disk(args.data_path)
     print("tokenizing")
@@ -480,8 +476,8 @@ def main():
 
     print("Total nonces = {}".format(len(nonces)))
 
-    opt, train_dl, test_dl, scheduler = accelerator.prepare(
-        opt, train_dl, test_dl, scheduler
+    model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
+        model, opt, train_dl, test_dl, scheduler
     )
 
     accelerator.register_for_checkpointing(opt)
