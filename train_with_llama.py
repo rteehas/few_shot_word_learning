@@ -437,7 +437,7 @@ def main():
     model = accelerator.prepare(
         model
     )
-    
+
     dataset = load_from_disk(args.data_path)
     print("tokenizing")
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
