@@ -387,8 +387,8 @@ def main():
 
     # with init_empty_weights():
     print("loading models")
-    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large")
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b")
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", low_cpu_mem_usage=True)
 
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
     # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
