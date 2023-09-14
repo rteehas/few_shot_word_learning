@@ -125,7 +125,7 @@ class MorphMemoryModelLLAMA(nn.Module):
     def get_new_output_weights(self, memory):
         w = self.secondLM.lm_head.weight.clone()
         n, hidden = w.shape
-        w.requires_grad=True
+        #w.requires_grad=True
         msk = torch.zeros_like(w).to(w.device)
         msk2 = torch.zeros_like(w).to(w.device)
         token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
