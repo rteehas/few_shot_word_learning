@@ -416,6 +416,7 @@ def main():
         raise NotImplementedError("This memory aggregation is not implemented")
     print("init model")
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config)
+    model = accelerator.prepare(model)
     print("initialized")
     ##pad to multiple of 64
     #for param in firstLM:
@@ -482,8 +483,8 @@ def main():
 
     print("Total nonces = {}".format(len(nonces)))
 
-    model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
-        model, opt, train_dl, test_dl, scheduler
+    opt, train_dl, test_dl, scheduler = accelerator.prepare(
+        opt, train_dl, test_dl, scheduler
     )
 
     accelerator.register_for_checkpointing(opt)
