@@ -596,6 +596,8 @@ def main():
                     save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
                     os.makedirs(save_dir, exist_ok=True)
                     accelerator.save_state(save_dir)
+                    tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                    tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
                     checkpoint_id += 1
 
     accelerator.end_training()
