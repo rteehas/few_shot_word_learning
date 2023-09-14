@@ -12,7 +12,7 @@ class MaskLMOutputWithNewToken(MaskedLMOutput):
 
 class CausalLMOutputWithNewToken(CausalLMOutputWithPast):
 
-    def __init__(self, loss, logits, past_key_values, hidden_states, attentions, new_token_loss, memories):
+    def __init__(self, loss, logits, past_key_values, hidden_states, attentions, new_token_loss):
 
         super().__init__(loss=loss,
                          logits=logits,
@@ -21,4 +21,4 @@ class CausalLMOutputWithNewToken(CausalLMOutputWithPast):
                          attentions=attentions)
 
         self.new_token_loss=new_token_loss
-        self.memories=memories
+        # self.memories=memories
