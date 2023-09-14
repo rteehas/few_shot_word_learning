@@ -254,7 +254,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             # print(task_labels[i].shape, "label_shape")
             # print(outputs[0].shape)
             output_weights = self.get_new_output_weights(output_memory)
-            llama_outputs = self.llama_forward(task_labels[i], output_weights)
+            llama_outputs = self.llama_forward(task_labels[i], outputs, output_weights)
             new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
                                                      self.secondLM.lm_head.weight.shape[0],
                                                      torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
