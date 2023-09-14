@@ -1,5 +1,8 @@
+import torch
+from transformers.file_utils import ModelOutput
 from transformers.modeling_outputs import MaskedLMOutput, CausalLMOutputWithPast
-
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 class MaskLMOutputWithNewToken(MaskedLMOutput):
 
@@ -9,16 +12,12 @@ class MaskLMOutputWithNewToken(MaskedLMOutput):
         self.new_token_loss = new_token_loss
         self.memories=memories
 
-
-class CausalLMOutputWithNewToken(CausalLMOutputWithPast):
-
-    def __init__(self, loss, logits, past_key_values, hidden_states, attentions, new_token_loss):
-
-        super().__init__(loss=loss,
-                         logits=logits,
-                         past_key_values=past_key_values,
-                         hidden_states=hidden_states,
-                         attentions=attentions)
-
-        self.new_token_loss=new_token_loss
+@dataclass
+class CausalLMOutputWithNewToken(ModelOutput):
+    loss: Optional[torch.FloatTensor] = None
+    logits: torch.FloatTensor = None
+    past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    new_token_loss: Optional[torch.FloatTensor] = None
         # self.memories=memories
