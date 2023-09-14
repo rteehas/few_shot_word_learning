@@ -384,14 +384,17 @@ def main():
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 
     accelerator = Accelerator(log_with="wandb", kwargs_handlers=[ddp_kwargs])
+
+    accelerator.wait_for_everyone()
     roberta_config = AutoConfig.from_pretrained("roberta-base")
     llama_config = AutoConfig.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b")
-    firstLM = RobertaForMaskedLM.from_config(roberta_config)
-    with init_empty_weights():
-        secondLM = LlamaForCausalLM.from_config(llama_config)
+    firstLM = RobertaForMaskedLM.from_config(roberta_config, low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", low_cpu_mem_usage=True)
+    # with init_empty_weights():
+    #     secondLM = LlamaForCausalLM.from_config(llama_config)
 
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
-    secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
+    # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
     firstLM.resize_token_embeddings(len(tokenizerMLM), pad_to_multiple_of=64)
     secondLM.resize_token_embeddings(len(tokenizerTask), pad_to_multiple_of=64) # pad for speed
@@ -433,22 +436,22 @@ def main():
                 "weight_decay": 0.0,
             },
         ]
+    with accelerator.main_process_first():
+        dataset = load_from_disk(args.data_path)
+        print("tokenizing")
+        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
+        tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
+        train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
+                              collate_fn=data_collator)
 
-    dataset = load_from_disk(args.data_path)
-    print("tokenizing")
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
-    tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
-    train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
-                          collate_fn=data_collator)
+        buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
+                                 args.random_ex, args.cat)
+        test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
+                                      args.random_ex, args.cat)
 
-    buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
-                             args.random_ex, args.cat)
-    test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
-                                  args.random_ex, args.cat)
-
-    tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
-    test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
-                         collate_fn=data_collator)
+        tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
+        test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
+                             collate_fn=data_collator)
     eval_ind = int(len(train_dl) // 3)
 
     opt = AdamW(optimizer_grouped_parameters,
