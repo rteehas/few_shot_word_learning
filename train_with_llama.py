@@ -24,7 +24,7 @@ import os
 from configs.config import *
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from accelerate import DistributedDataParallelKwargs
-
+import psutil
 
 class EmbeddingGenerator(nn.Module):
 
@@ -76,8 +76,8 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type,memory_config.agg_method)
 
-        self.emb_gen.apply(self._init_weights)
-        self.emb_gen = self.emb_gen
+       # self.emb_gen.apply(self._init_weights)
+        #self.emb_gen = self.emb_gen
         self.dropout = nn.Dropout(0.2)
         self.freeze()
 
@@ -358,11 +358,14 @@ def main():
 
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
-
+    print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
+    print("CPU Percent", psutil.cpu_percent())
     print("Arguments: ", args)
+    accelerator = Accelerator(log_with="wandb")
 
+    accelerator.wait_for_everyone()
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
-    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama/tokenizer", legacy=False, use_fast=False)
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=False, use_fast=False)
     tokenizerTask.add_bos_token = True
     tokenizerTask.add_eos_token = True
 
@@ -376,20 +379,19 @@ def main():
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
     mask_token_id = tokenizerMLM.mask_token_id
-
+    print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
+    print("CPU Percent", psutil.cpu_percent())
     token_mapping = {v: k for k, v in zip(tokenizerTask.convert_tokens_to_ids(nonces), tokenizerMLM.convert_tokens_to_ids(nonces))}
 
     #data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizerTask, return_tensors="pt", padding=True)
 
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 
-    accelerator = Accelerator(log_with="wandb", kwargs_handlers=[ddp_kwargs])
 
-    accelerator.wait_for_everyone()
-    roberta_config = AutoConfig.from_pretrained("roberta-base")
-    llama_config = AutoConfig.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b")
-    firstLM = RobertaForMaskedLM.from_config(roberta_config, low_cpu_mem_usage=True)
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", low_cpu_mem_usage=True)
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+    print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
+    print("CPU Percent", psutil.cpu_percent())
     # with init_empty_weights():
     #     secondLM = LlamaForCausalLM.from_config(llama_config)
 
@@ -400,7 +402,7 @@ def main():
     secondLM.resize_token_embeddings(len(tokenizerTask), pad_to_multiple_of=64) # pad for speed
     firstLM.eval()
     secondLM.eval()
-
+    print("init memory")
     if args.memory == "mean":
         memory_config = AggregatorConfig()
         # weight_decay = 0.05
@@ -412,9 +414,9 @@ def main():
     #     memory_config = TransformerCLSConfig()
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
-
+    print("init model")
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config)
-
+    print("initialized")
     ##pad to multiple of 64
     #for param in firstLM:
      #   param.requires_grad=False
@@ -436,6 +438,7 @@ def main():
                 "weight_decay": 0.0,
             },
         ]
+    print("dataset")
     with accelerator.main_process_first():
         dataset = load_from_disk(args.data_path)
         print("tokenizing")
