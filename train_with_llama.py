@@ -411,8 +411,8 @@ def main():
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
     # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
-    firstLM.resize_token_embeddings(len(tokenizerMLM), pad_to_multiple_of=64)
-    secondLM.resize_token_embeddings(len(tokenizerTask), pad_to_multiple_of=64) # pad for speed
+    firstLM.resize_token_embeddings(len(tokenizerMLM))
+    secondLM.resize_token_embeddings(len(tokenizerTask)) # pad for speed
     firstLM.eval()
     secondLM.eval()
     print("init memory")
