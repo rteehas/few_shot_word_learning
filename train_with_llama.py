@@ -44,8 +44,15 @@ class EmbeddingGenerator(nn.Module):
     def forward(self, inputs, attn_mask):
 
         out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
-
+        with torch.no_grad():
+            print("output vals", out)
+            print("attention mask", attn_mask)
+            print("product", out * attn_mask.unsqueeze(-1))
+            print("sum", torch.sum(out * attn_mask.unsqueeze(-1), dim=1))
+            print("sum shape", torch.sum(out * attn_mask.unsqueeze(-1), dim=1).shape)
+            print("denom",  torch.sum(attn_mask, dim=-1, keepdim=True))
         mean_pool = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
+        print("mean pool shape", mean_pool.shape)
 
         inp_embeds = self.input_emb_head(mean_pool)
         out_embeds = self.output_emb_head(mean_pool)
@@ -358,17 +365,17 @@ def main():
 
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
-    print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
-    print("CPU Percent", psutil.cpu_percent())
-    print("Arguments: ", args)
+    # print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
+    # print("CPU Percent", psutil.cpu_percent())
+    # print("Arguments: ", args)
     accelerator = Accelerator(log_with="wandb", gradient_accumulation_steps=args.gradient_accumulation_steps)
-    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
+    # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
 
     accelerator.wait_for_everyone()
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
-    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=False, use_fast=False)
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama/tokenizer", legacy=False, use_fast=False)
     tokenizerTask.add_bos_token = True
     tokenizerTask.add_eos_token = True
 
@@ -390,12 +397,12 @@ def main():
 
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 
-    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
+    # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     accelerator.wait_for_everyone()
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", low_cpu_mem_usage=True)
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     print("CPU Percent", psutil.cpu_percent())
     # with init_empty_weights():
@@ -420,9 +427,9 @@ def main():
     #     memory_config = TransformerCLSConfig()
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
-    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
+    # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
 
     print("init model")
     accelerator.wait_for_everyone()
@@ -599,16 +606,16 @@ def main():
                             b['contexts'] = contexts
                             t_out = model(b)
                             all_losses = accelerator.gather(t_out.loss)
-                            test_losses.append(all_losses)
+                            test_losses.append(all_losses.detach())
                             try:
                                 model.module.memory.memory = {}
                             except:
                                 model.memory.memory= {}
                             all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                            test_nonce_losses.append(all_new_tokens)
+                            test_nonce_losses.append(all_new_tokens.detach())
 
-                        avg_test = torch.stack(test_losses).mean()
-                        avg_new_tok = torch.stack(test_nonce_losses).mean()
+                        avg_test = torch.stack(test_losses).mean().detach()
+                        avg_new_tok = torch.stack(test_nonce_losses).mean().detach()
                         accelerator.log(
                             {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
 
