@@ -514,54 +514,55 @@ def main():
         train_new_token_losses = []
         train_losses = []
         for i, batch in enumerate(train_dl):
+            with accelerator.accumulate(model):
 
-            log_dict = {}
+                log_dict = {}
 
-            model.train()
-            try:
-                model.module.firstLM.eval()
-                model.module.secondLM.eval()
-            except:
-                model.firstLM.eval()
-                model.secondLM.eval()
-            model.zero_grad()
-            opt.zero_grad()
-            contexts = []
-            for j in range(batch['input_ids'].shape[0]):
-                to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                assert (len(to_sample) == 1)
+                model.train()
+                try:
+                    model.module.firstLM.eval()
+                    model.module.secondLM.eval()
+                except:
+                    model.firstLM.eval()
+                    model.secondLM.eval()
+                model.zero_grad()
+                opt.zero_grad()
+                contexts = []
+                for j in range(batch['input_ids'].shape[0]):
+                    to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
+                    assert (len(to_sample) == 1)
 
-                for n in to_sample:
-                    sample = buffer.retrieve(n, batch)
-                    if sample is not None:
-                        contexts.append(sample)
-                    else:
-                        print("Null context for {}".format(n))
+                    for n in to_sample:
+                        sample = buffer.retrieve(n, batch)
+                        if sample is not None:
+                            contexts.append(sample)
+                        else:
+                            print("Null context for {}".format(n))
 
-            assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
-            batch['contexts'] = contexts
-            # print(batch['input_ids'].shape[0])
-            out = model(batch)
-            loss = out.loss
-            # print(loss)
-            train_new_token = accelerator.gather(out.new_token_loss)
-            log_dict['train loss'] = loss.detach().item()
-            log_dict['train new token loss'] = train_new_token.mean().item()
-            train_losses.append(loss.item())
-            train_new_token_losses.append(train_new_token.mean().detach().item())
-            accelerator.backward(loss)
-            if accelerator.sync_gradients:
-                accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
-            
-            for name, param in model.named_parameters():
-                if param.grad is not None and param.requires_grad:
-                    log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
-                    if torch.isnan(torch.norm(param.grad.view(-1))):
-                        raise Exception("Nan Gradient for {}".format(name))
+                assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
+                batch['contexts'] = contexts
+                # print(batch['input_ids'].shape[0])
+                out = model(batch)
+                loss = out.loss
+                # print(loss)
+                train_new_token = accelerator.gather(out.new_token_loss)
+                log_dict['train loss'] = loss.detach().item()
+                log_dict['train new token loss'] = train_new_token.mean().item()
+                train_losses.append(loss.item())
+                train_new_token_losses.append(train_new_token.mean().detach().item())
+                accelerator.backward(loss)
+                if accelerator.sync_gradients:
+                    accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
 
-            opt.step()
-            scheduler.step()
-            log_dict['num_words_seen'] = len(buffer.buffer)
+                for name, param in model.named_parameters():
+                    if param.grad is not None and param.requires_grad:
+                        log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
+                        if torch.isnan(torch.norm(param.grad.view(-1))):
+                            raise Exception("Nan Gradient for {}".format(name))
+
+                opt.step()
+                scheduler.step()
+                log_dict['num_words_seen'] = len(buffer.buffer)
 
             # norms = []
             #for m in out.memories:
@@ -575,7 +576,7 @@ def main():
 
              #   log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
 
-            accelerator.log(log_dict)
+                accelerator.log(log_dict)
 
             if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
                 opt.zero_grad(set_to_none=True)
