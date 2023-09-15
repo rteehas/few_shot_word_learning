@@ -44,15 +44,15 @@ class EmbeddingGenerator(nn.Module):
     def forward(self, inputs, attn_mask):
 
         out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
-        with torch.no_grad():
-            print("output vals", out)
-            print("attention mask", attn_mask)
-            print("product", out * attn_mask.unsqueeze(-1))
-            print("sum", torch.sum(out * attn_mask.unsqueeze(-1), dim=1))
-            print("sum shape", torch.sum(out * attn_mask.unsqueeze(-1), dim=1).shape)
-            print("denom",  torch.sum(attn_mask, dim=-1, keepdim=True))
+        # with torch.no_grad():
+        #     print("output vals", out)
+        #     print("attention mask", attn_mask)
+        #     print("product", out * attn_mask.unsqueeze(-1))
+        #     print("sum", torch.sum(out * attn_mask.unsqueeze(-1), dim=1))
+        #     print("sum shape", torch.sum(out * attn_mask.unsqueeze(-1), dim=1).shape)
+        #     print("denom",  torch.sum(attn_mask, dim=-1, keepdim=True))
         mean_pool = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
-        print("mean pool shape", mean_pool.shape)
+        # print("mean pool shape", mean_pool.shape)
 
         inp_embeds = self.input_emb_head(mean_pool)
         out_embeds = self.output_emb_head(mean_pool)
@@ -375,7 +375,7 @@ def main():
 
     accelerator.wait_for_everyone()
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
-    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama/tokenizer", legacy=False, use_fast=False)
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True, use_fast=False)
     tokenizerTask.add_bos_token = True
     tokenizerTask.add_eos_token = True
 
@@ -402,7 +402,7 @@ def main():
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     accelerator.wait_for_everyone()
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama/hf/llama-7b", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     print("CPU Percent", psutil.cpu_percent())
     # with init_empty_weights():
