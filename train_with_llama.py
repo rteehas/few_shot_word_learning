@@ -126,12 +126,12 @@ class MorphMemoryModelLLAMA(nn.Module):
         w = self.secondLM.lm_head.weight.clone()
         n, hidden = w.shape
         #w.requires_grad=True
-        msk = torch.zeros_like(w).to(w.device)
-        msk2 = torch.zeros_like(w).to(w.device)
+        msk = torch.zeros_like(w, device=w.device)
+        msk2 = torch.zeros_like(w, device=w.device)
         token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
         for key in memory.memory:
-            msk = msk.scatter(0, torch.tensor([token_mapping[key]]).to(w.device).expand(1, hidden),
-                              memory.retrieve(key).to(w.dtype))
+            msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden),
+                              memory.retrieve(key))
             msk2[token_mapping[key], :] = 1.
 
         return w * (~msk2.bool()) + msk
@@ -151,11 +151,11 @@ class MorphMemoryModelLLAMA(nn.Module):
         if not ref_model.get_input_embeddings().weight.requires_grad:
             w.requires_grad = True
 
-        msk = torch.zeros_like(w).to(w.device)
-        msk2 = torch.zeros_like(w).to(w.device)
+        msk = torch.zeros_like(w, device=w.device)
+        msk2 = torch.zeros_like(w, device=w.device)
         token_mapping = {k:v for k,v in zip(self.first_list, self.second_list)}
         for key in memory.memory:
-            msk = msk.scatter(0, torch.tensor([token_mapping[key]]).to(w.device).expand(1, hidden), memory.retrieve(key).to(w.dtype))
+            msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden), memory.retrieve(key).to(w.dtype))
             msk2[token_mapping[key], :] = 1.
 
         return w * (~msk2.bool()) + msk
@@ -255,11 +255,11 @@ class MorphMemoryModelLLAMA(nn.Module):
             # print(outputs[0].shape)
             output_weights = self.get_new_output_weights(output_memory)
             llama_outputs = self.llama_forward(task_labels[i], outputs, output_weights)
-            new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
+            with torch.no_grad():
+                new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
                                                      self.secondLM.lm_head.weight.shape[0],
                                                      torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
             print("before mem forward")
-            mem_embeds.append(input_embeds)
             out_vals = CausalLMOutputWithNewToken(
                 loss=llama_outputs.loss,
                 logits=llama_outputs.logits,
@@ -361,7 +361,10 @@ def main():
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     print("CPU Percent", psutil.cpu_percent())
     print("Arguments: ", args)
-    accelerator = Accelerator(log_with="wandb")
+    accelerator = Accelerator(log_with="wandb", gradient_accumulation_steps=args.gradient_accumulation_steps)
+    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
 
     accelerator.wait_for_everyone()
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
@@ -387,7 +390,10 @@ def main():
 
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
 
-
+    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
+    accelerator.wait_for_everyone()
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
@@ -414,7 +420,12 @@ def main():
     #     memory_config = TransformerCLSConfig()
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
+    print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+    print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+    print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
+
     print("init model")
+    accelerator.wait_for_everyone()
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config)
     model = accelerator.prepare(model)
     print("initialized")
@@ -507,8 +518,12 @@ def main():
             log_dict = {}
 
             model.train()
-            model.module.firstLM.eval()
-            model.module.secondLM.eval()
+            try:
+                model.module.firstLM.eval()
+                model.module.secondLM.eval()
+            except:
+                model.firstLM.eval()
+                model.secondLM.eval()
             model.zero_grad()
             opt.zero_grad()
             contexts = []
@@ -530,14 +545,15 @@ def main():
             loss = out.loss
             # print(loss)
             train_new_token = accelerator.gather(out.new_token_loss)
-            log_dict['train loss'] = loss.item()
+            log_dict['train loss'] = loss.detach().item()
             log_dict['train new token loss'] = train_new_token.mean().item()
             train_losses.append(loss.item())
-            train_new_token_losses.append(train_new_token.mean())
+            train_new_token_losses.append(train_new_token.mean().detach().item())
             accelerator.backward(loss)
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
-            for name, param in model.module.named_parameters():
+            
+            for name, param in model.named_parameters():
                 if param.grad is not None and param.requires_grad:
                     log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
                     if torch.isnan(torch.norm(param.grad.view(-1))):
@@ -583,7 +599,10 @@ def main():
                         t_out = model(b)
                         all_losses = accelerator.gather(t_out.loss)
                         test_losses.append(all_losses)
-                        model.module.memory.memory = {}
+                        try:
+                            model.module.memory.memory = {}
+                        except:
+                            model.memory.memory= {}
                         all_new_tokens = accelerator.gather(t_out.new_token_loss)
                         test_nonce_losses.append(all_new_tokens)
 
