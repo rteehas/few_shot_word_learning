@@ -520,6 +520,8 @@ def main():
     for epoch in range(epochs):
         train_new_token_losses = []
         train_losses = []
+        total_loss = 0
+        total_new_token_loss = 0
         for i, batch in enumerate(train_dl):
             with accelerator.accumulate(model):
 
@@ -552,14 +554,17 @@ def main():
                 out = model(batch)
                 loss = out.loss
                 # print(loss)
-                train_new_token = accelerator.gather(out.new_token_loss)
-                log_dict['train loss'] = loss.detach().item()
-                log_dict['train new token loss'] = train_new_token.mean().item()
-                train_losses.append(loss.item())
-                train_new_token_losses.append(train_new_token.mean().detach().item())
+                total_loss += loss.detach().float()
+                total_new_token_loss += out.new_token_loss.detach().float()
+                # train_new_token = accelerator.gather(out.new_token_loss)
+                # train_losses.append(loss.item())
+                # train_new_token_losses.append(train_new_token.mean().detach().item())
                 accelerator.backward(loss)
-                if accelerator.sync_gradients:
-                    accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
+                opt.step()
+                scheduler.step()
+
+            if accelerator.sync_gradients:
+                accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
 
                 for name, param in model.named_parameters():
                     if param.grad is not None and param.requires_grad:
@@ -567,9 +572,12 @@ def main():
                         if torch.isnan(torch.norm(param.grad.view(-1))):
                             raise Exception("Nan Gradient for {}".format(name))
 
-                opt.step()
-                scheduler.step()
+                log_dict['train loss'] = total_loss.item() / args.gradient_accumulation_steps
+                log_dict['train new token loss'] = total_new_token_loss.item() / args.gradient_accumulation_steps
                 log_dict['num_words_seen'] = len(buffer.buffer)
+                accelerator.log(log_dict)
+                total_loss = 0
+                total_new_token_loss = 0
 
             # norms = []
             #for m in out.memories:
@@ -583,7 +591,7 @@ def main():
 
              #   log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
 
-                accelerator.log(log_dict)
+
             try:
                 if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
                     opt.zero_grad(set_to_none=True)
