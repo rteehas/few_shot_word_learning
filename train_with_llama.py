@@ -577,48 +577,56 @@ def main():
              #   log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
 
                 accelerator.log(log_dict)
+            try:
+                if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
+                    opt.zero_grad(set_to_none=True)
+                    model.eval()
+                    with torch.no_grad():
+                        test_losses = []
+                        test_nonce_losses = []
 
-            if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
-                opt.zero_grad(set_to_none=True)
-                model.eval()
-                with torch.no_grad():
-                    test_losses = []
-                    test_nonce_losses = []
+                        for b in test_dl:
+                            contexts = []
+                            for j in range(b['input_ids'].shape[0]):
+                                to_sample = list(set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
+                                assert (len(to_sample) == 1)
 
-                    for b in test_dl:
-                        contexts = []
-                        for j in range(b['input_ids'].shape[0]):
-                            to_sample = list(set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
-                            assert (len(to_sample) == 1)
+                                for n in to_sample:
+                                    sample = test_buffer.retrieve(n, b)
+                                    if sample is not None:
+                                        contexts.append(sample)
+                            assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
+                            b['contexts'] = contexts
+                            t_out = model(b)
+                            all_losses = accelerator.gather(t_out.loss)
+                            test_losses.append(all_losses)
+                            try:
+                                model.module.memory.memory = {}
+                            except:
+                                model.memory.memory= {}
+                            all_new_tokens = accelerator.gather(t_out.new_token_loss)
+                            test_nonce_losses.append(all_new_tokens)
 
-                            for n in to_sample:
-                                sample = test_buffer.retrieve(n, b)
-                                if sample is not None:
-                                    contexts.append(sample)
-                        assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
-                        b['contexts'] = contexts
-                        t_out = model(b)
-                        all_losses = accelerator.gather(t_out.loss)
-                        test_losses.append(all_losses)
-                        try:
-                            model.module.memory.memory = {}
-                        except:
-                            model.memory.memory= {}
-                        all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                        test_nonce_losses.append(all_new_tokens)
+                        avg_test = torch.stack(test_losses).mean()
+                        avg_new_tok = torch.stack(test_nonce_losses).mean()
+                        accelerator.log(
+                            {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
 
-                    avg_test = torch.stack(test_losses).mean()
-                    avg_new_tok = torch.stack(test_nonce_losses).mean()
-                    accelerator.log(
-                        {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
-
-                    accelerator.wait_for_everyone()
-                    save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
-                    os.makedirs(save_dir, exist_ok=True)
-                    accelerator.save_state(save_dir)
-                    tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                    tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
-                    checkpoint_id += 1
+                        accelerator.wait_for_everyone()
+                        save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
+                        os.makedirs(save_dir, exist_ok=True)
+                        accelerator.save_state(save_dir)
+                        tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                        tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                        checkpoint_id += 1
+            except:
+                accelerator.wait_for_everyone()
+                save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
+                os.makedirs(save_dir, exist_ok=True)
+                accelerator.save_state(save_dir)
+                tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                checkpoint_id += 1
 
     accelerator.end_training()
 
