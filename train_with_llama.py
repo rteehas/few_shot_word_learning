@@ -274,6 +274,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 hidden_states=llama_outputs.hidden_states,
                 attentions=llama_outputs.attentions,
                 new_token_loss=new_tok_loss,
+                memories=[output_memory]
             )
             # print("after mem forward")
             outs.append(out_vals)
@@ -286,6 +287,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_past_key_values = [o.past_key_values for o in outs]
         final_attentions = [o.attentions for o in outs]
         final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
+        final_memories = [o.memories for o in outs]
         # print("before return")
         return CausalLMOutputWithNewToken(
             loss=final_loss,
@@ -293,7 +295,8 @@ class MorphMemoryModelLLAMA(nn.Module):
             hidden_states=final_hiddens,
             attentions=final_attentions,
             past_key_values=final_past_key_values,
-            new_token_loss=final_new_token_loss
+            new_token_loss=final_new_token_loss,
+            memories=final_memories
         )
         # task_embeds = torch.stack(mem_embeds)
         # outputs = self.secondLM.model(
@@ -520,48 +523,51 @@ def main():
     for epoch in range(epochs):
         train_new_token_losses = []
         train_losses = []
-        total_loss = 0
-        total_new_token_loss = 0
+        # total_loss = 0
+        # total_new_token_loss = 0
         for i, batch in enumerate(train_dl):
-            with accelerator.accumulate(model):
 
-                log_dict = {}
+            log_dict = {}
 
-                model.train()
-                try:
-                    model.module.firstLM.eval()
-                    model.module.secondLM.eval()
-                except:
-                    model.firstLM.eval()
-                    model.secondLM.eval()
-                model.zero_grad()
-                opt.zero_grad()
-                contexts = []
-                for j in range(batch['input_ids'].shape[0]):
-                    to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                    assert (len(to_sample) == 1)
+            model.train()
+            try:
+                model.module.firstLM.eval()
+                model.module.secondLM.eval()
+            except:
+                model.firstLM.eval()
+                model.secondLM.eval()
+            model.zero_grad()
+            opt.zero_grad()
+            contexts = []
+            for j in range(batch['input_ids'].shape[0]):
+                to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
+                assert (len(to_sample) == 1)
 
-                    for n in to_sample:
-                        sample = buffer.retrieve(n, batch)
-                        if sample is not None:
-                            contexts.append(sample)
-                        else:
-                            print("Null context for {}".format(n))
+                for n in to_sample:
+                    sample = buffer.retrieve(n, batch)
+                    if sample is not None:
+                        contexts.append(sample)
+                    else:
+                        print("Null context for {}".format(n))
 
-                assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
-                batch['contexts'] = contexts
-                # print(batch['input_ids'].shape[0])
-                out = model(batch)
-                loss = out.loss
-                # print(loss)
-                total_loss += loss.detach().float()
-                total_new_token_loss += out.new_token_loss.detach().float()
-                # train_new_token = accelerator.gather(out.new_token_loss)
-                # train_losses.append(loss.item())
-                # train_new_token_losses.append(train_new_token.mean().detach().item())
-                accelerator.backward(loss)
-                opt.step()
-                scheduler.step()
+            assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
+            batch['contexts'] = contexts
+            # print(batch['input_ids'].shape[0])
+            out = model(batch)
+            loss = out.loss
+            # print(loss)
+            # total_loss += loss.detach().float()
+            # total_new_token_loss += out.new_token_loss.detach().float()
+            # train_new_token = accelerator.gather(out.new_token_loss)
+            train_losses.append(loss.item())
+            train_new_token_losses.append(out.new_token_loss.detach().item())
+            accelerator.backward(loss)
+            opt.step()
+            scheduler.step()
+
+            log_dict['train loss'] = loss.item()
+            log_dict['train new token loss'] = out.new_token_loss.item()
+            log_dict['num_words_seen'] = len(buffer.buffer)
 
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
@@ -572,24 +578,18 @@ def main():
                         if torch.isnan(torch.norm(param.grad.view(-1))):
                             raise Exception("Nan Gradient for {}".format(name))
 
-                log_dict['train loss'] = total_loss.item() / args.gradient_accumulation_steps
-                log_dict['train new token loss'] = total_new_token_loss.item() / args.gradient_accumulation_steps
-                log_dict['num_words_seen'] = len(buffer.buffer)
-                accelerator.log(log_dict)
-                total_loss = 0
-                total_new_token_loss = 0
+            accelerator.log(log_dict)
 
-            # norms = []
-            #for m in out.memories:
-            #    new_ids = list(m.memory.keys())
-            #    assert len(new_ids) == 1
-            #    new_id = new_ids[0]
-            #    with torch.no_grad():
-            #        norms.append(m.retrieve(new_id).norm())
+            norms = []
+            with torch.no_grad():
+                for m in out.memories:
+                   new_ids = list(m.memory.keys())
+                   assert len(new_ids) == 1
+                   new_id = new_ids[0]
+                   with torch.no_grad():
+                       norms.append(m.retrieve(new_id).norm())
 
-            #with torch.no_grad():
-
-             #   log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean()
+                   log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean().detach().item()
 
 
             try:
@@ -619,11 +619,11 @@ def main():
                                 model.module.memory.memory = {}
                             except:
                                 model.memory.memory= {}
-                            all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                            test_nonce_losses.append(all_new_tokens.detach())
+                            # all_new_tokens = accelerator.gather(t_out.new_token_loss)
+                            test_nonce_losses.append(t_out.new_token_loss.detach())
 
-                        avg_test = torch.stack(test_losses).mean().detach()
-                        avg_new_tok = torch.stack(test_nonce_losses).mean().detach()
+                        avg_test = torch.stack(test_losses).mean().detach().item()
+                        avg_new_tok = torch.stack(test_nonce_losses).mean().detach().item()
                         accelerator.log(
                             {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
 

@@ -2,7 +2,10 @@ import torch
 from transformers.file_utils import ModelOutput
 from transformers.modeling_outputs import MaskedLMOutput, CausalLMOutputWithPast
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
+
+from modules.memory import OnlineProtoNet
+
 
 class MaskLMOutputWithNewToken(MaskedLMOutput):
 
@@ -20,4 +23,4 @@ class CausalLMOutputWithNewToken(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-        # self.memories=memories
+    memories: Optional[List[OnlineProtoNet]] = None
