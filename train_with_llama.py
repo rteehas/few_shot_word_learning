@@ -287,7 +287,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_past_key_values = [o.past_key_values for o in outs]
         final_attentions = [o.attentions for o in outs]
         final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
-        final_memories = [o.memories for o in outs]
+        final_memories = [o.memories[0] for o in outs]
         # print("before return")
         return CausalLMOutputWithNewToken(
             loss=final_loss,
@@ -371,7 +371,7 @@ def main():
     # print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     # print("CPU Percent", psutil.cpu_percent())
     # print("Arguments: ", args)
-    accelerator = Accelerator(log_with="wandb", gradient_accumulation_steps=args.gradient_accumulation_steps)
+    accelerator = Accelerator(log_with="wandb")
     # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
