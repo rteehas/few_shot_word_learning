@@ -67,6 +67,32 @@ def get_new_token_loss_labels(labels, logits, vocab_size, new_tokens):
         return None
 
 
+def get_per_token_loss_llama(labels, logits, nonces, vocab_size):
+    loss_fct = nn.CrossEntropyLoss(reduction='none')
+    shift_logits = logits[..., :-1, :].contiguous()
+    shift_labels = labels[..., 1:].contiguous()
+    # Flatten the tokens
+    shift_logits = shift_logits.view(-1, vocab_size)
+    shift_labels = shift_labels.view(-1)
+    # Enable model parallelism
+    shift_labels = shift_labels.to(shift_logits.device)
+
+    loss = loss_fct(shift_logits, shift_labels)
+
+    selected = loss[torch.where(torch.isin(torch.flatten(shift_labels), nonces))]
+
+    return selected
+
+
+def get_new_token_loss_labels_llama(labels, logits, vocab_size, new_tokens):
+    token_loss = get_per_token_loss_llama(labels, logits, new_tokens, vocab_size)
+    # print(token_loss)
+    if token_loss.numel() > 0:
+        return token_loss.mean()
+    else:
+        return None
+
+
 def get_nonce_loss(batch, out, vocab_size, new_tokens, device):
     b_task, k_task, l_task = batch["task_inputs"]["input_ids"].shape
 

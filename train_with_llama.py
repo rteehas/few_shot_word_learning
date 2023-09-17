@@ -19,7 +19,7 @@ from modules.buffer import RetrievalBuffer
 from modules.memory import OnlineProtoNet
 from modules.model_outputs import CausalLMOutputWithNewToken
 from modules.utils import combine_layers
-from train_utils import get_new_token_loss_labels
+from train_utils import get_new_token_loss_labels_llama
 import os
 from configs.config import *
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -263,7 +263,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             output_weights = self.get_new_output_weights(output_memory)
             llama_outputs = self.llama_forward(task_labels[i], outputs, output_weights)
             with torch.no_grad():
-                new_tok_loss = get_new_token_loss_labels(task_labels[i].unsqueeze(0), llama_outputs.logits,
+                new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
                                                      self.secondLM.lm_head.weight.shape[0],
                                                      torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
             #print("before mem forward")
