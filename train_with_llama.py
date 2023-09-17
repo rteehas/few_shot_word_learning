@@ -625,7 +625,7 @@ def main():
                 # train_new_token_losses.append(out.new_token_loss.detach().item())
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
-                    accelerator.clip_grad_norm_(model.named_parameters(), 1.0)
+                    accelerator.clip_grad_norm_(model.parameters(), 1.0)
                     for name, param in model.named_parameters():
                         if param.grad is not None and param.requires_grad:
                             log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
