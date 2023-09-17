@@ -580,8 +580,9 @@ def main():
 
             accelerator.log(log_dict)
 
-            norms = []
             with torch.no_grad():
+                norms = []
+                
                 for m in out.memories:
                    new_ids = list(m.memory.keys())
                    assert len(new_ids) == 1
@@ -589,7 +590,7 @@ def main():
                    with torch.no_grad():
                        norms.append(m.retrieve(new_id).norm())
 
-                   log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean().detach().item()
+                log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean().detach().item()
 
 
             try:
