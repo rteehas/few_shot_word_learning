@@ -619,14 +619,13 @@ def main():
                 out = model(batch)
                 loss = out.loss
                 # print(loss)
-                total_loss += loss.detach().float()
-                total_new_token_loss += out.new_token_loss.detach().float()
+
                 # train_new_token = accelerator.gather(out.new_token_loss)
                 # train_losses.append(loss.item())
                 # train_new_token_losses.append(out.new_token_loss.detach().item())
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
-                    accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
+                    accelerator.clip_grad_norm_(model.named_parameters(), 1.0)
                     for name, param in model.named_parameters():
                         if param.grad is not None and param.requires_grad:
                             log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
@@ -634,11 +633,12 @@ def main():
                             if torch.isnan(torch.norm(param.grad.view(-1))):
                                 raise Exception("Nan Gradient for {}".format(name))
 
-
                 opt.step()
                 scheduler.step()
                 opt.zero_grad()
                 model.zero_grad()
+                total_loss += loss.detach().float()
+                total_new_token_loss += out.new_token_loss.detach().float()
 
 
 
@@ -656,7 +656,8 @@ def main():
 
                 log_dict['train new token loss'] = total_new_token_loss / args.gradient_accumulation_steps
                 log_dict['num_words_seen'] = len(buffer.buffer)
-
+                total_loss = 0
+                total_new_token_loss = 0
 
 
 
@@ -680,8 +681,7 @@ def main():
                         log_dict["embed_norms/{} token embedding norm".format(memory_type)] = torch.stack(norms).mean().detach().item()
 
                 accelerator.log(log_dict)
-                total_loss = 0
-                total_new_token_loss = 0
+
 
 
             try:
