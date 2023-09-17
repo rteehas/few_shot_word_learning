@@ -353,7 +353,7 @@ def get_arguments():
 def create_checkpoint_directories(args):
 
     path = "model_checkpoints/layers/no_mp/llama/input_and_output/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
-    path = path.format(args.batch_size,args.memory, args.num_examples, args.lr, args.weight_decay)
+    path = path.format(args.batch_size * args.gradient_accumulation_steps,args.memory, args.num_examples, args.lr, args.weight_decay)
     os.makedirs(path, exist_ok=True)
 
     return path
@@ -371,7 +371,7 @@ def main():
     # print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     # print("CPU Percent", psutil.cpu_percent())
     # print("Arguments: ", args)
-    accelerator = Accelerator(log_with="wandb")
+    accelerator = Accelerator(log_with="wandb", gradient_accumulation_steps=args.gradient_accumulation_steps)
     # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
@@ -523,51 +523,50 @@ def main():
     for epoch in range(epochs):
         train_new_token_losses = []
         train_losses = []
-        # total_loss = 0
-        # total_new_token_loss = 0
+        total_loss = 0
+        total_new_token_loss = 0
         for i, batch in enumerate(train_dl):
+            with accelerator.accumulate(model):
+                log_dict = {}
 
-            log_dict = {}
+                model.train()
+                try:
+                    model.module.firstLM.eval()
+                    model.module.secondLM.eval()
+                except:
+                    model.firstLM.eval()
+                    model.secondLM.eval()
+                model.zero_grad()
+                opt.zero_grad()
+                contexts = []
+                for j in range(batch['input_ids'].shape[0]):
+                    to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
+                    assert (len(to_sample) == 1)
 
-            model.train()
-            try:
-                model.module.firstLM.eval()
-                model.module.secondLM.eval()
-            except:
-                model.firstLM.eval()
-                model.secondLM.eval()
-            model.zero_grad()
-            opt.zero_grad()
-            contexts = []
-            for j in range(batch['input_ids'].shape[0]):
-                to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                assert (len(to_sample) == 1)
+                    for n in to_sample:
+                        sample = buffer.retrieve(n, batch)
+                        if sample is not None:
+                            contexts.append(sample)
+                        else:
+                            print("Null context for {}".format(n))
 
-                for n in to_sample:
-                    sample = buffer.retrieve(n, batch)
-                    if sample is not None:
-                        contexts.append(sample)
-                    else:
-                        print("Null context for {}".format(n))
+                assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
+                batch['contexts'] = contexts
+                # print(batch['input_ids'].shape[0])
+                out = model(batch)
+                loss = out.loss
+                # print(loss)
+                total_loss += loss.detach().float()
+                total_new_token_loss += out.new_token_loss.detach().float()
+                # train_new_token = accelerator.gather(out.new_token_loss)
+                train_losses.append(loss.item())
+                train_new_token_losses.append(out.new_token_loss.detach().item())
+                accelerator.backward(loss)
+                opt.step()
+                scheduler.step()
 
-            assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
-            batch['contexts'] = contexts
-            # print(batch['input_ids'].shape[0])
-            out = model(batch)
-            loss = out.loss
-            # print(loss)
-            # total_loss += loss.detach().float()
-            # total_new_token_loss += out.new_token_loss.detach().float()
-            # train_new_token = accelerator.gather(out.new_token_loss)
-            train_losses.append(loss.item())
-            train_new_token_losses.append(out.new_token_loss.detach().item())
-            accelerator.backward(loss)
-            opt.step()
-            scheduler.step()
 
-            log_dict['train loss'] = loss.item()
-            log_dict['train new token loss'] = out.new_token_loss.item()
-            log_dict['num_words_seen'] = len(buffer.buffer)
+
 
             if accelerator.sync_gradients:
                 accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
@@ -578,7 +577,14 @@ def main():
                         if torch.isnan(torch.norm(param.grad.view(-1))):
                             raise Exception("Nan Gradient for {}".format(name))
 
-            accelerator.log(log_dict)
+                log_dict['train loss'] = total_loss / args.gradient_accumulation_steps
+
+                log_dict['train new token loss'] = total_new_token_loss / args.gradient_accumulation_steps
+                log_dict['num_words_seen'] = len(buffer.buffer)
+                accelerator.log(log_dict)
+                total_loss = 0
+                total_new_token_loss = 0
+
 
             with torch.no_grad():
                 norms = []
