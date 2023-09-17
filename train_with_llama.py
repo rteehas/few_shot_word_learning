@@ -26,23 +26,24 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from accelerate import DistributedDataParallelKwargs
 import psutil
 
+
 class EmbeddingGenerator(nn.Module):
 
     def __init__(self, firstLM, secondLM):
         super().__init__()
-        self.firstLM = firstLM
-        self.secondLM = secondLM
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.firstLM.config.hidden_size,
-                                                   nhead=self.firstLM.config.num_attention_heads,
-                                                   activation='relu',
-                                                   batch_first=True)
+        self.input_hidden_size = firstLM.config.hidden_size
+        self.output_hidden_size = secondLM.config.hidden_size
+        self.num_attention_heads = firstLM.config.num_attention_heads
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.input_hidden_size,
+                                                        nhead=self.num_attention_heads,
+                                                        activation='relu',
+                                                        batch_first=True)
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
-        
-        self.input_emb_head = nn.Linear(self.firstLM.config.hidden_size, self.secondLM.config.hidden_size)
-        self.output_emb_head = nn.Linear(self.firstLM.config.hidden_size, self.secondLM.config.hidden_size)
+
+        self.input_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
+        self.output_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
 
     def forward(self, inputs, attn_mask):
-
         out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
         # with torch.no_grad():
         #     print("output vals", out)
@@ -81,16 +82,16 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
 
-        self.model_name = "{}_{}".format(self.secondLM.config.model_type,memory_config.agg_method)
+        self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
 
         self.emb_gen.apply(self._init_weights)
-        #self.emb_gen = self.emb_gen
+        # self.emb_gen = self.emb_gen
         self.dropout = nn.Dropout(0.2)
         self.freeze()
 
-        self.secondLM.config.vocab_size = self.secondLM.lm_head.weight.shape[0]
+        #         self.secondLM.config.vocab_size = self.secondLM.lm_head.weight.shape[0]
 
-        #initialize new token embeddings
+        # initialize new token embeddings
         with torch.no_grad():
             m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:initial_first_ind, :], dim=0)
             m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
@@ -115,10 +116,10 @@ class MorphMemoryModelLLAMA(nn.Module):
             module.weight.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
             if module.bias is not None:
                 module.bias.data.zero_()
-        # elif isinstance(module, nn.Embedding):
-        #     module.weight.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
-        #     if module.padding_idx is not None:
-        #         module.weight.data[module.padding_idx].zero_()
+        elif isinstance(module, nn.Embedding):
+            module.weight.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
+            if module.padding_idx is not None:
+                module.weight.data[module.padding_idx].zero_()
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
@@ -132,7 +133,7 @@ class MorphMemoryModelLLAMA(nn.Module):
     def get_new_output_weights(self, memory):
         w = self.secondLM.lm_head.weight.clone()
         n, hidden = w.shape
-        #w.requires_grad=True
+        # w.requires_grad=True
         msk = torch.zeros_like(w, device=w.device)
         msk2 = torch.zeros_like(w, device=w.device)
         token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
@@ -160,9 +161,10 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         msk = torch.zeros_like(w, device=w.device)
         msk2 = torch.zeros_like(w, device=w.device)
-        token_mapping = {k:v for k,v in zip(self.first_list, self.second_list)}
+        token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
         for key in memory.memory:
-            msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden), memory.retrieve(key).to(w.dtype))
+            msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden),
+                              memory.retrieve(key).to(w.dtype))
             msk2[token_mapping[key], :] = 1.
 
         return w * (~msk2.bool()) + msk
@@ -183,8 +185,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         else:
             logits = F.linear(hidden_states, new_w, bias=self.secondLM.lm_head.bias)
         logits = logits.float()
-        #print(logits.shape, "logits")
-        #print(self.secondLM.lm_head.weight.shape, "lm_logits")
+        # print(logits.shape, "logits")
+        # print(self.secondLM.lm_head.weight.shape, "lm_logits")
         loss = None
         if labels is not None:
             # Shift so that tokens < n predict n
@@ -218,8 +220,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         task_ids = batch['input_ids']
         task_attn = batch["attention_mask"]
 
-        #if 'labels' in batch:
-         #   task_labels = task_labels.reshape((b_task * k_task, l_task))
+        # if 'labels' in batch:
+        #   task_labels = task_labels.reshape((b_task * k_task, l_task))
 
         task_labels = batch['labels']
         outs = []
@@ -228,12 +230,17 @@ class MorphMemoryModelLLAMA(nn.Module):
         mem_embeds = []
         for i in range(b_task):
             c = contexts[i].to(self.firstLM.device)
-            new_token = c['input_ids'][torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[0].item()
+            #             print('before', c['input_ids'])
+            new_token = c['input_ids'][
+                torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
+                0].item()
+
             input_memory = OnlineProtoNet(self.memory_config, base_memory=self.memory)
             output_memory = OnlineProtoNet(self.memory_config, base_memory=self.memory)
 
             mlm_ids = self.swap_with_mask(c['input_ids'])
-
+            #             print('after', c['input_ids'])
+            #             print("after mlm ids", mlm_ids)
             with torch.no_grad():
                 first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
                                          output_hidden_states=True)
@@ -262,11 +269,16 @@ class MorphMemoryModelLLAMA(nn.Module):
             # print(outputs[0].shape)
             output_weights = self.get_new_output_weights(output_memory)
             llama_outputs = self.llama_forward(task_labels[i], outputs, output_weights)
-            with torch.no_grad():
-                new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
-                                                     self.secondLM.lm_head.weight.shape[0],
-                                                     torch.tensor(self.second_list, device=llama_outputs.logits.device).unique())
-            #print("before mem forward")
+            #             with torch.no_grad():
+            new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
+                                                         self.secondLM.lm_head.weight.shape[0],
+                                                         torch.tensor(self.second_list,
+                                                                      device=llama_outputs.logits.device).unique())
+            # print("before mem forward")
+            #             print(new_token, new_tok_loss)
+            token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
+            #             print("output", output_weights[token_mapping[new_token], :])
+            #             print("input", new_w[token_mapping[new_token], :])
             out_vals = CausalLMOutputWithNewToken(
                 loss=llama_outputs.loss,
                 logits=llama_outputs.logits,
@@ -274,7 +286,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 hidden_states=llama_outputs.hidden_states,
                 attentions=llama_outputs.attentions,
                 new_token_loss=new_tok_loss,
-                memories=[output_memory]
+                memories=[input_memory, output_memory]
             )
             # print("after mem forward")
             outs.append(out_vals)
@@ -287,7 +299,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_past_key_values = [o.past_key_values for o in outs]
         final_attentions = [o.attentions for o in outs]
         final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
-        final_memories = [o.memories[0] for o in outs]
+        #         print([o.new_token_loss for o in outs])
+        final_memories = [o.memories for o in outs]
         # print("before return")
         return CausalLMOutputWithNewToken(
             loss=final_loss,
