@@ -83,7 +83,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type,memory_config.agg_method)
 
-       # self.emb_gen.apply(self._init_weights)
+        self.emb_gen.apply(self._init_weights)
         #self.emb_gen = self.emb_gen
         self.dropout = nn.Dropout(0.2)
         self.freeze()
@@ -115,10 +115,10 @@ class MorphMemoryModelLLAMA(nn.Module):
             module.weight.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
             if module.bias is not None:
                 module.bias.data.zero_()
-        elif isinstance(module, nn.Embedding):
-            module.weight.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
-            if module.padding_idx is not None:
-                module.weight.data[module.padding_idx].zero_()
+        # elif isinstance(module, nn.Embedding):
+        #     module.weight.data.normal_(mean=0.0, std=self.secondLM.config.initializer_range)
+        #     if module.padding_idx is not None:
+        #         module.weight.data[module.padding_idx].zero_()
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
