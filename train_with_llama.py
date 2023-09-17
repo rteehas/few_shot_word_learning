@@ -624,6 +624,7 @@ def main():
                 # train_new_token = accelerator.gather(out.new_token_loss)
                 # train_losses.append(loss.item())
                 # train_new_token_losses.append(out.new_token_loss.detach().item())
+                accelerator.backward(loss)
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
                     for name, param in model.named_parameters():
@@ -633,10 +634,11 @@ def main():
                             if torch.isnan(torch.norm(param.grad.view(-1))):
                                 raise Exception("Nan Gradient for {}".format(name))
 
-                accelerator.backward(loss)
+
                 opt.step()
                 scheduler.step()
                 opt.zero_grad()
+                model.zero_grad()
 
 
 
