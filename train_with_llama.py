@@ -286,7 +286,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 hidden_states=llama_outputs.hidden_states,
                 attentions=llama_outputs.attentions,
                 new_token_loss=new_tok_loss,
-                memories=[input_memory, output_memory]
+                memories=[dict(input_memory=input_memory, output_memory=output_memory)]
             )
             # print("after mem forward")
             outs.append(out_vals)
@@ -300,7 +300,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_attentions = [o.attentions for o in outs]
         final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
         #         print([o.new_token_loss for o in outs])
-        final_memories = [o.memories for o in outs]
+        final_memories = [o.memories[0] for o in outs] # list of the dictionaries
         # print("before return")
         return CausalLMOutputWithNewToken(
             loss=final_loss,
@@ -609,15 +609,23 @@ def main():
 
 
                 with torch.no_grad():
-                    norms = []
+                    memory_norms = {
+                        'input_memory': [],
+                        'output_memory': []
+                    }
 
-                    for m in out.memories:
-                       new_ids = list(m.memory.keys())
-                       assert len(new_ids) == 1
-                       new_id = new_ids[0]
-                       norms.append(m.retrieve(new_id).norm())
+                    for mem_dict in out.memories:
+                        for memory_type in ['input_memory', 'output_memory']:
+                            m = mem_dict[memory_type]
+                            new_ids = list(m.memory.keys())
+                            assert len(new_ids) == 1
+                            new_id = new_ids[0]
+                            memory_norms[memory_type].append(m.retrieve(new_id).norm().detach())
 
-                    log_dict["embed_norms/token embedding norm"] = torch.stack(norms).mean().detach().item()
+                    for memory_type in ['input_memory', 'output_memory']:
+                        norms = memory_norms[memory_type]
+
+                        log_dict["embed_norms/{} token embedding norm".format(memory_type)] = torch.stack(norms).mean().detach().item()
 
                 accelerator.log(log_dict)
                 total_loss = 0
