@@ -542,9 +542,10 @@ def main():
                              collate_fn=data_collator)
     eval_ind = int(len(train_dl) // 3)
 
-    opt = AdamW(optimizer_grouped_parameters,
+    opt = AdamW(filter(lambda p: p.requires_grad, model.parameters()),
                 eps=epsilon,
-                lr=lr
+                lr=lr,
+                weight_decay=args.weight_decay
                 )
 
     warmup_steps = int(len(train_dl) * 0.03)
