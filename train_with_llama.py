@@ -43,7 +43,7 @@ def decoding_step(logits, temperature, top_k=None, do_sample=False):
 
 
 @torch.no_grad
-def generate(model, context, input_ids, attention_mask, max_new_tokens, temperature=1.0, top_k=None):
+def generate(model, context, input_ids, attention_mask, max_new_tokens, temperature=1.0, top_k=None, do_sample=False):
     initial_batch = {
         "contexts": [context],
         'input_ids': input_ids,
@@ -53,7 +53,7 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
     initial_outputs = model(initial_batch)
 
     input_weights = model.get_new_weights(task="Task", memory=initial_outputs.memories[0]['input_memory'])
-    output_weights = model.get_new_output_weights(initial_outputs.memories[0]['output_weight'])
+    output_weights = model.get_new_output_weights(initial_outputs.memories[0]['output_memory'])
 
     first_token = decoding_step(initial_outputs.logits, temperature, top_k)
     new_input_ids = torch.cat([input_ids, first_token], dim=1)
@@ -69,6 +69,7 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
         llama_outputs = model.llama_forward(labels=None, outputs=outputs, new_w=output_weights)
 
         next_token = decoding_step(llama_outputs.logits, temperature, top_k, do_sample)
+
         #         print(next_token.shape)
         #         print(new_input_ids.shape)
         new_input_ids = torch.cat([new_input_ids, next_token], dim=1)
