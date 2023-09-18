@@ -79,16 +79,17 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
 
 class EmbeddingGenerator(nn.Module):
 
-    def __init__(self, firstLM, secondLM):
+    def __init__(self, firstLM, secondLM, num_layers):
         super().__init__()
         self.input_hidden_size = firstLM.config.hidden_size
         self.output_hidden_size = secondLM.config.hidden_size
         self.num_attention_heads = firstLM.config.num_attention_heads
+        self.num_layers = num_layers
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.input_hidden_size,
                                                         nhead=self.num_attention_heads,
                                                         activation='relu',
                                                         batch_first=True)
-        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
+        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.num_layers)
 
         self.input_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
         self.output_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
@@ -113,7 +114,7 @@ class EmbeddingGenerator(nn.Module):
 
 class MorphMemoryModelLLAMA(nn.Module):
 
-    def __init__(self, firstLM, secondLM, num_new_tokens, layers, mask_token_id, memory_config):
+    def __init__(self, firstLM, secondLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers):
         super().__init__()
 
         self.layers = layers
@@ -123,8 +124,9 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.memory_config = memory_config
         self.memory = OnlineProtoNet(memory_config)
         self.num_new_tokens = num_new_tokens
+        self.num_layers = num_layers
 
-        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM)
+        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers)
 
         initial_first_ind = int(self.firstLM.config.vocab_size - self.num_new_tokens)
         initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
@@ -410,13 +412,14 @@ def get_arguments():
     parser.add_argument("--prefill", action="store_true")
     parser.add_argument("--weight_decay", type=float, default=0.02)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
+    parser.add_argument("--num_layers", type=int, default=1)
     return parser
 
 
 def create_checkpoint_directories(args):
 
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
-    path = path.format(args.batch_size * args.gradient_accumulation_steps,args.memory, args.num_examples, args.lr, args.weight_decay)
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
+    path = path.format(args.num_layers, args.batch_size * args.gradient_accumulation_steps,args.memory, args.num_examples, args.lr, args.weight_decay)
     os.makedirs(path, exist_ok=True)
 
     return path
@@ -499,7 +502,7 @@ def main():
 
     print("init model")
     accelerator.wait_for_everyone()
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config)
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers)
     model = accelerator.prepare(model)
     print("initialized")
     ##pad to multiple of 64
