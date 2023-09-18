@@ -100,3 +100,68 @@ def evaluate_baseline_example(model, tokenizer, ex):
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
 
+
+def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
+    sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
+    definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
+    base_seqs, labels = prepare_for_top_1_selection(ex)
+    multi_blank_vals = ["(i)", "(ii)", "(iii)"]
+    question = ex["QUESTION"]
+    answers = ex["ANSWERS"]
+    task_seqs = []
+    if "_____" in question:
+        answers = answers[0]
+
+
+    elif "(i)" in question:
+        answers = list(itertools.product(*answers))
+    seqs = []
+    #     print(answers)
+    for w, s in zip(answers, base_seqs):
+        if type(w) == str:
+            nonce = "<{}_new>".format(w)
+            #             print(w)
+            samples = np.random.choice(sent_dict[w], size=k)
+            samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
+            example_string = " \n".join(samples)
+        else:
+            raise NotImplementedError("Answer must be string")
+        #             samples = []
+        #             for val in w:
+        #                 samples.append(np.random.choice(sent_dict[w]), size=k)
+
+        #             examples = [" ".join(sample) for sample in samples]
+        #             example_string = "\n".join(examples)
+        new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
+        if with_definition and defs is not None:
+            definition = defs[w]
+            seq = definition_template.format(nonce, definition, example_string, new_s)
+        else:
+            seq = sentence_template.format(nonce, example_string, new_s)
+        seqs.append(seq)
+
+    return seqs, labels
+
+
+def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
+    sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
+    definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
+
+    base_seqs, labels = prepare_for_top_2_selection(ex)
+    answers = ex["ANSWERS"][0]
+    seqs = []
+    for w, s in zip(answers, base_seqs):
+        nonce = "<{}_new>".format(w)
+        samples = np.random.choice(sent_dict[w], size=k)
+        samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
+        example_string = " \n".join(samples)
+
+        new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
+        if with_definition and defs is not None:
+            definition = defs[w]
+            seq = definition_template.format(nonce, definition, example_string, new_s)
+        else:
+            seq = sentence_template.format(nonce, example_string, new_s)
+        seqs.append(seq)
+
+    return seqs, labels
