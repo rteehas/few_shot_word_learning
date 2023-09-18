@@ -144,13 +144,13 @@ class MorphMemoryModelLLAMA(nn.Module):
         #         self.secondLM.config.vocab_size = self.secondLM.lm_head.weight.shape[0]
 
         # initialize new token embeddings
-        with torch.no_grad():
-            m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:initial_first_ind, :], dim=0)
-            m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
-            for n_first, n_second in zip(self.first_list, self.second_list):
-                with torch.no_grad():
-                    self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
-                    self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
+#        with torch.no_grad():
+#            m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:initial_first_ind, :], dim=0)
+#            m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
+#            for n_first, n_second in zip(self.first_list, self.second_list):
+#                with torch.no_grad():
+#                    self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
+#                    self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
 
     def freeze(self):
         for parameter in self.firstLM.parameters():
@@ -418,7 +418,7 @@ def get_arguments():
 
 def create_checkpoint_directories(args):
 
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/no_reinit/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/checkpoints/"
     path = path.format(args.num_layers, args.batch_size * args.gradient_accumulation_steps,args.memory, args.num_examples, args.lr, args.weight_decay)
     os.makedirs(path, exist_ok=True)
 
