@@ -728,7 +728,7 @@ def main():
                         os.makedirs(save_dir, exist_ok=True)
                         accelerator.save_state(save_dir)
                         tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                        tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                        tokenizerTask.save_pretrained(save_dir + "/tokenizerTask")
                         checkpoint_id += 1
 
             except:
@@ -737,7 +737,7 @@ def main():
                 os.makedirs(save_dir, exist_ok=True)
                 accelerator.save_state(save_dir)
                 tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                tokenizerTask.save_pretrained(save_dir + "/tokenizerTask")
                 checkpoint_id += 1
 
     accelerator.end_training()
