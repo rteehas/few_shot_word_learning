@@ -153,6 +153,21 @@ class MorphMemoryModelLLAMA(nn.Module):
 #                    self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
 #                    self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
 
+    def add_new_tokens(self, num_new_tokens):
+
+        self.num_new_tokens += num_new_tokens
+        initial_first_ind = int(self.firstLM.config.vocab_size - self.num_new_tokens)
+        initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
+        self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
+        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+        with torch.no_grad():
+            m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:initial_first_ind, :], dim=0)
+            m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
+            for n_first, n_second in zip(self.first_list, self.second_list):
+                with torch.no_grad():
+                    self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
+                    self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
+
     def freeze(self):
         for parameter in self.firstLM.parameters():
             parameter.requires_grad = False
@@ -353,7 +368,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_attentions = [o.attentions for o in outs]
         final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
         if len(final_new_token_loss) > 0:
-            final_new_token_loss = torch.stack().mean()
+            final_new_token_loss = torch.stack(final_new_token_loss).mean()
         else:
             final_new_token_loss = None
         #         print([o.new_token_loss for o in outs])
