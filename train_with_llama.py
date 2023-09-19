@@ -351,7 +351,11 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_hiddens = [o.hidden_states for o in outs]
         final_past_key_values = [o.past_key_values for o in outs]
         final_attentions = [o.attentions for o in outs]
-        final_new_token_loss = torch.stack([o.new_token_loss for o in outs]).mean()
+        final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
+        if len(final_new_token_loss) > 0:
+            final_new_token_loss = torch.stack().mean()
+        else:
+            final_new_token_loss = None
         #         print([o.new_token_loss for o in outs])
         final_memories = [o.memories[0] for o in outs] # list of the dictionaries
         # print("before return")
