@@ -118,10 +118,14 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
         return evaluate_type_2(probs, labels)
 
 
-
 def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
-    sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
-    definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
+    sentence_stem = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\n"
+    definition_stem = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\n"
+    sentence_template = "Word: {}\nExamples: {}\n"
+    definition_template = "Word: {}\nDefinition: {}.\nExamples: {}\n"
+    seq_template = "Sentence: {}"
+    nonce_template = "<{}_new>"
+
     base_seqs, labels = prepare_for_top_1_selection(ex)
     multi_blank_vals = ["(i)", "(ii)", "(iii)"]
     question = ex["QUESTION"]
@@ -132,30 +136,63 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
 
 
     elif "(i)" in question:
+        answer_choices = list(itertools.chain(*answers))
         answers = list(itertools.product(*answers))
+        answer_samples = {}
+        for w in answer_choices:
+            answer_samples[w] = np.random.choice(sent_dict[w], size=k, replace=False)
+
     seqs = []
     #     print(answers)
     for w, s in zip(answers, base_seqs):
         if type(w) == str:
             nonce = "<{}_new>".format(w)
             #             print(w)
-            samples = np.random.choice(sent_dict[w], size=k)
-            samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
-            example_string = " \n".join(samples)
+            samples = np.random.choice(sent_dict[w], size=k, replace=False)
+            samples = [sentence.replace(w, nonce) for sentence in samples]
+            examples = [" \n".join(samples)]
         else:
-            raise NotImplementedError("Answer must be string")
-        #             samples = []
-        #             for val in w:
-        #                 samples.append(np.random.choice(sent_dict[w]), size=k)
+            examples = [" \n".join(answer_samples[v]).replace(v, nonce_template.format(v)) for v in w]
+        #             examples = [" \n".join(sample) for sample in samples]
 
-        #             examples = [" ".join(sample) for sample in samples]
-        #             example_string = "\n".join(examples)
-        new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
         if with_definition and defs is not None:
-            definition = defs[w]
-            seq = definition_template.format(nonce, definition, example_string, new_s)
+            if type(w) == str:
+                nonce = nonce_template.format(w)
+                definition = defs[w]
+                formatted_examples_with_definition = [definition_template.format(nonce, definition, ex) for ex in
+                                                      examples]
+            else:
+                formatted_examples_with_definition = []
+                for i, v in enumerate(w):
+                    nonce = nonce_template.format(v)
+                    definition = defs[v]
+                    formatted_example = definition_template.format(nonce, definition, examples[i])
+                    formatted_examples_with_definition.append(formatted_example)
+
+            seq_minus_sentence = definition_stem + "".join(formatted_examples_with_definition)
         else:
-            seq = sentence_template.format(nonce, example_string, new_s)
+            if type(w) == str:
+                nonce = nonce_template.format(w)
+                formatted_examples = [sentence_template.format(nonce, ex) for ex in examples]
+
+            else:
+                formatted_examples = []
+                for i, v in enumerate(w):
+                    nonce = nonce_template.format(v)
+                    formatted_example = sentence_template.format(nonce, examples[i])
+                    formatted_examples.append(formatted_example)
+
+            seq_minus_sentence = sentence_stem + "".join(formatted_examples)
+
+        if type(w) == str:
+            nonce = nonce_template.format(w)
+            new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
+
+        else:
+            new_s = s
+            for v in w:
+                new_s = re.sub(r"\b({})\b".format(v), nonce_template.format(v), new_s)
+        seq = seq_minus_sentence + seq_template.format(new_s)
         seqs.append(seq)
 
     return seqs, labels
@@ -210,7 +247,7 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
         if type(w) == str:
             nonce = "<{}_new>".format(w)
             samples = np.random.choice(sent_dict[w], size=k)
-            samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
+            samples = [sentence.replace(w, nonce) for sentence in samples]
             task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I))
         else:
             raise NotImplementedError
@@ -244,7 +281,7 @@ def filter_gre(sents, ex):
         answers = answers[0]
 
     elif "(i)" in question:
-        answers = list(itertools.product(*answers))
+        answers = list(itertools.chain(*answers))
 
     is_valid = True
 
@@ -253,9 +290,6 @@ def filter_gre(sents, ex):
             is_valid = False
 
     return is_valid
-
-
-
 
 
 
