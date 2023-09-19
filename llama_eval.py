@@ -276,7 +276,7 @@ def get_sentence_probs(model, tokenizer, sequences, base_seqs):
     for seq,base in zip(sequences, base_seqs):
         toks = tokenizer(seq, return_tensors="pt").to(model.device)
         question_toks = tokenizer(base)
-        answer_length = len(question_toks) - 1 # for bos token
+        answer_length = len(question_toks['input_ids']) - 1 # for bos token
         labels = toks['input_ids'].clone()
         answer_labels = labels[:, -answer_length:]
         out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
