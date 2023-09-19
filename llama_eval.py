@@ -3,6 +3,9 @@ import numpy as np
 import itertools
 import re
 
+from torch.nn import CrossEntropyLoss
+
+
 def prepare_for_top_1_selection(ex):
     multi_blank_vals = ["(i)", "(ii)", "(iii)"]
     question = ex["QUESTION"]
@@ -59,17 +62,6 @@ def prepare_for_top_2_selection(ex):
             seq_label.append(1)
 
     return task_seqs, seq_label
-
-@torch.no_grad()
-def get_sentence_probs(model, tokenizer, sequences):
-    probs = []
-    for seq in sequences:
-        toks = tokenizer(seq, return_tensors="pt").to(model.device)
-        labels = toks['input_ids'].clone()
-        out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
-        probs.append(-out.loss.item())
-    return probs
-
 
 def evaluate_type_1(probs, labels):
     probs = np.array(probs)
@@ -144,6 +136,7 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
 
     seqs = []
     #     print(answers)
+    question_seqs = []
     for w, s in zip(answers, base_seqs):
         if type(w) == str:
             nonce = "<{}_new>".format(w)
@@ -193,9 +186,10 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
             for v in w:
                 new_s = re.sub(r"\b({})\b".format(v), nonce_template.format(v), new_s)
         seq = seq_minus_sentence + seq_template.format(new_s)
+        question_seqs.append(new_s)
         seqs.append(seq)
 
-    return seqs, labels
+    return seqs, labels, question_seqs
 
 
 def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
@@ -205,6 +199,7 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
     base_seqs, labels = prepare_for_top_2_selection(ex)
     answers = ex["ANSWERS"][0]
     seqs = []
+    question_seqs = []
     for w, s in zip(answers, base_seqs):
         nonce = "<{}_new>".format(w)
         samples = np.random.choice(sent_dict[w], size=k)
@@ -218,8 +213,9 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
         else:
             seq = sentence_template.format(nonce, example_string, new_s)
         seqs.append(seq)
+        question_seqs.append(new_s)
 
-    return seqs, labels
+    return seqs, labels, question_seqs
 
 def prepare_emb_gen_batch(ex, sent_dict, k):
 
@@ -271,6 +267,27 @@ def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seq
         }
         out = model(batch)
         probs.append(-out.loss.item())
+    return probs
+
+@torch.no_grad()
+def get_sentence_probs(model, tokenizer, sequences, base_seqs):
+    probs = []
+    ce = CrossEntropyLoss()
+    for seq,base in zip(sequences, base_seqs):
+        toks = tokenizer(seq, return_tensors="pt").to(model.device)
+        question_toks = tokenizer(base)
+        answer_length = len(question_toks) - 1 # for bos token
+        labels = toks['input_ids'].clone()
+        answer_labels = labels[:, -answer_length:]
+        out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
+        answer_logits = out.logits[:,-answer_length:, :]
+        shift_logits = answer_logits[..., :-1, :].contiguous()
+        shift_labels = answer_labels[..., 1:].contiguous()
+        shift_logits = shift_logits.view(-1, model.config.vocab_size)
+        shift_labels = shift_labels.view(-1)
+        shift_labels = shift_labels.to(shift_logits.device)
+        loss = ce(shift_logits, shift_labels)
+        probs.append(-loss.item())
     return probs
 
 
