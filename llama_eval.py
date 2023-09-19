@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import itertools
+import re
 
 def prepare_for_top_1_selection(ex):
     multi_blank_vals = ["(i)", "(ii)", "(iii)"]
@@ -59,6 +60,7 @@ def prepare_for_top_2_selection(ex):
 
     return task_seqs, seq_label
 
+@torch.no_grad()
 def get_sentence_probs(model, tokenizer, sequences):
     probs = []
     for seq in sequences:
@@ -165,3 +167,62 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
         seqs.append(seq)
 
     return seqs, labels
+
+def prepare_emb_gen_batch(ex, sent_dict, k):
+
+    if ex["ANSWER_TYPE"] == "top_1":
+        question = ex["QUESTION"]
+        answers = ex["ANSWERS"]
+        if "_____" in question:
+            answers = answers[0]
+
+
+        elif "(i)" in question:
+            # answers = list(itertools.product(*answers))
+            raise NotImplementedError
+
+        seqs, labels = prepare_for_top_1_selection(ex)
+
+    elif ex["ANSWER_TYPE"] == "top_2":
+        seqs, labels = prepare_for_top_2_selection(ex)
+        answers = ex["ANSWERS"][0]
+    else:
+        raise NotImplementedError
+
+    task_seqs = []
+    for w, s in zip(answers, seqs):
+        if type(w) == str:
+            nonce = "<{}_new>".format(w)
+            samples = np.random.choice(sent_dict[w], size=k)
+            samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
+            task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I))
+        else:
+            raise NotImplementedError
+
+    return samples, task_seqs, labels
+
+
+@torch.no_grad()
+def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seqs):
+    probs = []
+    for i,seq in enumerate(seqs):
+        context = tokenizerMLM(contexts[i], padding=True, return_tensors='pt')
+
+        toks = tokenizerTask(seq, return_tensors="pt").to(model.device)
+        labels = toks['input_ids'].clone()
+        batch = {
+            "contexts": [context],
+            "input_ids": toks['input_ids'],
+            "attention_mask": toks['attention_mask'],
+            'labels': labels
+        }
+        out = model(batch)
+        probs.append(-out.loss.item())
+    return probs
+
+
+
+
+
+
+
