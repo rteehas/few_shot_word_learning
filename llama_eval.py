@@ -221,6 +221,24 @@ def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seq
     return probs
 
 
+def filter_gre(sents, ex):
+    question = ex["QUESTION"]
+    answers = ex["ANSWERS"]
+    if "_____" in question:
+        answers = answers[0]
+
+    elif "(i)" in question:
+        answers = list(itertools.product(*answers))
+
+    is_valid = True
+
+    for a in answers:
+        if a not in sents or len(sents[a]) == 0:
+            is_valid = False
+
+    return is_valid
+
+
 
 
 
