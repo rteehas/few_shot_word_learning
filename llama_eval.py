@@ -102,6 +102,22 @@ def evaluate_baseline_example(model, tokenizer, ex):
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
 
+def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_definition=False, defs=None):
+    if ex["ANSWER_TYPE"] == "top_1":
+        seqs, labels = prepare_type_1_fewshot(ex, sents, k, with_definition, defs)
+    elif ex["ANSWER_TYPE"] == "top_2":
+        seqs, labels = prepare_for_type_2_fewshot(ex, sents, k, with_definition, defs)
+    else:
+        raise NotImplementedError
+
+    probs = get_sentence_probs(model, tokenizer, seqs)
+
+    if ex["ANSWER_TYPE"] == "top_1":
+        return evaluate_type_1(probs, labels)
+    elif ex["ANSWER_TYPE"] == "top_2":
+        return evaluate_type_2(probs, labels)
+
+
 
 def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
     sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
