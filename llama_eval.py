@@ -3,6 +3,9 @@ import numpy as np
 import itertools
 import re
 
+from torch.nn import CrossEntropyLoss
+
+
 def prepare_for_top_1_selection(ex):
     multi_blank_vals = ["(i)", "(ii)", "(iii)"]
     question = ex["QUESTION"]
@@ -60,17 +63,6 @@ def prepare_for_top_2_selection(ex):
 
     return task_seqs, seq_label
 
-@torch.no_grad()
-def get_sentence_probs(model, tokenizer, sequences):
-    probs = []
-    for seq in sequences:
-        toks = tokenizer(seq, return_tensors="pt").to(model.device)
-        labels = toks['input_ids'].clone()
-        out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
-        probs.append(-out.loss.item())
-    return probs
-
-
 def evaluate_type_1(probs, labels):
     probs = np.array(probs)
     max_prob = np.argmax(probs)
@@ -118,10 +110,14 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
         return evaluate_type_2(probs, labels)
 
 
-
 def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
-    sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
-    definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
+    sentence_stem = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\n"
+    definition_stem = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\n"
+    sentence_template = "Word: {}\nExamples: {}\n"
+    definition_template = "Word: {}\nDefinition: {}.\nExamples: {}\n"
+    seq_template = "Sentence: {}"
+    nonce_template = "<{}_new>"
+
     base_seqs, labels = prepare_for_top_1_selection(ex)
     multi_blank_vals = ["(i)", "(ii)", "(iii)"]
     question = ex["QUESTION"]
@@ -132,33 +128,68 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
 
 
     elif "(i)" in question:
+        answer_choices = list(itertools.chain(*answers))
         answers = list(itertools.product(*answers))
+        answer_samples = {}
+        for w in answer_choices:
+            answer_samples[w] = np.random.choice(sent_dict[w], size=k, replace=False)
+
     seqs = []
     #     print(answers)
+    question_seqs = []
     for w, s in zip(answers, base_seqs):
         if type(w) == str:
             nonce = "<{}_new>".format(w)
             #             print(w)
-            samples = np.random.choice(sent_dict[w], size=k)
-            samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
-            example_string = " \n".join(samples)
+            samples = np.random.choice(sent_dict[w], size=k, replace=False)
+            samples = [sentence.replace(w, nonce) for sentence in samples]
+            examples = [" \n".join(samples)]
         else:
-            raise NotImplementedError("Answer must be string")
-        #             samples = []
-        #             for val in w:
-        #                 samples.append(np.random.choice(sent_dict[w]), size=k)
+            examples = [" \n".join(answer_samples[v]).replace(v, nonce_template.format(v)) for v in w]
+        #             examples = [" \n".join(sample) for sample in samples]
 
-        #             examples = [" ".join(sample) for sample in samples]
-        #             example_string = "\n".join(examples)
-        new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
         if with_definition and defs is not None:
-            definition = defs[w]
-            seq = definition_template.format(nonce, definition, example_string, new_s)
+            if type(w) == str:
+                nonce = nonce_template.format(w)
+                definition = defs[w]
+                formatted_examples_with_definition = [definition_template.format(nonce, definition, ex) for ex in
+                                                      examples]
+            else:
+                formatted_examples_with_definition = []
+                for i, v in enumerate(w):
+                    nonce = nonce_template.format(v)
+                    definition = defs[v]
+                    formatted_example = definition_template.format(nonce, definition, examples[i])
+                    formatted_examples_with_definition.append(formatted_example)
+
+            seq_minus_sentence = definition_stem + "".join(formatted_examples_with_definition)
         else:
-            seq = sentence_template.format(nonce, example_string, new_s)
+            if type(w) == str:
+                nonce = nonce_template.format(w)
+                formatted_examples = [sentence_template.format(nonce, ex) for ex in examples]
+
+            else:
+                formatted_examples = []
+                for i, v in enumerate(w):
+                    nonce = nonce_template.format(v)
+                    formatted_example = sentence_template.format(nonce, examples[i])
+                    formatted_examples.append(formatted_example)
+
+            seq_minus_sentence = sentence_stem + "".join(formatted_examples)
+
+        if type(w) == str:
+            nonce = nonce_template.format(w)
+            new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
+
+        else:
+            new_s = s
+            for v in w:
+                new_s = re.sub(r"\b({})\b".format(v), nonce_template.format(v), new_s)
+        seq = seq_minus_sentence + seq_template.format(new_s)
+        question_seqs.append(new_s)
         seqs.append(seq)
 
-    return seqs, labels
+    return seqs, labels, question_seqs
 
 
 def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
@@ -168,6 +199,7 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
     base_seqs, labels = prepare_for_top_2_selection(ex)
     answers = ex["ANSWERS"][0]
     seqs = []
+    question_seqs = []
     for w, s in zip(answers, base_seqs):
         nonce = "<{}_new>".format(w)
         samples = np.random.choice(sent_dict[w], size=k)
@@ -181,8 +213,9 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
         else:
             seq = sentence_template.format(nonce, example_string, new_s)
         seqs.append(seq)
+        question_seqs.append(new_s)
 
-    return seqs, labels
+    return seqs, labels, question_seqs
 
 def prepare_emb_gen_batch(ex, sent_dict, k):
 
@@ -210,7 +243,7 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
         if type(w) == str:
             nonce = "<{}_new>".format(w)
             samples = np.random.choice(sent_dict[w], size=k)
-            samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
+            samples = [sentence.replace(w, nonce) for sentence in samples]
             task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I))
         else:
             raise NotImplementedError
@@ -236,6 +269,27 @@ def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seq
         probs.append(-out.loss.item())
     return probs
 
+@torch.no_grad()
+def get_sentence_probs(model, tokenizer, sequences, base_seqs):
+    probs = []
+    ce = CrossEntropyLoss()
+    for seq,base in zip(sequences, base_seqs):
+        toks = tokenizer(seq, return_tensors="pt").to(model.device)
+        question_toks = tokenizer(base)
+        answer_length = len(question_toks) - 1 # for bos token
+        labels = toks['input_ids'].clone()
+        answer_labels = labels[:, -answer_length:]
+        out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
+        answer_logits = out.logits[:,-answer_length:, :]
+        shift_logits = answer_logits[..., :-1, :].contiguous()
+        shift_labels = answer_labels[..., 1:].contiguous()
+        shift_logits = shift_logits.view(-1, model.config.vocab_size)
+        shift_labels = shift_labels.view(-1)
+        shift_labels = shift_labels.to(shift_logits.device)
+        loss = ce(shift_logits, shift_labels)
+        probs.append(-loss.item())
+    return probs
+
 
 def filter_gre(sents, ex):
     question = ex["QUESTION"]
@@ -244,7 +298,7 @@ def filter_gre(sents, ex):
         answers = answers[0]
 
     elif "(i)" in question:
-        answers = list(itertools.product(*answers))
+        answers = list(itertools.chain(*answers))
 
     is_valid = True
 
@@ -253,9 +307,6 @@ def filter_gre(sents, ex):
             is_valid = False
 
     return is_valid
-
-
-
 
 
 
