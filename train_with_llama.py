@@ -496,7 +496,7 @@ def main():
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True, use_fast=False)
     tokenizerTask.add_bos_token = True
-    tokenizerTask.add_eos_token = True
+    # tokenizerTask.add_eos_token = True
 
     tokenizerTask.pad_token = tokenizerTask.unk_token
     word_dict = load_from_disk(args.word_path)
