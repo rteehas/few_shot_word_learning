@@ -96,14 +96,14 @@ def evaluate_baseline_example(model, tokenizer, ex):
 
 def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_definition=False, defs=None):
     if ex["ANSWER_TYPE"] == "top_1":
-        seqs, labels = prepare_type_1_fewshot(ex, sents, k, with_definition, defs)
+        seqs, labels, base_seqs = prepare_type_1_fewshot(ex, sents, k, with_definition, defs)
     elif ex["ANSWER_TYPE"] == "top_2":
-        seqs, labels = prepare_for_type_2_fewshot(ex, sents, k, with_definition, defs)
+        seqs, labels, base_seqs = prepare_for_type_2_fewshot(ex, sents, k, with_definition, defs)
     else:
         raise NotImplementedError
 
-    probs = get_sentence_probs(model, tokenizer, seqs)
-
+    probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
+    print(probs)
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
@@ -239,16 +239,18 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
         raise NotImplementedError
 
     task_seqs = []
+    task_samples = []
     for w, s in zip(answers, seqs):
         if type(w) == str:
             nonce = "<{}_new>".format(w)
-            samples = np.random.choice(sent_dict[w], size=k)
-            samples = [sentence.replace(w, nonce) for sentence in samples]
+            samples = np.random.choice(sent_dict[w], size=k, replace=False)
+            samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
+            task_samples.append(samples)
             task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I))
         else:
             raise NotImplementedError
 
-    return samples, task_seqs, labels
+    return task_samples, task_seqs, labels
 
 
 @torch.no_grad()
@@ -256,7 +258,7 @@ def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seq
     probs = []
     for i,seq in enumerate(seqs):
         context = tokenizerMLM(contexts[i], padding=True, return_tensors='pt')
-
+        print(context)
         toks = tokenizerTask(seq, return_tensors="pt").to(model.device)
         labels = toks['input_ids'].clone()
         batch = {
@@ -277,8 +279,10 @@ def get_sentence_probs(model, tokenizer, sequences, base_seqs):
         toks = tokenizer(seq, return_tensors="pt").to(model.device)
         question_toks = tokenizer(base)
         answer_length = len(question_toks['input_ids']) - 1 # for bos token
+        print(question_toks, answer_length)
         labels = toks['input_ids'].clone()
         answer_labels = labels[:, -answer_length:]
+        print(answer_labels)
         out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
         answer_logits = out.logits[:,-answer_length:, :]
         shift_logits = answer_logits[..., :-1, :].contiguous()
@@ -307,6 +311,15 @@ def filter_gre(sents, ex):
             is_valid = False
 
     return is_valid
+
+def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k):
+    samples, seqs, labels = prepare_emb_gen_batch(ex, sents, k)
+    probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs)
+    if ex["ANSWER_TYPE"] == "top_1":
+        return evaluate_type_1(probs, labels)
+    elif ex["ANSWER_TYPE"] == "top_2":
+        return evaluate_type_2(probs, labels)
+
 
 
 
