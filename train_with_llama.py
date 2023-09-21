@@ -17,7 +17,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 
 from modules.buffer import RetrievalBuffer
 from modules.memory import OnlineProtoNet
-from modules.model_outputs import CausalLMOutputWithNewToken
+from modules.model_outputs import CausalLMOutputWithNewToken, CausalLMOutputWithNewTokenNegatives
 from modules.utils import combine_layers
 from train_utils import get_new_token_loss_labels_llama
 import os
@@ -318,6 +318,11 @@ class MorphMemoryModelLLAMA(nn.Module):
         task_ids = batch['input_ids']
         task_attn = batch["attention_mask"]
 
+        if "negative_input_ids" in batch and "negative_attention_mask" in batch and "negative_labels" in batch:
+            negative_ids, negative_attn_mask, negative_labels = batch["negative_input_ids"], batch["negative_attention_mask"], batch['negative_labels']
+        else:
+            negative_ids, negative_attn_mask, negative_labels = None, None, None
+
         # if 'labels' in batch:
         #   task_labels = task_labels.reshape((b_task * k_task, l_task))
 
@@ -355,8 +360,9 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             input_memory.store(new_token, inp_embs)
             output_memory.store(new_token, out_embs)
-
             new_w = self.get_new_weights(task="Task", memory=input_memory)
+            output_weights = self.get_new_output_weights(output_memory)
+
             input_embeds = F.embedding(task_ids[i], new_w)
             outputs = self.secondLM.model(
                 inputs_embeds=input_embeds.unsqueeze(0),
@@ -365,54 +371,101 @@ class MorphMemoryModelLLAMA(nn.Module):
             )
             # print(task_labels[i].shape, "label_shape")
             # print(outputs[0].shape)
-            output_weights = self.get_new_output_weights(output_memory)
+
             llama_outputs = self.llama_forward(task_labels[i], outputs, output_weights)
             #             with torch.no_grad():
             new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
                                                          self.secondLM.lm_head.weight.shape[0],
                                                          torch.tensor(self.second_list,
                                                                       device=llama_outputs.logits.device).unique())
+            if negative_ids and negative_attn_mask and negative_labels:
+
+                negative_embeds = F.embedding(negative_ids[i], new_w)
+
+                negative_outputs = self.secondLM.model(
+                    inputs_embeds=negative_embeds.unsqueeze(0),
+                    attention_mask=negative_attn_mask[i].unsqueeze(0),
+                    output_hidden_states=True
+                )
+
+                negative_llama_outputs = self.llama_forward(negative_labels[i], negative_outputs, output_weights)
+
+                out_vals = CausalLMOutputWithNewTokenNegatives(
+                    loss=llama_outputs.loss + negative_llama_outputs.loss,
+                    positive_loss=llama_outputs.loss,
+                    negative_loss=negative_llama_outputs.loss,
+                    positive_logits=llama_outputs.logits,
+                    negative_logits=negative_llama_outputs.logits,
+                    past_key_values=llama_outputs.past_key_values,
+                    hidden_states=llama_outputs.hidden_states,
+                    attentions=llama_outputs.attentions,
+                    new_token_loss=new_tok_loss,
+                    memories=[dict(input_memory=input_memory, output_memory=output_memory)]
+                )
             # print("before mem forward")
             #             print(new_token, new_tok_loss)
-            token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
+            # token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
             #             print("output", output_weights[token_mapping[new_token], :])
             #             print("input", new_w[token_mapping[new_token], :])
-            out_vals = CausalLMOutputWithNewToken(
-                loss=llama_outputs.loss,
-                logits=llama_outputs.logits,
-                past_key_values=llama_outputs.past_key_values,
-                hidden_states=llama_outputs.hidden_states,
-                attentions=llama_outputs.attentions,
-                new_token_loss=new_tok_loss,
-                memories=[dict(input_memory=input_memory, output_memory=output_memory)]
-            )
+            else:
+                out_vals = CausalLMOutputWithNewToken(
+                    loss=llama_outputs.loss,
+                    logits=llama_outputs.logits,
+                    past_key_values=llama_outputs.past_key_values,
+                    hidden_states=llama_outputs.hidden_states,
+                    attentions=llama_outputs.attentions,
+                    new_token_loss=new_tok_loss,
+                    memories=[dict(input_memory=input_memory, output_memory=output_memory)]
+                )
             # print("after mem forward")
             outs.append(out_vals)
             # memories.append(memory)
 
         #         print(outs, "output list")
         final_loss = torch.stack([o.loss for o in outs]).mean()
-        final_logits = torch.cat([o.logits for o in outs], dim=0)
+        final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
         final_hiddens = [o.hidden_states for o in outs]
         final_past_key_values = [o.past_key_values for o in outs]
         final_attentions = [o.attentions for o in outs]
-        final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
         if len(final_new_token_loss) > 0:
             final_new_token_loss = torch.stack(final_new_token_loss).mean()
         else:
             final_new_token_loss = None
         #         print([o.new_token_loss for o in outs])
         final_memories = [o.memories[0] for o in outs] # list of the dictionaries
+
+        if negative_ids and negative_attn_mask and negative_labels:
+            final_positive_loss = torch.stack([o.positive_loss for o in outs])
+            final_negative_loss = torch.stack([o.negative_loss for o in outs])
+            final_positive_logits = torch.stack([o.positive_logits for o in outs])
+            final_negative_logits = torch.stack([o.negative_logits for o in outs])
+            return CausalLMOutputWithNewTokenNegatives(
+                loss=final_loss,
+                positive_loss=final_positive_loss,
+                negative_loss=final_negative_loss,
+                positive_logits=final_positive_logits,
+                negative_logits=final_negative_logits,
+                hidden_states=final_hiddens,
+                attentions=final_attentions,
+                new_token_loss=final_new_token_loss,
+                memories=final_memories
+            )
+
+        else:
+            final_logits = torch.cat([o.logits for o in outs], dim=0)
+            return CausalLMOutputWithNewToken(
+                loss=final_loss,
+                logits=final_logits,
+                hidden_states=final_hiddens,
+                attentions=final_attentions,
+                past_key_values=final_past_key_values,
+                new_token_loss=final_new_token_loss,
+                memories=final_memories
+            )
+
+
         # print("before return")
-        return CausalLMOutputWithNewToken(
-            loss=final_loss,
-            logits=final_logits,
-            hidden_states=final_hiddens,
-            attentions=final_attentions,
-            past_key_values=final_past_key_values,
-            new_token_loss=final_new_token_loss,
-            memories=final_memories
-        )
+
         # task_embeds = torch.stack(mem_embeds)
         # outputs = self.secondLM.model(
         #     inputs_embeds=task_embeds,
@@ -463,6 +516,9 @@ def get_arguments():
     parser.add_argument("--weight_decay", type=float, default=0.02)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--num_layers", type=int, default=1)
+    parser.add_argument("--negative_examples", action="store_true")
+    parser.add_argument("--negative_data_path", type=str)
+    parser.add_argument("--regression_objective", aciton="store_true")
     return parser
 
 
@@ -484,6 +540,9 @@ def main():
 
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
+
+    assert not (args.negative_examples and args.regression_objective), "Regression for Negative Examples is not supported"
+    assert args.negative_examples == (args.negative_data_path != ""), "There must be a negative data set for negative examples"
     # print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     # print("CPU Percent", psutil.cpu_percent())
     # print("Arguments: ", args)
@@ -634,6 +693,8 @@ def main():
                 "learning_rate": lr,
                 "aggregation": memory_config.agg_method,
                 "batch_size": args.batch_size,
+                "negative examples": args.negative_examples,
+                "regression": args.regression_objective
                 },
     )
     
