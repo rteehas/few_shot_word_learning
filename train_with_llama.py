@@ -78,6 +78,25 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
 
     return new_input_ids
 
+
+class Memory():
+    def __init__(self):
+        self.memory = {}
+
+    def store(self, nonce, emb):
+        self.memory[nonce] = emb
+
+    def retrieve(self, nonce):
+        return self.memory[nonce]
+
+    def __contains__(self, nonce):
+        return nonce in self.memory
+
+    def detach(self):
+        for k in self.memory:
+            self.memory[k].detach()
+
+
 class EmbeddingGenerator(nn.Module):
 
     def __init__(self, firstLM, secondLM, num_layers):
@@ -85,32 +104,29 @@ class EmbeddingGenerator(nn.Module):
         self.input_hidden_size = firstLM.config.hidden_size
         self.output_hidden_size = secondLM.config.hidden_size
         self.num_attention_heads = firstLM.config.num_attention_heads
-        self.num_layers = num_layers
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.input_hidden_size,
-                                                        nhead=self.num_attention_heads,
-                                                        activation='relu',
-                                                        batch_first=True)
+                                                   nhead=self.num_attention_heads,
+                                                   activation='relu',
+                                                   batch_first=True)
+        self.num_layers = num_layers
         self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.num_layers)
 
         self.input_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
         self.output_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
 
     def forward(self, inputs, attn_mask):
-        out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
-        # with torch.no_grad():
-        #     print("output vals", out)
-        #     print("attention mask", attn_mask)
-        #     print("product", out * attn_mask.unsqueeze(-1))
-        #     print("sum", torch.sum(out * attn_mask.unsqueeze(-1), dim=1))
-        #     print("sum shape", torch.sum(out * attn_mask.unsqueeze(-1), dim=1).shape)
-        #     print("denom",  torch.sum(attn_mask, dim=-1, keepdim=True))
-        mean_pool = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
-        # print("mean pool shape", mean_pool.shape)
 
-        inp_embeds = self.input_emb_head(mean_pool)
-        out_embeds = self.output_emb_head(mean_pool)
+        out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
+
+        out = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
+
+        out = torch.mean(out, dim=0, keepdim=True)
+
+        inp_embeds = self.input_emb_head(out)
+        out_embeds = self.output_emb_head(out)
 
         return inp_embeds, out_embeds
+
 
 
 class MorphMemoryModelLLAMA(nn.Module):
@@ -129,32 +145,27 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers)
 
-        # initial_first_ind = int(self.firstLM.config.vocab_size - self.num_new_tokens)
-        # initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
-        #
-        # self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
-        # self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
 
-        # self.emb_gen.apply(self._init_weights)
-        # self.emb_gen = self.emb_gen
         self.dropout = nn.Dropout(0.2)
-        self.freeze()
 
-        #         self.secondLM.config.vocab_size = self.secondLM.lm_head.weight.shape[0]
 
-        # initialize new token embeddings
         with torch.no_grad():
-            m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:self.initial_first_ind, :], dim=0)
-            m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:self.initial_second_ind, :], dim=0)
+            self.firstLM_mean_embed = torch.mean(self.firstLM.get_input_embeddings().weight[:self.initial_first_ind, :], dim=0)
+            self.secondLM_mean_embed = torch.mean(self.secondLM.get_input_embeddings().weight[:self.initial_second_ind, :], dim=0)
+            torch.register_buffer("firstLM_mean_embed", self.firstLM_mean_embed)
+            torch.register_buffer("secondLM_mean_embed", self.secondLM_mean_embed)
 
-            # print(m_first)
-            # print(m_second)
+
+        with torch.no_grad():
             for n_first, n_second in zip(self.first_list, self.second_list):
                 with torch.no_grad():
-                    self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
-                    self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
+                    self.firstLM.get_input_embeddings().weight[n_first, :] = self.firstLM_mean_embed
+                    self.secondLM.get_input_embeddings().weight[n_second, :] = self.secondLM_mean_embed
+
+        self.freeze()
+
     @property
     def first_list(self):
         return list(range(self.initial_first_ind, self.firstLM.config.vocab_size))
@@ -181,12 +192,10 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
         self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
         with torch.no_grad():
-            m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:initial_first_ind, :], dim=0)
-            m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:initial_second_ind, :], dim=0)
             for n_first, n_second in zip(self.first_list, self.second_list):
                 with torch.no_grad():
-                    self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
-                    self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
+                    self.firstLM.get_input_embeddings().weight[n_first, :] = self.firstLM_mean_embed
+                    self.secondLM.get_input_embeddings().weight[n_second, :] = self.secondLM_mean_embed
 
     def freeze(self):
         for parameter in self.firstLM.parameters():
