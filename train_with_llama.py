@@ -428,8 +428,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_memories = [o.memories[0] for o in outs] # list of the dictionaries
 
         if (negative_ids, negative_attn_mask, negative_labels) is not (None, None, None):
-            final_positive_loss = torch.stack([o.positive_loss for o in outs])
-            final_negative_loss = torch.stack([o.negative_loss for o in outs])
+            final_positive_loss = torch.stack([o.positive_loss for o in outs]).mean()
+            final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
             final_positive_logits = torch.stack([o.positive_logits for o in outs])
             final_negative_logits = torch.stack([o.negative_logits for o in outs])
             return CausalLMOutputWithNewTokenNegatives(
