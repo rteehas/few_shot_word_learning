@@ -331,8 +331,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                 torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
                 0].item()
 
-            input_memory = OnlineProtoNet(self.memory_config, base_memory=self.memory)
-            output_memory = OnlineProtoNet(self.memory_config, base_memory=self.memory)
+            input_memory = Memory()
+            output_memory = Memory()
 
             mlm_ids = self.swap_with_mask(c['input_ids'])
             #             print('after', c['input_ids'])
