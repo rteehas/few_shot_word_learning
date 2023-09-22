@@ -151,18 +151,17 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.dropout = nn.Dropout(0.2)
 
 
-        with torch.no_grad():
-            self.firstLM_mean_embed = torch.mean(self.firstLM.get_input_embeddings().weight[:self.initial_first_ind, :], dim=0)
-            self.secondLM_mean_embed = torch.mean(self.secondLM.get_input_embeddings().weight[:self.initial_second_ind, :], dim=0)
-            torch.register_buffer("firstLM_mean_embed", self.firstLM_mean_embed)
-            torch.register_buffer("secondLM_mean_embed", self.secondLM_mean_embed)
+        # with torch.no_grad():
+        #     self.firstLM_mean_embed = torch.mean(self.firstLM.get_input_embeddings().weight[:self.initial_first_ind, :], dim=0)
+        #     self.secondLM_mean_embed = torch.mean(self.secondLM.get_input_embeddings().weight[:self.initial_second_ind, :], dim=0)
+        #     torch.register_buffer("firstLM_mean_embed", self.firstLM_mean_embed)
+        #     torch.register_buffer("secondLM_mean_embed", self.secondLM_mean_embed)
 
 
         with torch.no_grad():
-            for n_first, n_second in zip(self.first_list, self.second_list):
-                with torch.no_grad():
-                    self.firstLM.get_input_embeddings().weight[n_first, :] = self.firstLM_mean_embed
-                    self.secondLM.get_input_embeddings().weight[n_second, :] = self.secondLM_mean_embed
+            self.firstLM.get_input_embeddings().weight.data[self.first_list, :] = 0.
+            self.secondLM.get_input_embeddings().weight[self.second_list, :] = 0.
+            self.secondLM.get_output_embeddings().weight[self.second_list] = 0.
 
         self.freeze()
 
@@ -176,7 +175,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         return list(range(initial_second_ind, self.secondLM.config.vocab_size))
 
     @property
-    def initial_first_int(self):
+    def initial_first_ind(self):
         return int(self.firstLM.config.vocab_size - self.num_new_tokens)
 
     @property
@@ -186,16 +185,10 @@ class MorphMemoryModelLLAMA(nn.Module):
     def add_new_tokens(self, num_new_tokens):
 
         self.num_new_tokens += num_new_tokens
-        # if self.secondLM.config.vocab_size <
-        initial_first_ind = int(self.firstLM.config.vocab_size - self.num_new_tokens)
-        initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
-        self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
-        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
         with torch.no_grad():
-            for n_first, n_second in zip(self.first_list, self.second_list):
-                with torch.no_grad():
-                    self.firstLM.get_input_embeddings().weight[n_first, :] = self.firstLM_mean_embed
-                    self.secondLM.get_input_embeddings().weight[n_second, :] = self.secondLM_mean_embed
+            self.firstLM.get_input_embeddings().weight[self.first_list, :] = 0.
+            self.secondLM.get_input_embeddings().weight[self.second_list, :] = 0.
+            self.secondLM.get_output_embeddings().weight[self.second_list] = 0.
 
     def freeze(self):
         for parameter in self.firstLM.parameters():
@@ -233,14 +226,14 @@ class MorphMemoryModelLLAMA(nn.Module):
         n, hidden = w.shape
         # w.requires_grad=True
         msk = torch.zeros_like(w, device=w.device)
-        msk2 = torch.zeros_like(w, device=w.device)
+        # msk2 = torch.zeros_like(w, device=w.device)
         token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
         for key in memory.memory:
             msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden),
                               memory.retrieve(key))
-            msk2[token_mapping[key], :] = 1.
+            # msk2[token_mapping[key], :] = 1.
 
-        return w * (~msk2.bool()) + msk
+        return w + msk
 
     def get_new_weights(self, task, memory):
 
@@ -258,14 +251,14 @@ class MorphMemoryModelLLAMA(nn.Module):
             w.requires_grad = True
 
         msk = torch.zeros_like(w, device=w.device)
-        msk2 = torch.zeros_like(w, device=w.device)
+        # msk2 = torch.zeros_like(w, device=w.device)
         token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
         for key in memory.memory:
             msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden),
                               memory.retrieve(key).to(w.dtype))
-            msk2[token_mapping[key], :] = 1.
+            # msk2[token_mapping[key], :] = 1.
 
-        return w * (~msk2.bool()) + msk
+        return w + msk
 
     def llama_forward(self, labels, outputs, new_w):
         '''
