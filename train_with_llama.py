@@ -25,7 +25,7 @@ from configs.config import *
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from accelerate import DistributedDataParallelKwargs
 import psutil
-
+import numpy as np
 
 def decoding_step(logits, temperature, top_k=None, do_sample=False):
     scaled_logits = logits[:, -1, :] / temperature
@@ -663,6 +663,8 @@ def main():
     warmup_steps = int(len(train_dl) * 0.03)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
 
+    negative_dataset = load_from_disk(args.negative_data_path) #todo make this exact for format
+
     print("loading buffer")
     tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
     buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
@@ -730,6 +732,13 @@ def main():
 
                 assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
                 batch['contexts'] = contexts
+                if args.negative_examples:
+                    negatives = np.random.choice(negative_dataset, size=args.batch_size, replace=False) #todo make exact
+                    tokenized_negatives = tokenizerTask(negatives, padding=True, return_tensors="pt").to(accelerator.device)
+                    neg_ids, labels = data_collator(tokenized_negatives)
+                    batch['negative_input_ids'] = tokenized_negatives['input_ids']
+                    batch['negative_attention_mask'] = tokenized_negatives['attention_mask']
+
                 # print(batch['input_ids'].shape[0])
                 out = model(batch)
                 loss = out.loss
