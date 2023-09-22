@@ -698,6 +698,8 @@ def main():
         train_losses = []
         total_loss = 0
         total_new_token_loss = 0
+        total_positive_loss = 0
+        total_negative_loss = 0
         for i, batch in enumerate(train_dl):
             with accelerator.accumulate(model):
                 log_dict = {}
@@ -756,6 +758,9 @@ def main():
                 model.zero_grad()
                 total_loss += loss.detach().float()
                 total_new_token_loss += out.new_token_loss.detach().float()
+                if args.negative_examples:
+                    total_positive_loss += out.positive_loss.detach().float()
+                    total_negative_loss += out.negative_loss.detach().float()
 
 
 
@@ -775,6 +780,11 @@ def main():
                 log_dict['num_words_seen'] = len(buffer.buffer)
                 total_loss = 0
                 total_new_token_loss = 0
+                if args.negative_examples:
+                    log_dict['train loss on positive examples'] = total_positive_loss / args.gradient_accumulation_steps
+                    log_dict['train loss on negative examples'] = total_negative_loss / args.gradient_accumulation_steps
+                    total_negative_loss = 0
+                    total_positive_loss = 0
 
 
 
@@ -806,9 +816,11 @@ def main():
                     opt.zero_grad(set_to_none=True)
                     model.eval()
                     with torch.no_grad():
-                        test_losses = []
-                        test_nonce_losses = []
-
+                        total_test_loss = 0
+                        total_test_nonce_loss = 0
+                        total_test_negative_loss = 0
+                        total_test_positive_loss = 0
+                        test_log = {}
                         for b in test_dl:
                             contexts = []
                             for j in range(b['input_ids'].shape[0]):
@@ -822,20 +834,30 @@ def main():
                             assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
                             b['contexts'] = contexts
                             t_out = model(b)
-                            all_losses = accelerator.gather(t_out.loss)
-                            test_losses.append(all_losses.detach())
+                            # all_losses = accelerator.gather(t_out.loss)
+                            total_test_loss += t_out.loss.detach().float()
                             try:
                                 model.module.memory.memory = {}
                             except:
                                 model.memory.memory= {}
                             # all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                            test_nonce_losses.append(t_out.new_token_loss.detach())
+                            total_test_nonce_loss += t_out.new_token_loss.detach()
+                            if args.negative_examples:
+                                total_test_positive_loss += t_out.positive_loss.detach().float()
+                                total_test_negative_loss += t_out.negative_loss.detach().float()
 
-                        avg_test = torch.stack(test_losses).mean().detach().item()
-                        avg_new_tok = torch.stack(test_nonce_losses).mean().detach().item()
-                        accelerator.log(
-                            {'epoch': epoch, "eval_step": i // eval_ind, 'average test loss': avg_test, "average test loss on new tokens": avg_new_tok})
+                        avg_test = total_test_loss / len(test_dl)
+                        avg_new_tok = total_test_nonce_loss / len(test_dl)
+                        test_log['average test loss'] = avg_test
+                        test_log['average test loss on new tokens'] = avg_new_tok
+                        test_log['epoch'] = epoch
+                        test_log['eval step'] = i // eval_ind
 
+                        if args.negative_examples:
+                            test_log['average test loss on positive examples'] = total_test_positive_loss / len(test_dl)
+                            test_log['average test loss on negative examples'] = total_test_negative_loss / len(test_dl)
+
+                        accelerator.log(test_log)
                         accelerator.wait_for_everyone()
                         save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
                         os.makedirs(save_dir, exist_ok=True)
