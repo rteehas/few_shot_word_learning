@@ -129,15 +129,15 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers)
 
-        initial_first_ind = int(self.firstLM.config.vocab_size - self.num_new_tokens)
-        initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
-
-        self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
-        self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
+        # initial_first_ind = int(self.firstLM.config.vocab_size - self.num_new_tokens)
+        # initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
+        #
+        # self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
+        # self.second_list = list(range(initial_second_ind, self.secondLM.config.vocab_size))
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
 
-        self.emb_gen.apply(self._init_weights)
+        # self.emb_gen.apply(self._init_weights)
         # self.emb_gen = self.emb_gen
         self.dropout = nn.Dropout(0.2)
         self.freeze()
@@ -152,10 +152,38 @@ class MorphMemoryModelLLAMA(nn.Module):
 #                with torch.no_grad():
 #                    self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
 #                    self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
+        with torch.no_grad():
+            m_first = torch.mean(self.firstLM.get_input_embeddings().weight[:self.initial_first_ind, :], dim=0)
+            m_second = torch.mean(self.secondLM.get_input_embeddings().weight[:self.initial_second_ind, :], dim=0)
+
+            # print(m_first)
+            # print(m_second)
+            for n_first, n_second in zip(self.first_list, self.second_list):
+                with torch.no_grad():
+                    self.firstLM.get_input_embeddings().weight[n_first, :] = m_first
+                    self.secondLM.get_input_embeddings().weight[n_second, :] = m_second
+    @property
+    def first_list(self):
+        return list(range(self.initial_first_ind, self.firstLM.config.vocab_size))
+
+    @property
+    def second_list(self):
+        initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
+        return list(range(initial_second_ind, self.secondLM.config.vocab_size))
+
+    @property
+    def initial_first_int(self):
+        return int(self.firstLM.config.vocab_size - self.num_new_tokens)
+
+    @property
+    def initial_second_ind(self):
+        return int(self.secondLM.config.vocab_size - self.num_new_tokens)
+>>>>>>> 2b76122c6e357371934ffda56e974f98d0f47394
 
     def add_new_tokens(self, num_new_tokens):
 
         self.num_new_tokens += num_new_tokens
+        # if self.secondLM.config.vocab_size <
         initial_first_ind = int(self.firstLM.config.vocab_size - self.num_new_tokens)
         initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
         self.first_list = list(range(initial_first_ind, self.firstLM.config.vocab_size))
@@ -176,6 +204,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             parameter.requires_grad = False
 
     # Copied from transformers.models.bert.modeling_bert.BertPreTrainedModel._init_weights
+    @torch.no_grad
     def _init_weights(self, module):
         """Initialize the weights"""
         if isinstance(module, nn.Linear):
