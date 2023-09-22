@@ -255,7 +255,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
         for key in memory.memory:
             msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden),
-                              memory.retrieve(key).to(w.dtype))
+                              memory.retrieve(key))
             # msk2[token_mapping[key], :] = 1.
 
         return w + msk
