@@ -371,7 +371,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                          self.secondLM.lm_head.weight.shape[0],
                                                          torch.tensor(self.second_list,
                                                                       device=llama_outputs.logits.device).unique())
-            if negative_ids and negative_attn_mask and negative_labels:
+            if (negative_ids, negative_attn_mask, negative_labels) is not (None, None, None):
 
                 negative_embeds = F.embedding(negative_ids[i], new_w)
 
@@ -427,7 +427,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         #         print([o.new_token_loss for o in outs])
         final_memories = [o.memories[0] for o in outs] # list of the dictionaries
 
-        if negative_ids and negative_attn_mask and negative_labels:
+        if (negative_ids, negative_attn_mask, negative_labels) is not (None, None, None):
             final_positive_loss = torch.stack([o.positive_loss for o in outs])
             final_negative_loss = torch.stack([o.negative_loss for o in outs])
             final_positive_logits = torch.stack([o.positive_logits for o in outs])
