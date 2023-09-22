@@ -434,8 +434,8 @@ class MorphMemoryModelLLAMA(nn.Module):
             final_negative_logits = torch.stack([o.negative_logits for o in outs])
             return CausalLMOutputWithNewTokenNegatives(
                 loss=final_loss,
-                positive_loss=final_positive_loss,
-                negative_loss=final_negative_loss,
+                positive_loss=final_positive_loss.detach(),
+                negative_loss=final_negative_loss.detach(),
                 positive_logits=final_positive_logits,
                 negative_logits=final_negative_logits,
                 hidden_states=final_hiddens,
@@ -645,6 +645,18 @@ def main():
         tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
         test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
                              collate_fn=data_collator)
+
+        negative_dataset = load_from_disk(args.negative_data_path)
+        negative_train_tokenized = negative_dataset['train'].map(tokenize,
+                                                                 remove_columns=negative_dataset['train'].column_names)
+        negative_test_tokenized = negative_dataset['test'].map(tokenize,
+                                                               remove_columns=negative_dataset['test'].column_names)
+
+        negative_train_dl = DataLoader(negative_train_tokenized, shuffle=True, drop_last=True,
+                                       batch_size=args.batch_size, collate_fn=data_collator)
+        negative_test_dl = DataLoader(negative_test_tokenized, shuffle=True, drop_last=True, batch_size=args.batch_size,
+                                      collate_fn=data_collator)
+
     eval_ind = int(len(train_dl) // 3)
 
     opt = AdamW(filter(lambda p: p.requires_grad, model.parameters()),
@@ -656,7 +668,7 @@ def main():
     warmup_steps = int(len(train_dl) * 0.03)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
 
-    negative_dataset = load_from_disk(args.negative_data_path) #todo make this exact for format
+
 
     print("loading buffer")
     tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
@@ -675,8 +687,8 @@ def main():
 
     print("Total nonces = {}".format(len(nonces)))
 
-    opt, train_dl, test_dl, scheduler = accelerator.prepare(
-        opt, train_dl, test_dl, scheduler
+    opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
+        opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
     )
 
     accelerator.register_for_checkpointing(opt)
@@ -728,11 +740,10 @@ def main():
                 assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
                 batch['contexts'] = contexts
                 if args.negative_examples:
-                    negatives = np.random.choice(negative_dataset, size=args.batch_size, replace=False) #todo make exact
-                    tokenized_negatives = tokenizerTask(negatives, padding=True, return_tensors="pt").to(accelerator.device)
-                    neg_ids, labels = data_collator(tokenized_negatives)
-                    batch['negative_input_ids'] = tokenized_negatives['input_ids']
-                    batch['negative_attention_mask'] = tokenized_negatives['attention_mask']
+                    neg_train_batch = next(iter(negative_train_dl))
+                    batch['negative_input_ids'] = neg_train_batch['input_ids']
+                    batch['negative_attention_mask'] = neg_train_batch['attention_mask']
+                    batch['negative_labels'] = neg_train_batch['labels']
 
                 # print(batch['input_ids'].shape[0])
                 out = model(batch)
@@ -833,6 +844,14 @@ def main():
                                         contexts.append(sample)
                             assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
                             b['contexts'] = contexts
+
+                            if args.negative_examples:
+                                neg_test_batch = next(iter(negative_test_dl))
+                                b['negative_input_ids'] = neg_test_batch['input_ids']
+                                b['negative_attention_mask'] = neg_test_batch['attention_mask']
+                                b['negative_labels'] = neg_test_batch['labels']
+
+
                             t_out = model(b)
                             # all_losses = accelerator.gather(t_out.loss)
                             total_test_loss += t_out.loss.detach().float()
