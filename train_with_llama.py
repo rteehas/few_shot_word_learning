@@ -869,20 +869,20 @@ def main():
                                 total_test_positive_loss += t_out.positive_loss.detach().float()
                                 total_test_negative_loss += t_out.negative_loss.detach().float()
 
-                        avg_test = total_test_loss / len(test_dl)
-                        avg_new_tok = total_test_nonce_loss / len(test_dl)
+                        avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
+                        avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / len(test_dl)
                         test_log['average test loss'] = avg_test
                         test_log['average test loss on new tokens'] = avg_new_tok
                         test_log['epoch'] = epoch
                         test_log['eval step'] = i // eval_ind
 
                         if args.negative_examples:
-                            test_log['average test loss on positive examples'] = total_test_positive_loss / len(test_dl)
-                            test_log['average test loss on negative examples'] = total_test_negative_loss / len(test_dl)
+                            test_log['average test loss on positive examples'] = accelerator.gather(total_test_positive_loss).sum().item() / len(test_dl)
+                            test_log['average test loss on negative examples'] = accelerator.gather(total_test_negative_loss).sum().item() / len(test_dl)
 
                         accelerator.log(test_log)
                         accelerator.wait_for_everyone()
-                        save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
+                        save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
                         os.makedirs(save_dir, exist_ok=True)
                         accelerator.save_state(save_dir)
                         tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
@@ -891,7 +891,7 @@ def main():
 
             except:
                 accelerator.wait_for_everyone()
-                save_dir = checkpoint_path + "checkpoint_{}".format(checkpoint_id)
+                save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
                 os.makedirs(save_dir, exist_ok=True)
                 accelerator.save_state(save_dir)
                 tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
