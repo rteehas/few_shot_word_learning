@@ -789,15 +789,15 @@ def main():
                 #         if torch.isnan(torch.norm(param.grad.view(-1))):
                 #             raise Exception("Nan Gradient for {}".format(name))
 
-                log_dict['train loss'] = total_loss / args.gradient_accumulation_steps
+                log_dict['train loss'] = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps
 
-                log_dict['train new token loss'] = total_new_token_loss / args.gradient_accumulation_steps
+                log_dict['train new token loss'] = accelerator.gather(total_new_token_loss).mean().item() / args.gradient_accumulation_steps
                 log_dict['num_words_seen'] = len(buffer.buffer)
                 total_loss = 0
                 total_new_token_loss = 0
                 if args.negative_examples:
-                    log_dict['train loss on positive examples'] = total_positive_loss / args.gradient_accumulation_steps
-                    log_dict['train loss on negative examples'] = total_negative_loss / args.gradient_accumulation_steps
+                    log_dict['train loss on positive examples'] = accelerator.gather(total_positive_loss).mean().item() / args.gradient_accumulation_steps
+                    log_dict['train loss on negative examples'] = accelerator.gather(total_negative_loss).mean().item() / args.gradient_accumulation_steps
                     total_negative_loss = 0
                     total_positive_loss = 0
 
