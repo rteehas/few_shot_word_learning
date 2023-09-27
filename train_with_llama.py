@@ -27,6 +27,46 @@ from accelerate import DistributedDataParallelKwargs
 import psutil
 import numpy as np
 
+
+def get_matching_indices(A, B):
+    used_indices_B = []
+    positions_A_in_B_unique = []
+    for a_item in A:
+        matched_indices = torch.where((B == a_item) & (~torch.tensor([i in used_indices_B for i in range(len(B))])))[0]
+        if len(matched_indices) > 0:
+            positions_A_in_B_unique.append(matched_indices[0].item())
+            used_indices_B.append(matched_indices[0].item())
+        else:
+            positions_A_in_B_unique.append(None)
+
+    used_indices_A = []
+    positions_B_in_A_unique = []
+    for b_item in B:
+        matched_indices = torch.where((A == b_item) & (~torch.tensor([i in used_indices_A for i in range(len(A))])))[0]
+        if len(matched_indices) > 0:
+            positions_B_in_A_unique.append(matched_indices[0].item())
+            used_indices_A.append(matched_indices[0].item())
+        else:
+            positions_B_in_A_unique.append(None)
+
+    ordered_a = order_and_select_indices(positions_A_in_B_unique)
+    ordered_b = order_and_select_indices(positions_B_in_A_unique)
+
+    assert len(ordered_a) == len(ordered_b), "Matcing indices must be of the same length"
+    return ordered_a, ordered_b
+
+def order_and_select_indices(ind_seq):
+
+    ordered = []
+    for item in ind_seq:
+        if item is not None:
+            if len(ordered) > 0 and item < ordered[-1]:
+                ordered.pop()
+                ordered.append(item)
+            else:
+                ordered.append(item)
+    return ordered
+
 def decoding_step(logits, temperature, top_k=None, do_sample=False):
     scaled_logits = logits[:, -1, :] / temperature
     if top_k is not None:
