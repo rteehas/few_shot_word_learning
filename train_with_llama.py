@@ -833,11 +833,15 @@ def main():
     print("Test buffer has {} elements".format(len(test_buffer.buffer)))
 
     print("Total nonces = {}".format(len(nonces)))
+    if args.negative_examples:
 
-    opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
-        opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
-    )
-
+        opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
+            opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
+        )
+    else:
+        opt, train_dl, test_dl, scheduler = accelerator.prepare(
+            opt, train_dl, test_dl, scheduler
+        )
     accelerator.register_for_checkpointing(opt)
     accelerator.register_for_checkpointing(scheduler)
     checkpoint_id = 0
