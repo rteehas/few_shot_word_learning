@@ -894,7 +894,10 @@ def main():
 
                 # print(batch['input_ids'].shape[0])
                 out = model(batch)
-                loss = out.loss
+                if args.regression_objective:
+                    loss = out.regression_loss
+                else:
+                    loss = out.loss
                 # print(loss)
 
                 # train_new_token = accelerator.gather(out.new_token_loss)
@@ -1001,7 +1004,10 @@ def main():
 
                             t_out = model(b)
                             # all_losses = accelerator.gather(t_out.loss)
-                            total_test_loss += t_out.loss.detach().float()
+                            if args.regression_objective:
+                                total_test_loss += t_out.regression_loss.detach().float()
+                            else:
+                                total_test_loss += t_out.loss.detach().float()
                             try:
                                 model.module.memory.memory = {}
                             except:
