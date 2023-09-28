@@ -633,6 +633,35 @@ def main():
     def tokenize_for_buffer(ex):
         return tokenizerMLM(ex['text'], truncation=True, return_tensors="pt")
 
+    def tokenize_regression(ex):
+
+        inps = tokenizerTask(ex['text'], truncation=True, padding=False, return_tensors=None)
+        base_inps = tokenizerTask(ex['base text'], truncation=True, padding=False, return_tensors=None)
+        row = dict(input_ids=inps['input_ids'],
+                attention_mask=inps['attention_mask'],
+                base_input_ids=base_inps['input_ids'],
+                base_attention_mask=base_inps['attention_mask'])
+        return row
+
+    def regression_collate(batch):
+
+
+        input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
+        base_batch = [dict(input_ids=b['base_input_ids'], attention_mask=b['base_attention_mask']) for b in batch]
+
+        input_collate = data_collator(input_batch)
+        base_collate = data_collator(base_batch)
+
+        base_collate_modified = {"base_" + k:v for k,v in base_collate.items()}
+        final_collate = {}
+        for coll in [input_collate, base_collate_modified]:
+            for k in coll:
+                final_collate[k] = coll[v]
+
+        return final_collate
+
+
+
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
 
@@ -736,29 +765,43 @@ def main():
         dataset = load_from_disk(args.data_path)
         print("tokenizing")
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
-        tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
-        train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
+        if args.regression_objective:
+            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=dataset['train'].column_names)
+            train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
+                              collate_fn=regression_collate)
+
+            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=dataset['train'].column_names)
+            test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
+                                 collate_fn=regression_collate)
+
+        else:
+            tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
+
+
+            train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
                               collate_fn=data_collator)
+
+            tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
+            test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
+                                 collate_fn=data_collator)
 
         buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
                                  args.random_ex, args.cat)
         test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
                                       args.random_ex, args.cat)
 
-        tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
-        test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
-                             collate_fn=data_collator)
 
-        negative_dataset = load_from_disk(args.negative_data_path)
-        negative_train_tokenized = negative_dataset['train'].map(tokenize,
-                                                                 remove_columns=negative_dataset['train'].column_names)
-        negative_test_tokenized = negative_dataset['test'].map(tokenize,
-                                                               remove_columns=negative_dataset['test'].column_names)
+        if args.negative_examples:
+            negative_dataset = load_from_disk(args.negative_data_path)
+            negative_train_tokenized = negative_dataset['train'].map(tokenize,
+                                                                     remove_columns=negative_dataset['train'].column_names)
+            negative_test_tokenized = negative_dataset['test'].map(tokenize,
+                                                                   remove_columns=negative_dataset['test'].column_names)
 
-        negative_train_dl = DataLoader(negative_train_tokenized, shuffle=True, drop_last=True,
-                                       batch_size=args.batch_size, collate_fn=data_collator)
-        negative_test_dl = DataLoader(negative_test_tokenized, shuffle=True, drop_last=True, batch_size=args.batch_size,
-                                      collate_fn=data_collator)
+            negative_train_dl = DataLoader(negative_train_tokenized, shuffle=True, drop_last=True,
+                                           batch_size=args.batch_size, collate_fn=data_collator)
+            negative_test_dl = DataLoader(negative_test_tokenized, shuffle=True, drop_last=True, batch_size=args.batch_size,
+                                          collate_fn=data_collator)
 
     eval_ind = int(len(train_dl) // 3)
 
