@@ -33,7 +33,7 @@ def get_matching_indices(A, B):
     used_indices_B = []
     positions_A_in_B_unique = []
     for a_item in A:
-        matched_indices = torch.where((B == a_item) & (~torch.tensor([i in used_indices_B for i in range(len(B))])))[0]
+        matched_indices = torch.where((B == a_item) & (~torch.tensor([i in used_indices_B for i in range(len(B))], device=B.device)))[0]
         if len(matched_indices) > 0:
             positions_A_in_B_unique.append(matched_indices[0].item())
             used_indices_B.append(matched_indices[0].item())
@@ -43,7 +43,7 @@ def get_matching_indices(A, B):
     used_indices_A = []
     positions_B_in_A_unique = []
     for b_item in B:
-        matched_indices = torch.where((A == b_item) & (~torch.tensor([i in used_indices_A for i in range(len(A))])))[0]
+        matched_indices = torch.where((A == b_item) & (~torch.tensor([i in used_indices_A for i in range(len(A))], device=A.device)))[0]
         if len(matched_indices) > 0:
             positions_B_in_A_unique.append(matched_indices[0].item())
             used_indices_A.append(matched_indices[0].item())
@@ -448,7 +448,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                                              labels=base_labels[i],
                                              output_hidden_states=True)
 
-                indices_in_base,indices_in_replaced = get_matching_indices(input_embeds, base_ids[i])
+                indices_in_base,indices_in_replaced = get_matching_indices(task_ids[i], base_ids[i])
                 cosines = [F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
 
                 logsoft_base = F.log_softmax(base_outputs.logits, dim=-1)
