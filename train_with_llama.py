@@ -606,7 +606,7 @@ def get_arguments():
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--num_layers", type=int, default=1)
     parser.add_argument("--negative_examples", action="store_true")
-    parser.add_argument("--negative_data_path", type=str)
+    parser.add_argument("--negative_data_path", type=str, default="")
     parser.add_argument("--regression_objective", action="store_true")
     return parser
 
