@@ -37,3 +37,16 @@ class CausalLMOutputWithNewTokenNegatives(ModelOutput):
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
     memories: Optional[List[Dict[str, OnlineProtoNet]]] = None
+
+@dataclass
+class CausalLMOutputWithRegressionLoss(ModelOutput):
+    loss: Optional[torch.FloatTensor] = None
+    logits: torch.FloatTensor = None
+    base_logits: torch.FloatTensor = None
+    past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+    base_hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    new_token_loss: Optional[torch.FloatTensor] = None
+    memories: Optional[List[Dict[str, OnlineProtoNet]]] = None
+    regression_loss: Optional[torch.FloatTensor] = None
