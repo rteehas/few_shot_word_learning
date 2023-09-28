@@ -448,14 +448,15 @@ class MorphMemoryModelLLAMA(nn.Module):
                                              labels=base_labels[i],
                                              output_hidden_states=True)
 
-                indices_in_base,indices_in_replaced = get_matching_indices(task_ids[i], base_ids[i])
+                indices_in_base,indices_in_replaced = get_matching_indices(task_ids[i][task_attn[i] == 1],
+                                                                           base_ids[i][base_attn_mask[i] == 1])
                 cosines = [F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
 
                 logsoft_base = F.log_softmax(base_outputs.logits, dim=-1)
                 logsoft_nonce = F.log_softmax(outputs.logits, dim=-1)
 
-                cosine_soft = F.cosine_similarity(logsoft_nonce[indices_in_replaced, :self.initial_second_ind],
-                                                  logsoft_base[indices_in_base, :self.initial_second_ind], dim=-1)
+                cosine_soft = F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
+                                                  logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1)
 
                 cosines.append(cosine_soft)
 
