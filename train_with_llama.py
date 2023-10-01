@@ -53,7 +53,7 @@ def get_matching_indices(A, B):
     ordered_a = order_and_select_indices(positions_A_in_B_unique)
     ordered_b = order_and_select_indices(positions_B_in_A_unique)
 
-    assert len(ordered_a) == len(ordered_b), "Matcing indices must be of the same length"
+    assert len(ordered_a) == len(ordered_b), "Matching indices must be of the same lengthi, A={}\nB={}".format(ordered_a, ordered_b)
     return ordered_a, ordered_b
 
 def order_and_select_indices(ind_seq):
@@ -357,7 +357,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         else:
             negative_ids, negative_attn_mask, negative_labels = None, None, None
 
-        if "base_input_ids" in batch and "base_attention_mask" in batch and base_labels in batch:
+        if "base_input_ids" in batch and "base_attention_mask" in batch and "base_labels" in batch:
             base_ids, base_attn_mask, base_labels = batch["base_input_ids"], batch["base_attention_mask"], batch['base_labels']
         else:
             base_ids, base_attn_mask, base_labels = None, None, None
@@ -443,23 +443,25 @@ class MorphMemoryModelLLAMA(nn.Module):
                 )
 
             elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                base_outputs = self.secondLM(input_ids=base_ids[i],
-                                             attention_mask=base_attn_mask[i],
+                base_outputs = self.secondLM(input_ids=base_ids[i].unsqueeze(0),
+                                             attention_mask=base_attn_mask[i].unsqueeze(0),
                                              labels=base_labels[i],
                                              output_hidden_states=True)
 
                 indices_in_base,indices_in_replaced = get_matching_indices(task_ids[i][task_attn[i] == 1],
                                                                            base_ids[i][base_attn_mask[i] == 1])
+                print(indices_in_base, "base")
+                print(indices_in_replaced, "replaced")
                 cosines = [F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
 
                 logsoft_base = F.log_softmax(base_outputs.logits, dim=-1)
-                logsoft_nonce = F.log_softmax(outputs.logits, dim=-1)
+                logsoft_nonce = F.log_softmax(llama_outputs.logits, dim=-1)
 
                 cosine_soft = F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
-                                                  logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1)
+                                                  logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1).mean()
 
                 cosines.append(cosine_soft)
-
+                print(cosines)
                 regression_loss = torch.stack([1.0 - c for c in cosines]).mean()
 
                 out_vals = CausalLMOutputWithRegressionLoss(
@@ -657,7 +659,7 @@ def main():
         final_collate = {}
         for coll in [input_collate, base_collate_modified]:
             for k in coll:
-                final_collate[k] = coll[v]
+                final_collate[k] = coll[k]
 
         return final_collate
 
