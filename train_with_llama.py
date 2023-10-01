@@ -29,32 +29,53 @@ import psutil
 import numpy as np
 
 
-def get_matching_indices(A, B):
-    used_indices_B = []
-    positions_A_in_B_unique = []
-    for a_item in A:
-        matched_indices = torch.where((B == a_item) & (~torch.tensor([i in used_indices_B for i in range(len(B))], device=B.device)))[0]
-        if len(matched_indices) > 0:
-            positions_A_in_B_unique.append(matched_indices[0].item())
-            used_indices_B.append(matched_indices[0].item())
-        else:
-            positions_A_in_B_unique.append(None)
+# def get_matching_indices(A, B):
+#     used_indices_B = []
+#     positions_A_in_B_unique = []
+#     for a_item in A:
+#         matched_indices = torch.where((B == a_item) & (~torch.tensor([i in used_indices_B for i in range(len(B))], device=B.device)))[0]
+#         if len(matched_indices) > 0:
+#             positions_A_in_B_unique.append(matched_indices[0].item())
+#             used_indices_B.append(matched_indices[0].item())
+#         else:
+#             positions_A_in_B_unique.append(None)
+#
+#     used_indices_A = []
+#     positions_B_in_A_unique = []
+#     for b_item in B:
+#         matched_indices = torch.where((A == b_item) & (~torch.tensor([i in used_indices_A for i in range(len(A))], device=A.device)))[0]
+#         if len(matched_indices) > 0:
+#             positions_B_in_A_unique.append(matched_indices[0].item())
+#             used_indices_A.append(matched_indices[0].item())
+#         else:
+#             positions_B_in_A_unique.append(None)
+#
+#     ordered_a = order_and_select_indices(positions_A_in_B_unique)
+#     ordered_b = order_and_select_indices(positions_B_in_A_unique)
+#
+#     assert len(ordered_a) == len(ordered_b), "Matching indices must be of the same lengthi, A={}\nB={}".format(ordered_a, ordered_b)
+#     return ordered_a, ordered_b
+def get_matching_indices(original, modified):
+    corresponding_indices = []
+    i = j = 0
+    while i < len(original) and j < len(modified):
+        if original[i] == modified[j]:  # If elements match, append indices to corresponding_indices
+            corresponding_indices.append((i, j))
+            i += 1
+            j += 1
+        else:  # If elements do not match, keep incrementing i (index of original) until a match is found or end is reached
+            i += 1
+            if i == len(original):  # If we reach the end of original and still didn't find a match, increment the modified list index
+                i = 0
+                j += 1
 
-    used_indices_A = []
-    positions_B_in_A_unique = []
-    for b_item in B:
-        matched_indices = torch.where((A == b_item) & (~torch.tensor([i in used_indices_A for i in range(len(A))], device=A.device)))[0]
-        if len(matched_indices) > 0:
-            positions_B_in_A_unique.append(matched_indices[0].item())
-            used_indices_A.append(matched_indices[0].item())
-        else:
-            positions_B_in_A_unique.append(None)
+    indices_in_original = [t[0] for t in corresponding_indices]
+    indices_in_nonce = [t[1] for t in corresponding_indices]
 
-    ordered_a = order_and_select_indices(positions_A_in_B_unique)
-    ordered_b = order_and_select_indices(positions_B_in_A_unique)
+    assert len(indices_in_original) == len(indices_in_nonce)
+    return indices_in_original, indices_in_nonce
 
-    assert len(ordered_a) == len(ordered_b), "Matching indices must be of the same lengthi, A={}\nB={}".format(ordered_a, ordered_b)
-    return ordered_a, ordered_b
+
 
 def order_and_select_indices(ind_seq):
 
@@ -448,8 +469,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                                              labels=base_labels[i],
                                              output_hidden_states=True)
 
-                indices_in_base,indices_in_replaced = get_matching_indices(task_ids[i][task_attn[i] == 1],
-                                                                           base_ids[i][base_attn_mask[i] == 1])
+                indices_in_base,indices_in_replaced = get_matching_indices(base_ids[i][base_attn_mask[i] == 1].tolist(),
+                                                                           task_ids[i][task_attn[i] == 1].tolist())
                 print(indices_in_base, "base")
                 print(indices_in_replaced, "replaced")
                 cosines = [F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
