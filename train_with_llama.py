@@ -18,7 +18,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 from modules.buffer import RetrievalBuffer
 from modules.memory import OnlineProtoNet
 from modules.model_outputs import CausalLMOutputWithNewToken, CausalLMOutputWithNewTokenNegatives, \
-    CausalLMOutputWithRegressionLoss
+    CausalLMOutputWithRegressionLoss, CausalLMOutputWithRegressionAndNegativeLoss
 from modules.utils import combine_layers
 from train_utils import get_new_token_loss_labels_llama
 import os
@@ -438,6 +438,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                          self.secondLM.lm_head.weight.shape[0],
                                                          torch.tensor(self.second_list,
                                                                       device=llama_outputs.logits.device).unique())
+
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
 
                 negative_embeds = F.embedding(negative_ids[i], new_w)
@@ -450,7 +451,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 negative_llama_outputs = self.llama_forward(negative_labels[i], negative_outputs, output_weights)
 
-                out_vals = CausalLMOutputWithNewTokenNegatives(
+                negative_out_vals = CausalLMOutputWithNewTokenNegatives(
                     loss=llama_outputs.loss + negative_llama_outputs.loss,
                     positive_loss=llama_outputs.loss,
                     negative_loss=negative_llama_outputs.loss,
@@ -463,7 +464,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                     memories=[dict(input_memory=input_memory, output_memory=output_memory)]
                 )
 
-            elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            if (base_ids, base_attn_mask, base_labels) != (None, None, None):
                 base_outputs = self.secondLM(input_ids=base_ids[i].unsqueeze(0),
                                              attention_mask=base_attn_mask[i].unsqueeze(0),
                                              labels=base_labels[i],
@@ -485,7 +486,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 print(cosines)
                 regression_loss = torch.stack([1.0 - c for c in cosines]).mean()
 
-                out_vals = CausalLMOutputWithRegressionLoss(
+                regression_out_vals = CausalLMOutputWithRegressionLoss(
                     loss=llama_outputs.loss,
                     logits=llama_outputs.logits,
                     base_logits=base_outputs.logits,
@@ -497,6 +498,30 @@ class MorphMemoryModelLLAMA(nn.Module):
                     memories=[dict(input_memory=input_memory, output_memory=output_memory)],
                     regression_loss=regression_loss
                 )
+
+            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+                if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                    # a bit hacky way to combine outputs
+                    out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
+                        loss=negative_out_vals.loss,
+                        positive_loss=negative_out_vals.positive_loss,
+                        negative_loss=negative_out_vals.negative_loss,
+                        positive_logits=negative_out_vals.positive_logits,
+                        negative_logits=negative_out_vals.negative_logits,
+                        base_logits=regression_out_vals.base_logits,
+                        base_hidden_states=regression_out_vals.base_hidden_states,
+                        past_key_values=llama_outputs.past_key_values,
+                        attentions=llama_outputs.attentions,
+                        new_token_loss=new_tok_loss,
+                        memories=[dict(input_memory=input_memory, output_memory=output_memory)],
+                        regression_loss=regression_out_vals.regression_loss
+                    )
+
+                else:
+                    out_vals = negative_out_vals
+
+            elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                out_vals = regression_out_vals
 
 
 
@@ -537,6 +562,28 @@ class MorphMemoryModelLLAMA(nn.Module):
             final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
             final_positive_logits = torch.stack([o.positive_logits for o in outs])
             final_negative_logits = torch.stack([o.negative_logits for o in outs])
+
+        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
+            final_base_logits = torch.stack([o.base_logits for o in outs])
+            final_logits = torch.stack([o.logits for o in outs])
+            final_base_hiddens = [o.base_hidden_states for o in outs]
+
+        if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None) and (base_ids, base_attn_mask, base_labels) != (None, None, None):
+
+            return CausalLMOutputWithRegressionAndNegativeLoss(
+                loss=final_loss,
+                positive_loss=final_positive_loss.detach(),
+                negative_loss=final_negative_loss.detach(),
+                positive_logits=final_positive_logits,
+                negative_logits=final_negative_logits,
+                base_logits=final_base_logits,
+                base_hidden_states=final_base_hiddens,
+                new_token_loss=final_new_token_loss,
+                memories=final_memories,
+                regression_loss=final_regression_loss,
+            )
+        elif (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
             return CausalLMOutputWithNewTokenNegatives(
                 loss=final_loss,
                 positive_loss=final_positive_loss.detach(),
@@ -549,10 +596,10 @@ class MorphMemoryModelLLAMA(nn.Module):
                 memories=final_memories
             )
         elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
-            final_base_logits = torch.stack([o.base_logits for o in outs])
-            final_logits = torch.stack([o.logits for o in outs])
-            final_base_hiddens = [o.base_hidden_states for o in outs]
+            # final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
+            # final_base_logits = torch.stack([o.base_logits for o in outs])
+            # final_logits = torch.stack([o.logits for o in outs])
+            # final_base_hiddens = [o.base_hidden_states for o in outs]
             return CausalLMOutputWithRegressionLoss(
                 loss=final_loss,
                 logits=final_logits,
@@ -631,6 +678,7 @@ def get_arguments():
     parser.add_argument("--negative_examples", action="store_true")
     parser.add_argument("--negative_data_path", type=str, default="")
     parser.add_argument("--regression_objective", action="store_true")
+    parser.add_argument("--regression_alpha", type=float, default=1.0)
     return parser
 
 
@@ -689,7 +737,7 @@ def main():
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
 
-    assert not (args.negative_examples and args.regression_objective), "Regression for Negative Examples is not supported"
+    # assert not (args.negative_examples and args.regression_objective), "Regression for Negative Examples is not supported"
     assert args.negative_examples == (args.negative_data_path != ""), "There must be a negative data set for negative examples"
     # print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     # print("CPU Percent", psutil.cpu_percent())
