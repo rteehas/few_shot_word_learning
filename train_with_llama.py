@@ -923,7 +923,8 @@ def main():
                 "aggregation": memory_config.agg_method,
                 "batch_size": args.batch_size,
                 "negative examples": args.negative_examples,
-                "regression": args.regression_objective
+                "regression": args.regression_objective,
+                "alpha": args.regression_alpha,
                 },
     )
     
