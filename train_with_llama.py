@@ -484,7 +484,8 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 cosines.append(cosine_soft)
                 print(cosines)
-                regression_loss = torch.stack([1.0 - c for c in cosines]).mean()
+                cosines = torch.abs(torch.stack(cosines))
+                regression_loss = (1.0 - cosines).mean()
 
                 regression_out_vals = CausalLMOutputWithRegressionLoss(
                     loss=llama_outputs.loss,
