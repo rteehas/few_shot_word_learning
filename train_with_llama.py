@@ -683,7 +683,9 @@ def get_arguments():
 
 
 def create_checkpoint_directories(args):
-    if args.negative_examples:
+    if args.negative_examples and args.regression_objective:
+        neg_string = "with_negatives_and_regression"
+    elif args.negative_examples:
         neg_string = "with_negatives"
     elif args.regression_objective:
         neg_string = "with_regression"
