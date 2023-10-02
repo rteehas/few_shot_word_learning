@@ -474,18 +474,17 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                                            task_ids[i][task_attn[i] == 1].tolist())
                 print(indices_in_base, "base")
                 print(indices_in_replaced, "replaced")
-                cosines = [F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
+                cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
 
                 logsoft_base = F.log_softmax(base_outputs.logits, dim=-1)
                 logsoft_nonce = F.log_softmax(llama_outputs.logits, dim=-1)
 
-                cosine_soft = F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
-                                                  logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1).mean()
+                cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
+                                                  logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
 
                 cosines.append(cosine_soft)
                 print(cosines)
-                cosines = torch.abs(torch.stack(cosines))
-                regression_loss = (1.0 - cosines).mean()
+                regression_loss = torch.stack(cosines).mean()
 
                 regression_out_vals = CausalLMOutputWithRegressionLoss(
                     loss=llama_outputs.loss,
