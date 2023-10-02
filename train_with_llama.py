@@ -934,6 +934,7 @@ def main():
         total_new_token_loss = 0
         total_positive_loss = 0
         total_negative_loss = 0
+        total_regression_loss = 0
         for i, batch in enumerate(train_dl):
             with accelerator.accumulate(model):
                 log_dict = {}
@@ -969,8 +970,14 @@ def main():
 
                 # print(batch['input_ids'].shape[0])
                 out = model(batch)
-                if args.regression_objective:
+                if args.regression_objective and args.negative_examples:
+
+                    loss = out.loss + args.regression_alpha * out.regression_loss
+
+                elif args.regression_objective:
+
                     loss = out.regression_loss
+
                 else:
                     loss = out.loss
                 # print(loss)
@@ -997,6 +1004,9 @@ def main():
                 if args.negative_examples:
                     total_positive_loss += out.positive_loss.detach().float()
                     total_negative_loss += out.negative_loss.detach().float()
+                if args.regression_objective:
+                    total_regression_loss += out.regression_loss.detach().float()
+
 
 
 
@@ -1021,6 +1031,13 @@ def main():
                     log_dict['train loss on negative examples'] = accelerator.gather(total_negative_loss).mean().item() / args.gradient_accumulation_steps
                     total_negative_loss = 0
                     total_positive_loss = 0
+
+                if args.regression_objective:
+
+                    log_dict['regression loss without alpha'] = accelerator.gather(total_regression_loss).mean().item() / args.gradient_accumulation_steps
+                    log_dict['regression loss with alpha'] = (args.regression_alpha * accelerator.gather(total_regression_loss)).mean().item() / args.gradient_accumulation_steps
+
+                    total_regression_loss = 0
 
 
 
@@ -1056,6 +1073,7 @@ def main():
                         total_test_nonce_loss = 0
                         total_test_negative_loss = 0
                         total_test_positive_loss = 0
+                        total_test_regression_loss = 0
                         test_log = {}
                         for b in test_dl:
                             contexts = []
@@ -1079,19 +1097,24 @@ def main():
 
                             t_out = model(b)
                             # all_losses = accelerator.gather(t_out.loss)
-                            if args.regression_objective:
+                            if args.regression_objective and args.negative_examples:
+                                total_test_loss += t_out.loss + args.regression_alpha * t_out.regression_loss.detach().float()
+                            elif args.regression_objective:
                                 total_test_loss += t_out.regression_loss.detach().float()
                             else:
                                 total_test_loss += t_out.loss.detach().float()
                             try:
                                 model.module.memory.memory = {}
                             except:
-                                model.memory.memory= {}
+                                model.memory.memory = {}
                             # all_new_tokens = accelerator.gather(t_out.new_token_loss)
                             total_test_nonce_loss += t_out.new_token_loss.detach()
                             if args.negative_examples:
                                 total_test_positive_loss += t_out.positive_loss.detach().float()
                                 total_test_negative_loss += t_out.negative_loss.detach().float()
+
+                            if args.regression_objective:
+                                total_test_regression_loss += t_out.regression_loss.detach().float()
 
                         avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
                         avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / len(test_dl)
@@ -1103,6 +1126,9 @@ def main():
                         if args.negative_examples:
                             test_log['average test loss on positive examples'] = accelerator.gather(total_test_positive_loss).sum().item() / len(test_dl)
                             test_log['average test loss on negative examples'] = accelerator.gather(total_test_negative_loss).sum().item() / len(test_dl)
+
+                        if args.regression_objective:
+                            test_log['average regression test loss without alpha'] = accelerator.gather(total_test_regression_loss).sum().item() / len(test_dl)
 
                         accelerator.log(test_log)
                         accelerator.wait_for_everyone()
