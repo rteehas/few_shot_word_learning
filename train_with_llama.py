@@ -193,7 +193,7 @@ class EmbeddingGenerator(nn.Module):
 
 class MorphMemoryModelLLAMA(nn.Module):
 
-    def __init__(self, firstLM, secondLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers):
+    def __init__(self, firstLM, secondLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers, num_regression_hiddens):
         super().__init__()
 
         self.layers = layers
@@ -204,6 +204,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.memory = OnlineProtoNet(memory_config)
         self.num_new_tokens = num_new_tokens
         self.num_layers = num_layers
+        self.num_regression_hiddens = num_regression_hiddens
 
         self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers)
 
@@ -474,7 +475,10 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                                            task_ids[i][task_attn[i] == 1].tolist())
                 print(indices_in_base, "base")
                 print(indices_in_replaced, "replaced")
-                cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
+                if self.num_regression_hiddens is None:
+                    cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
+                else:
+                    cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens])]
 
                 logsoft_base = F.log_softmax(base_outputs.logits, dim=-1)
                 logsoft_nonce = F.log_softmax(llama_outputs.logits, dim=-1)
@@ -678,6 +682,7 @@ def get_arguments():
     parser.add_argument("--negative_data_path", type=str, default="")
     parser.add_argument("--regression_objective", action="store_true")
     parser.add_argument("--regression_alpha", type=float, default=1.0)
+    parser.add_argument("--num_regression_hiddens", type=int, default=None)
     return parser
 
 
@@ -692,8 +697,19 @@ def create_checkpoint_directories(args):
         neg_string = "without_negatives_or_regression"
 
 
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/checkpoints/"
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
     path = path.format(args.num_layers, args.batch_size * args.gradient_accumulation_steps,args.memory, args.num_examples, args.lr, args.weight_decay, neg_string)
+
+    if args.negative_examples and args.regression_objective:
+        alpha_str = "alpha_{}/".format(args.regression_alpha)
+        if args.num_regression_hiddens is None:
+            hidden_str = "all_hidden_states/"
+        else:
+            hidden_str = "{}_hidden_states/".format(args.num_regression_hiddens)
+        path = path + alpha_str + hidden_str
+
+    suffix = "checkpoints/"
+    path = path + suffix
     os.makedirs(path, exist_ok=True)
 
     return path
@@ -809,7 +825,7 @@ def main():
 
     print("init model")
     accelerator.wait_for_everyone()
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers)
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers, args.num_regression_hiddens)
     model = accelerator.prepare(model)
     print("initialized")
     ##pad to multiple of 64
