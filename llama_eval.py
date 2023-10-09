@@ -242,9 +242,17 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
     task_samples = []
     for w, s in zip(answers, seqs):
         if type(w) == str:
-            nonce = "<{}_new>".format(w)
+            nonce = "<{}_new>".format(w.lower())
             samples = np.random.choice(sent_dict[w], size=k, replace=False)
-            samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
+            # samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
+            new_samples = []
+            for s in samples:
+                if w in s:
+                    new_samples.append(s.replace(w, nonce))
+                elif w.capitalize() in s:
+                    new_samples.append(w.capitalize(), nonce)
+            # samples = [s.replace(w, nonce) if w in s else s.replace(w.capitalize(), nonce) if w.capitalize() in s for s in samples]
+            samples = new_samples
             task_samples.append(samples)
             task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I))
         else:
