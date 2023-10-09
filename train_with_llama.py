@@ -214,7 +214,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.firstLM = firstLM
         self.secondLM = secondLM
         self.memory_config = memory_config
-        self.memory = OnlineProtoNet(memory_config)
+        # self.memory = OnlineProtoNet(memory_config)
         self.num_new_tokens = num_new_tokens
         self.num_layers = num_layers
         self.num_regression_hiddens = num_regression_hiddens
