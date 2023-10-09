@@ -26,6 +26,7 @@ from configs.config import *
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from accelerate import DistributedDataParallelKwargs
 import psutil
+from modules.aggregators import TransformerSummarizer
 import numpy as np
 
 
@@ -161,7 +162,7 @@ class Memory():
 
 class EmbeddingGenerator(nn.Module):
 
-    def __init__(self, firstLM, secondLM, num_layers):
+    def __init__(self, firstLM, secondLM, num_layers, config):
         super().__init__()
         self.input_hidden_size = firstLM.config.hidden_size
         self.output_hidden_size = secondLM.config.hidden_size
@@ -175,6 +176,15 @@ class EmbeddingGenerator(nn.Module):
 
         self.input_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
         self.output_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
+        self.config = config
+        self.agg_method = self.config.agg_method
+        if self.agg_method == "CLS":
+            input_size = self.config.input_size
+            nhead = self.config.nhead
+            num_layers = self.config.num_layers
+            self.agg = TransformerSummarizer(input_size, nhead, num_layers)
+
+
 
     def forward(self, inputs, attn_mask):
 
@@ -182,7 +192,10 @@ class EmbeddingGenerator(nn.Module):
 
         out = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
 
-        out = torch.mean(out, dim=0, keepdim=True)
+        if self.agg_method == "CLS":
+            out = self.agg(out)
+        else:
+            out = torch.mean(out, dim=0, keepdim=True)
 
         inp_embeds = self.input_emb_head(out)
         out_embeds = self.output_emb_head(out)
@@ -206,7 +219,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.num_layers = num_layers
         self.num_regression_hiddens = num_regression_hiddens
 
-        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers)
+        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers, config=self.memory_config)
 
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
@@ -811,6 +824,12 @@ def main():
     if args.memory == "mean":
         memory_config = AggregatorConfig()
         # weight_decay = 0.05
+    elif args.memory == "cls":
+        memory_config = TransformerCLSConfig(
+            input_size=firstLM.config.hidden_size,
+            nhead=firstLM.config.num_attention_heads,
+            num_layers=1
+        )
 
     # elif args.memory == "rnn":
     #     memory_config = RNNAggConfig()
