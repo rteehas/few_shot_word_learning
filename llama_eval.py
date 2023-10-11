@@ -240,7 +240,7 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
 
     task_seqs = []
     task_samples = []
-    for w, s in zip(answers, seqs):
+    for w, task_s in zip(answers, seqs):
         if type(w) == str:
             nonce = "<{}_new>".format(w.lower())
             samples = np.random.choice(sent_dict[w], size=k, replace=False)
@@ -254,7 +254,7 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
             # samples = [s.replace(w, nonce) if w in s else s.replace(w.capitalize(), nonce) if w.capitalize() in s for s in samples]
             samples = new_samples
             task_samples.append(samples)
-            task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I))
+            task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, task_s, flags=re.I))
         else:
             raise NotImplementedError
 
