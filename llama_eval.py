@@ -141,7 +141,7 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
         if type(w) == str:
             nonce = "<{}_new>".format(w)
             #             print(w)
-            samples = np.random.choice(sent_dict[w], size=k, replace=False)
+            samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
             samples = [sentence.replace(w, nonce) for sentence in samples]
             examples = [" \n".join(samples)]
         else:
@@ -202,7 +202,7 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
     question_seqs = []
     for w, s in zip(answers, base_seqs):
         nonce = "<{}_new>".format(w)
-        samples = np.random.choice(sent_dict[w], size=k)
+        samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k)
         samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
         example_string = " \n".join(samples)
 
@@ -243,16 +243,18 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
     for w, task_s in zip(answers, seqs):
         if type(w) == str:
             nonce = "<{}_new>".format(w.lower())
-            samples = np.random.choice(sent_dict[w], size=k, replace=False)
-            # samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
-            new_samples = []
-            for s in samples:
-                if w in s:
-                    new_samples.append(s.replace(w, nonce))
-                elif w.capitalize() in s:
-                    new_samples.append(w.capitalize(), nonce)
-            # samples = [s.replace(w, nonce) if w in s else s.replace(w.capitalize(), nonce) if w.capitalize() in s for s in samples]
-            samples = new_samples
+            samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
+            # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
+            samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
+            print("Samples for {}".format(w), samples)
+            # new_samples = []
+            # for s in samples:
+            #     if w in s:
+            #         new_samples.append(s.replace(w, nonce))
+            #     elif w.capitalize() in s:
+            #         new_samples.append(w.capitalize(), nonce)
+            # # samples = [s.replace(w, nonce) if w in s else s.replace(w.capitalize(), nonce) if w.capitalize() in s for s in samples]
+            # samples = new_samples
             task_samples.append(samples)
             task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, task_s, flags=re.I))
         else:
