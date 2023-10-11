@@ -139,7 +139,7 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
     question_seqs = []
     for w, s in zip(answers, base_seqs):
         if type(w) == str:
-            nonce = "<{}_new>".format(w)
+            nonce = "<{}_new>".format(w.lower())
             #             print(w)
             samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
             samples = [sentence.replace(w, nonce) for sentence in samples]
@@ -150,14 +150,14 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
 
         if with_definition and defs is not None:
             if type(w) == str:
-                nonce = nonce_template.format(w)
+                nonce = nonce_template.format(w.lower())
                 definition = defs[w]
                 formatted_examples_with_definition = [definition_template.format(nonce, definition, ex) for ex in
                                                       examples]
             else:
                 formatted_examples_with_definition = []
                 for i, v in enumerate(w):
-                    nonce = nonce_template.format(v)
+                    nonce = nonce_template.format(v.lower())
                     definition = defs[v]
                     formatted_example = definition_template.format(nonce, definition, examples[i])
                     formatted_examples_with_definition.append(formatted_example)
@@ -165,20 +165,20 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
             seq_minus_sentence = definition_stem + "".join(formatted_examples_with_definition)
         else:
             if type(w) == str:
-                nonce = nonce_template.format(w)
+                nonce = nonce_template.format(w.lower())
                 formatted_examples = [sentence_template.format(nonce, ex) for ex in examples]
 
             else:
                 formatted_examples = []
                 for i, v in enumerate(w):
-                    nonce = nonce_template.format(v)
+                    nonce = nonce_template.format(v.lower())
                     formatted_example = sentence_template.format(nonce, examples[i])
                     formatted_examples.append(formatted_example)
 
             seq_minus_sentence = sentence_stem + "".join(formatted_examples)
 
         if type(w) == str:
-            nonce = nonce_template.format(w)
+            nonce = nonce_template.format(w.lower())
             new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
 
         else:
@@ -201,7 +201,7 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
     seqs = []
     question_seqs = []
     for w, s in zip(answers, base_seqs):
-        nonce = "<{}_new>".format(w)
+        nonce = "<{}_new>".format(w.lower())
         samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k)
         samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
         example_string = " \n".join(samples)
