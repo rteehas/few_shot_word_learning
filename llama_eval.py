@@ -142,10 +142,10 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
             nonce = "<{}_new>".format(w.lower())
             #             print(w)
             samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
-            samples = [sentence.replace(w, nonce) for sentence in samples]
+            samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
             examples = [" \n".join(samples)]
         else:
-            examples = [" \n".join(answer_samples[v]).replace(v, nonce_template.format(v)) for v in w]
+            examples = [re.sub(r"\b({})\b".format(w), nonce, " \n".join(answer_samples[v]), flags=re.I) for v in w]
         #             examples = [" \n".join(sample) for sample in samples]
 
         if with_definition and defs is not None:
