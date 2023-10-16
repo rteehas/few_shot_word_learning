@@ -918,26 +918,26 @@ def main():
         print("tokenizing")
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
         if args.regression_objective:
-            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text'])
-            tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
+            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+            # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
             train_dl = DataLoader(tokenized_train, drop_last=True, batch_size=args.batch_size,
                               collate_fn=regression_collate, num_workers=2)
 
-            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text'])
-            tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+            # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, drop_last=True, batch_size=args.batch_size,
                                  collate_fn=regression_collate, num_workers=2)
 
         else:
-            tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta'])
-            tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
+            tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
+            # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
             train_dl = DataLoader(tokenized_train, drop_last=True, batch_size=args.batch_size,
                               collate_fn=data_collator,num_workers=2)
 
-            tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta'])
+            tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
 
-            tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+            # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, drop_last=True, batch_size=args.batch_size,
                                  collate_fn=data_collator, num_workers=2)
 
@@ -950,13 +950,13 @@ def main():
         if args.negative_examples:
             negative_dataset = load_dataset(args.negative_data_path, streaming=True)
             negative_train_tokenized = negative_dataset['train'].map(tokenize,
-                                                                     remove_columns=['text', 'meta'])
-            negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
+                                                                     remove_columns=['text', 'meta']).with_format("torch")
+            # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
             negative_test_tokenized = negative_dataset['test'].map(tokenize,
-                                                                   remove_columns=['text', 'meta'])
+                                                                   remove_columns=['text', 'meta']).with_format("torch")
 
-            negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000).with_format("torch")
+            # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
             negative_train_dl = DataLoader(negative_train_tokenized, drop_last=True,
                                            batch_size=args.batch_size, collate_fn=data_collator, num_workers=2)
             negative_test_dl = DataLoader(negative_test_tokenized, drop_last=True, batch_size=args.batch_size,
