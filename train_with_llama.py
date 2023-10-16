@@ -1,3 +1,4 @@
+import re
 from argparse import ArgumentParser
 
 import torch
@@ -706,6 +707,9 @@ def get_arguments():
     parser.add_argument("--regression_objective", action="store_true")
     parser.add_argument("--regression_alpha", type=float, default=1.0)
     parser.add_argument("--distillation_temp", type=int, default=1.0)
+    parser.add_argument("--max_steps", type=int, required=True)
+    parser.add_argument("--logging_step", type=int, required=True)
+    parser.add_argument("--num_eval_steps", type=int, default=1000)
     return parser
 
 
@@ -720,7 +724,7 @@ def create_checkpoint_directories(args):
         neg_string = "without_negatives_or_regression"
 
 
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
     path = path.format(args.num_layers, args.batch_size * args.gradient_accumulation_steps,args.memory, args.num_examples, args.lr, args.weight_decay, neg_string)
 
     if args.negative_examples and args.regression_objective:
@@ -736,17 +740,19 @@ def create_checkpoint_directories(args):
     return path
 
 
+
+
 def main():
     def tokenize(ex):
-        return tokenizerTask(ex['text'], truncation=True, padding=False, return_tensors=None)
+        return tokenizerTask(ex['text'], truncation=True, max_length=tokenizerMLM.model_max_length, padding=False, return_tensors=None)
 
     def tokenize_for_buffer(ex):
         return tokenizerMLM(ex['text'], truncation=True, return_tensors="pt")
 
     def tokenize_regression(ex):
 
-        inps = tokenizerTask(ex['text'], truncation=True, padding=False, return_tensors=None)
-        base_inps = tokenizerTask(ex['base text'], truncation=True, padding=False, return_tensors=None)
+        inps = tokenizerTask(ex['text'], truncation=True, max_length=tokenizerMLM.model_max_length, padding=False, return_tensors=None)
+        base_inps = tokenizerTask(ex['base text'], truncation=True, max_length=tokenizerMLM.model_max_length, padding=False, return_tensors=None)
         row = dict(input_ids=inps['input_ids'],
                 attention_mask=inps['attention_mask'],
                 base_input_ids=base_inps['input_ids'],
@@ -769,6 +775,31 @@ def main():
                 final_collate[k] = coll[k]
 
         return final_collate
+
+
+    def check_example(ex):
+        found = False
+        if re.search("|".join(words), ex['text'], flags=re.I):
+            found = True
+
+        return found
+
+    def create_base_and_nonce(ex):
+        contained_words = [w for w in words if re.search(w, ex['text'], flags=re.I) is not None]
+
+        to_replace = np.random.choice(contained_words)
+
+        original_text =  ex['text']
+
+        nonce = "<{}_new>".format(to_replace.lower())
+
+        modified_text = re.sub(r"\b({})\b".format(to_replace), nonce, ex['text'], flags=re.I)
+
+        ex['base text'] = ex['text']
+        ex['text'] = modified_text
+
+        return ex
+
 
 
 
@@ -878,32 +909,38 @@ def main():
         ]
     print("dataset")
     with accelerator.main_process_first():
-        dataset = load_from_disk(args.data_path)
+        dataset = load_from_disk(args.data_path, streaming=True)
+        dataset = dataset.filter(check_example)
+        dataset = dataset.map(create_base_and_nonce)
         print("tokenizing")
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
         if args.regression_objective:
             tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=dataset['train'].column_names)
+            tokenized_train = tokenized_train.shuffle(buffer_size=10000)
             train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
                               collate_fn=regression_collate)
 
             tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=dataset['train'].column_names)
+            tokenized_test = tokenized_test.shuffle(buffer_size=2000)
             test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
                                  collate_fn=regression_collate)
 
         else:
             tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
-
+            tokenized_train = tokenized_train.shuffle(buffer_size=10_000)
 
             train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
                               collate_fn=data_collator)
 
             tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
+
+            tokenized_test = tokenized_test.shuffle(buffer_size=2000)
             test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
                                  collate_fn=data_collator)
 
-        buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
+        buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
                                  args.random_ex, args.cat)
-        test_buffer = RetrievalBuffer(15, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM,
+        test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
                                       args.random_ex, args.cat)
 
 
@@ -911,15 +948,18 @@ def main():
             negative_dataset = load_from_disk(args.negative_data_path)
             negative_train_tokenized = negative_dataset['train'].map(tokenize,
                                                                      remove_columns=negative_dataset['train'].column_names)
+            negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000)
+
             negative_test_tokenized = negative_dataset['test'].map(tokenize,
                                                                    remove_columns=negative_dataset['test'].column_names)
 
+            negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
             negative_train_dl = DataLoader(negative_train_tokenized, shuffle=True, drop_last=True,
                                            batch_size=args.batch_size, collate_fn=data_collator)
             negative_test_dl = DataLoader(negative_test_tokenized, shuffle=True, drop_last=True, batch_size=args.batch_size,
                                           collate_fn=data_collator)
 
-    eval_ind = int(len(train_dl) // 3)
+    eval_ind = args.logging_step
 
     opt = AdamW(filter(lambda p: p.requires_grad, model.parameters()),
                 eps=epsilon,
@@ -927,23 +967,23 @@ def main():
                 weight_decay=args.weight_decay
                 )
 
-    warmup_steps = int(len(train_dl) * 0.03)
-    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, epochs * len(train_dl))
+    warmup_steps = int(args.max_steps * 0.03)
+    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.max_steps)
 
 
 
-    print("loading buffer")
-    tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
-    for inp in buffer_dl:
-        buffer.store(inp)
-
-    print("Buffer has {} elements".format(len(buffer.buffer)))
-
-    test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
-    for inp in buffer_test_dl:
-        test_buffer.store(inp)
+    # print("loading buffer")
+    # tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
+    # buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
+    # for inp in buffer_dl:
+    #     buffer.store(inp)
+    #
+    # print("Buffer has {} elements".format(len(buffer.buffer)))
+    #
+    # test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
+    # buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
+    # for inp in buffer_test_dl:
+    #     test_buffer.store(inp)
 
     print("Test buffer has {} elements".format(len(test_buffer.buffer)))
 
@@ -999,13 +1039,22 @@ def main():
                 for j in range(batch['input_ids'].shape[0]):
                     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
                     assert (len(to_sample) == 1)
-
-                    for n in to_sample:
+                    n = to_sample[0]
+                    if n in buffer.buffer:
                         sample = buffer.retrieve(n, batch)
                         if sample is not None:
                             contexts.append(sample)
                         else:
                             print("Null context for {}".format(n))
+                    else:
+                        seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
+                                                clean_up_tokenization_spaces=True)
+                        sample = tokenizerMLM([seq],
+                                              max_length=tokenizerMLM.model_max_length,
+                                              truncation=True,
+                                              padding='longest',
+                                              return_tensors='pt')
+                        contexts.append(sample)
 
                 assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
                 batch['contexts'] = contexts
@@ -1111,6 +1160,9 @@ def main():
 
                 accelerator.log(log_dict)
 
+                buffer.store_task(batch)
+                buffer.cleanup()
+
 
 
             try:
@@ -1125,16 +1177,28 @@ def main():
                         total_test_regression_loss = 0
                         total_test_distillation_loss = 0
                         test_log = {}
+                        ct = 0
                         for b in test_dl:
+                            if ct >= args.num_eval_steps:
+                                break
                             contexts = []
                             for j in range(b['input_ids'].shape[0]):
                                 to_sample = list(set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
                                 assert (len(to_sample) == 1)
-
-                                for n in to_sample:
+                                n = to_sample[0]
+                                if n in test_buffer.buffer:
                                     sample = test_buffer.retrieve(n, b)
                                     if sample is not None:
                                         contexts.append(sample)
+                                else:
+                                    seq = tokenizerTask.decode(b['input_ids'][j,:])
+                                    sample = tokenizerMLM([seq],
+                                              max_length=tokenizerMLM.model_max_length,
+                                              truncation=True,
+                                              padding='longest',
+                                              return_tensors='pt')
+                                    contexts.append(sample)
+
                             assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
                             b['contexts'] = contexts
 
@@ -1167,6 +1231,10 @@ def main():
                             if args.regression_objective:
                                 total_test_regression_loss += t_out.regression_loss.detach().float()
                                 total_test_distillation_loss += t_out.distillation_loss.detach.float()
+
+                            test_buffer.store_task(b)
+                            test_buffer.cleanup()
+
 
                         avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
                         avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / len(test_dl)
