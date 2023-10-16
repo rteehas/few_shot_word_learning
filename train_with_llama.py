@@ -918,24 +918,24 @@ def main():
         print("tokenizing")
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
         if args.regression_objective:
-            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=dataset['train'].column_names)
+            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text'])
             tokenized_train = tokenized_train.shuffle(buffer_size=10000)
             train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
                               collate_fn=regression_collate)
 
-            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=dataset['train'].column_names)
+            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text'])
             tokenized_test = tokenized_test.shuffle(buffer_size=2000)
             test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
                                  collate_fn=regression_collate)
 
         else:
-            tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names)
+            tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta'])
             tokenized_train = tokenized_train.shuffle(buffer_size=10_000)
 
             train_dl = DataLoader(tokenized_train, drop_last=True, shuffle=True, batch_size=args.batch_size,
                               collate_fn=data_collator)
 
-            tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names)
+            tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta'])
 
             tokenized_test = tokenized_test.shuffle(buffer_size=2000)
             test_dl = DataLoader(tokenized_test, shuffle=True, drop_last=True, batch_size=args.batch_size,
@@ -950,11 +950,11 @@ def main():
         if args.negative_examples:
             negative_dataset = load_dataset(args.negative_data_path, streaming=True)
             negative_train_tokenized = negative_dataset['train'].map(tokenize,
-                                                                     remove_columns=negative_dataset['train'].column_names)
+                                                                     remove_columns=['text', 'meta'])
             negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000)
 
             negative_test_tokenized = negative_dataset['test'].map(tokenize,
-                                                                   remove_columns=negative_dataset['test'].column_names)
+                                                                   remove_columns=['text', 'meta'])
 
             negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
             negative_train_dl = DataLoader(negative_train_tokenized, shuffle=True, drop_last=True,
