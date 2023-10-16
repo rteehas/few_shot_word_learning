@@ -1166,7 +1166,7 @@ def main():
 
 
             try:
-                if i != 0 and (i % eval_ind == 0 or i % len(train_dl) == 0):
+                if i != 0 and i % eval_ind == 0:
                     opt.zero_grad(set_to_none=True)
                     model.eval()
                     with torch.no_grad():
