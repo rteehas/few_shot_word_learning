@@ -1041,7 +1041,7 @@ def main():
                 contexts = []
                 for j in range(batch['input_ids'].shape[0]):
                     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                    assert (len(to_sample) == 1)
+                    assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1".format(to_sample)
                     n = to_sample[0]
                     if n in buffer.buffer:
                         sample = buffer.retrieve(n, batch)
