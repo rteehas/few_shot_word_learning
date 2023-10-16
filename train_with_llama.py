@@ -528,6 +528,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                     # a bit hacky way to combine outputs
                     out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
                         loss=negative_out_vals.loss,
+                        hidden_states=llama_outputs.hidden_states,
                         positive_loss=negative_out_vals.positive_loss,
                         negative_loss=negative_out_vals.negative_loss,
                         positive_logits=negative_out_vals.positive_logits,
@@ -538,7 +539,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                         attentions=llama_outputs.attentions,
                         new_token_loss=new_tok_loss,
                         memories=[dict(input_memory=input_memory, output_memory=output_memory)],
-                        regression_loss=regression_out_vals.regression_loss
+                        regression_loss=regression_out_vals.regression_loss,
+                        distillation_loss=distillation_loss
                     )
 
                 else:
@@ -597,6 +599,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             return CausalLMOutputWithRegressionAndNegativeLoss(
                 loss=final_loss,
+                hidden_states=final_hiddens,
                 positive_loss=final_positive_loss.detach(),
                 negative_loss=final_negative_loss.detach(),
                 positive_logits=final_positive_logits,
