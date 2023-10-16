@@ -64,5 +64,6 @@ class CausalLMOutputWithRegressionAndNegativeLoss(ModelOutput):
     new_token_loss: Optional[torch.FloatTensor] = None
     memories: Optional[List[Dict[str, OnlineProtoNet]]] = None
     regression_loss: Optional[torch.FloatTensor] = None
+    distillation_loss: Optional[torch.FloatTensor] = None
     positive_loss: Optional[torch.FloatTensor] = None
     negative_loss: Optional[torch.FloatTensor] = None

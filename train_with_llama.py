@@ -206,7 +206,7 @@ class EmbeddingGenerator(nn.Module):
 
 class MorphMemoryModelLLAMA(nn.Module):
 
-    def __init__(self, firstLM, secondLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers, num_regression_hiddens):
+    def __init__(self, firstLM, secondLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers, distillation_temp):
         super().__init__()
 
         self.layers = layers
@@ -217,7 +217,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         # self.memory = OnlineProtoNet(memory_config)
         self.num_new_tokens = num_new_tokens
         self.num_layers = num_layers
-        self.num_regression_hiddens = num_regression_hiddens
+        self.distillation_temp = distillation_temp
 
         self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers, config=self.memory_config)
 
@@ -488,20 +488,26 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                                            task_ids[i][task_attn[i] == 1].tolist())
                 print(indices_in_base, "base")
                 print(indices_in_replaced, "replaced")
-                if self.num_regression_hiddens is None:
-                    cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
-                else:
-                    cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
+                # if self.num_regression_hiddens is None:
+                #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
+                # else:
+                #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
+                cosine_loss = nn.CosineEmbeddingLoss()
+                regression_loss = cosine_loss(outputs.hidden_states[-1][:,indices_in_replaced],
+                                              base_outputs.hidden_states[-1][:,indices_in_base],
+                                              target=torch.ones(outputs.hidden_states[-1][:,indices_in_replaced].shape[0])).mean()
 
-                logsoft_base = F.log_softmax(base_outputs.logits, dim=-1)
-                logsoft_nonce = F.log_softmax(llama_outputs.logits, dim=-1)
+                # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
+                #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
+                soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
+                logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
+                distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
+                distillation_loss = distillation_loss / (self.distillation_temp **2)
+                # regression_loss = regression_loss
 
-                cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
-                                                  logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
-
-                cosines.append(cosine_soft)
-                print(cosines)
-                regression_loss = torch.stack(cosines).mean()
+                # cosines.append(cosine_soft)
+                # print(cosines)
+                # regression_loss = torch.stack(cosines).mean()
 
                 regression_out_vals = CausalLMOutputWithRegressionLoss(
                     loss=llama_outputs.loss,
@@ -513,7 +519,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                     attentions=llama_outputs.attentions,
                     new_token_loss=new_tok_loss,
                     memories=[dict(input_memory=input_memory, output_memory=output_memory)],
-                    regression_loss=regression_loss
+                    regression_loss=regression_loss,
+                    distillation_loss=distillation_loss
                 )
 
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
@@ -584,6 +591,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
             final_base_logits = torch.stack([o.base_logits for o in outs])
             final_base_hiddens = [o.base_hidden_states for o in outs]
+            final_distillation_loss = torch.stack([o.distillation_loss for o in outs]).mean()
 
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None) and (base_ids, base_attn_mask, base_labels) != (None, None, None):
 
@@ -598,6 +606,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 new_token_loss=final_new_token_loss,
                 memories=final_memories,
                 regression_loss=final_regression_loss,
+                distillation_loss=final_distillation_loss
             )
         elif (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
             return CausalLMOutputWithNewTokenNegatives(
@@ -625,6 +634,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 new_token_loss=final_new_token_loss,
                 memories=final_memories,
                 regression_loss=final_regression_loss,
+                distillation_loss=final_distillation_loss
             )
         else:
             final_logits = torch.cat([o.logits for o in outs], dim=0)
@@ -695,7 +705,7 @@ def get_arguments():
     parser.add_argument("--negative_data_path", type=str, default="")
     parser.add_argument("--regression_objective", action="store_true")
     parser.add_argument("--regression_alpha", type=float, default=1.0)
-    parser.add_argument("--num_regression_hiddens", type=int, default=None)
+    parser.add_argument("--distillation_temp", type=int, default=1.0)
     return parser
 
 
@@ -714,11 +724,9 @@ def create_checkpoint_directories(args):
     path = path.format(args.num_layers, args.batch_size * args.gradient_accumulation_steps,args.memory, args.num_examples, args.lr, args.weight_decay, neg_string)
 
     if args.negative_examples and args.regression_objective:
-        alpha_str = "alpha_{}/".format(args.regression_alpha)
-        if args.num_regression_hiddens is None:
-            hidden_str = "all_hidden_states/"
-        else:
-            hidden_str = "{}_hidden_states/".format(args.num_regression_hiddens)
+        alpha_str = "distillation_weight_{}_temp_{}/".format(args.regression_alpha, args.distillation_temp)
+        hidden_str = "output_embedding_cosine/"
+
         path = path + alpha_str + hidden_str
 
     suffix = "checkpoints/"
@@ -844,7 +852,7 @@ def main():
 
     print("init model")
     accelerator.wait_for_everyone()
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers, args.num_regression_hiddens)
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers, args.distillation_temp)
     model = accelerator.prepare(model)
     print("initialized")
     ##pad to multiple of 64
@@ -963,7 +971,8 @@ def main():
                 "alpha": args.regression_alpha,
                 },
     )
-    
+    ce_weight = 0.75 # use for weighting the cross entropy, distillation, and regression
+
     for epoch in range(epochs):
         train_new_token_losses = []
         train_losses = []
@@ -972,6 +981,7 @@ def main():
         total_positive_loss = 0
         total_negative_loss = 0
         total_regression_loss = 0
+        total_distillation_loss = 0
         for i, batch in enumerate(train_dl):
             with accelerator.accumulate(model):
                 log_dict = {}
@@ -1008,12 +1018,12 @@ def main():
                 # print(batch['input_ids'].shape[0])
                 out = model(batch)
                 if args.regression_objective and args.negative_examples:
-
-                    loss = out.loss + args.regression_alpha * out.regression_loss
+                    distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                    loss = out.loss + args.regression_alpha * out.regression_loss + distillation_weight * out.distillation_loss
 
                 elif args.regression_objective:
 
-                    loss = out.regression_loss
+                    loss = out.regression_loss + out.distillation_loss
 
                 else:
                     loss = out.loss
@@ -1043,6 +1053,7 @@ def main():
                     total_negative_loss += out.negative_loss.detach().float()
                 if args.regression_objective:
                     total_regression_loss += out.regression_loss.detach().float()
+                    total_distillation_loss += out.distillation_loss.detach().float()
 
 
 
@@ -1071,10 +1082,11 @@ def main():
 
                 if args.regression_objective:
 
-                    log_dict['regression loss without alpha'] = accelerator.gather(total_regression_loss).mean().item() / args.gradient_accumulation_steps
-                    log_dict['regression loss with alpha'] = (args.regression_alpha * accelerator.gather(total_regression_loss)).mean().item() / args.gradient_accumulation_steps
-
+                    log_dict['regression loss without weight'] = accelerator.gather(total_regression_loss).mean().item() / args.gradient_accumulation_steps
+                    # log_dict['regression loss with alpha'] = (args.regression_alpha * accelerator.gather(total_regression_loss)).mean().item() / args.gradient_accumulation_steps
+                    log_dict['distillation loss without weight'] = accelerator.gather(total_distillation_loss).mean().item() / args.gradient_accumulation_steps
                     total_regression_loss = 0
+                    total_distillation_loss = 0
 
 
 
@@ -1111,6 +1123,7 @@ def main():
                         total_test_negative_loss = 0
                         total_test_positive_loss = 0
                         total_test_regression_loss = 0
+                        total_test_distillation_loss = 0
                         test_log = {}
                         for b in test_dl:
                             contexts = []
@@ -1135,9 +1148,10 @@ def main():
                             t_out = model(b)
                             # all_losses = accelerator.gather(t_out.loss)
                             if args.regression_objective and args.negative_examples:
-                                total_test_loss += t_out.loss + args.regression_alpha * t_out.regression_loss.detach().float()
+                                distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                                total_test_loss += t_out.loss + args.regression_alpha * t_out.regression_loss.detach().float() + distillation_weight * t_out.distillation_loss.detach().float()
                             elif args.regression_objective:
-                                total_test_loss += t_out.regression_loss.detach().float()
+                                total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
                             else:
                                 total_test_loss += t_out.loss.detach().float()
                             try:
@@ -1152,6 +1166,7 @@ def main():
 
                             if args.regression_objective:
                                 total_test_regression_loss += t_out.regression_loss.detach().float()
+                                total_test_distillation_loss += t_out.distillation_loss.detach.float()
 
                         avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
                         avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / len(test_dl)
