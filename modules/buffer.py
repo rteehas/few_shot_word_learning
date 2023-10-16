@@ -3,16 +3,17 @@ import numpy as np
 
 class RetrievalBuffer():
 
-    def __init__(self, max_num, k, nonce_list, tokenizer, random, cat):
+    def __init__(self, max_num, k, nonce_list, tokenizer, tokenizerTask, random, cat):
         self.k = k
         self.max_num = max_num
         self.buffer = {}
         self.nonces = nonce_list
         self.tokenizer = tokenizer
+        self.tokenizerTask = tokenizerTask
         self.random = random
         self.cat = cat
 
-    def store(self, mlm_inputs):
+    def store_mlm(self, mlm_inputs):
 
         for n in self.nonces:
             if n not in mlm_inputs['input_ids']:
@@ -24,6 +25,26 @@ class RetrievalBuffer():
                 uq = list(set([(i, j) for i, j in zip(b, k)]))
                 for (i, j) in uq:
                     mem = self.tokenizer.decode(mlm_inputs['input_ids'][i, j, :], skip_special_tokens=True,
+                                                clean_up_tokenization_spaces=True)
+
+                    if n in self.buffer:
+                        self.buffer[n] = [mem] + self.buffer[n]
+                    else:
+                        self.buffer[n] = [mem]
+    def store_task(self, batch):
+
+        nonces = [v for k,v in self.tokenizerTask.get_added_vocab()]
+
+        for n in nonces:
+            if n not in batch['input_ids']:
+                continue
+            else:
+                locs = (batch['input_ids'] == n)
+                tups = locs.nonzero(as_tuple=True)
+                b, k, l = tups
+                uq = list(set([(i, j) for i, j in zip(b, k)]))
+                for (i, j) in uq:
+                    mem = self.tokenizerTask.decode(batch['input_ids'][i, j, :], skip_special_tokens=True,
                                                 clean_up_tokenization_spaces=True)
 
                     if n in self.buffer:
@@ -43,7 +64,7 @@ class RetrievalBuffer():
         uq = list(set([i for i in b]))
         curr_examples = []
         for i in uq:
-            mem = self.tokenizer.decode(mlm_inputs['input_ids'][i, :], skip_special_tokens=True,
+            mem = self.tokenizerTask.decode(mlm_inputs['input_ids'][i, :], skip_special_tokens=True,
                                         clean_up_tokenization_spaces=True)
             curr_examples.append(mem)
 
