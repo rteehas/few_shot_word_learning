@@ -796,7 +796,7 @@ def main():
 
         nonce = "<{}_new>".format(to_replace.lower())
 
-        modified_text = re.sub(r"\b({})\b".format(to_replace), nonce, ex['text'], flags=re.I)
+        modified_text = re.sub(r"\b({})\b".format(to_replace.lower()), nonce, ex['text'], flags=re.I)
 
         ex['base text'] = ex['text']
         ex['text'] = modified_text
@@ -1041,7 +1041,7 @@ def main():
                 contexts = []
                 for j in range(batch['input_ids'].shape[0]):
                     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                    assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1".format(to_sample)
+                    assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample, batch['input_ids'][j])
                     n = to_sample[0]
                     if n in buffer.buffer:
                         sample = buffer.retrieve(n, batch)
