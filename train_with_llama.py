@@ -2,7 +2,7 @@ import re
 from argparse import ArgumentParser
 
 import torch
-from datasets import load_from_disk
+from datasets import load_from_disk, load_dataset
 from torch import nn
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
@@ -912,7 +912,7 @@ def main():
         ]
     print("dataset")
     with accelerator.main_process_first():
-        dataset = load_from_disk(args.data_path, streaming=True)
+        dataset = load_dataset(args.data_path, streaming=True)
         dataset = dataset.filter(check_example)
         dataset = dataset.map(create_base_and_nonce)
         print("tokenizing")
@@ -948,7 +948,7 @@ def main():
 
 
         if args.negative_examples:
-            negative_dataset = load_from_disk(args.negative_data_path)
+            negative_dataset = load_dataset(args.negative_data_path, streaming=True)
             negative_train_tokenized = negative_dataset['train'].map(tokenize,
                                                                      remove_columns=negative_dataset['train'].column_names)
             negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000)
