@@ -33,7 +33,7 @@ class RetrievalBuffer():
                         self.buffer[n] = [mem]
     def store_task(self, batch):
 
-        nonces = [v for k,v in self.tokenizerTask.get_added_vocab()]
+        nonces = [v for k,v in self.tokenizerTask.get_added_vocab().items()]
 
         for n in nonces:
             if n not in batch['input_ids']:
