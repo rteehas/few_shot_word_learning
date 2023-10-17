@@ -794,11 +794,18 @@ def main():
 
         original_text =  ex['text']
 
+        split = ex['text'].split(".")
+        output = [idx for idx, element in enumerate(split) if re.search(to_replace, element, flags=re.I) is not None]
+
+        first_index = output[0]
+
+        new_text = ".".join(split[first_index:])
+
         nonce = "<{}_new>".format(to_replace.lower())
 
-        modified_text = re.sub(r"\b({})\b".format(to_replace.lower()), nonce, ex['text'], flags=re.I)
+        modified_text = re.sub(r"\b({})\b".format(to_replace.lower()), nonce, new_text, flags=re.I)
 
-        ex['base text'] = ex['text']
+        ex['base text'] = new_text
         ex['text'] = modified_text
 
         return ex
