@@ -908,6 +908,7 @@ def main():
                 new_texts.append(modified_text)
                 base_texts.append(text)
 
+
         return {'base text': base_texts, 'text': new_texts}
 
     args = get_arguments().parse_args()
@@ -1016,56 +1017,56 @@ def main():
             },
         ]
     print("dataset")
-    # with accelerator.main_process_first():
-    dataset = load_dataset(args.data_path, streaming=True)
-    # dataset = dataset.filter(check_example)
-    dataset = dataset.map(batched_process, batched=True)
-    print("tokenizing")
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
-    if args.regression_objective:
-        tokenized_train = dataset['train'].take(50000).map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
-        # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
-        train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                          collate_fn=regression_collate)
+    with accelerator.main_process_first():
+        dataset = load_from_disk(args.data_path, streaming=True)
+        # dataset = dataset.filter(check_example)
+        dataset = dataset.map(create_base_and_nonce)
+        print("tokenizing")
+        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
+        if args.regression_objective:
+            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+            # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
+            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
+                              collate_fn=regression_collate)
 
-        tokenized_test = dataset['test'].take(10000).map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
-        # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
-        test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                             collate_fn=regression_collate)
+            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+            # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+            test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
+                                 collate_fn=regression_collate)
 
-    else:
-        tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
-        # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
+        else:
+            tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
+            # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
-        train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                          collate_fn=data_collator)
+            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
+                              collate_fn=data_collator)
 
-        tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
+            tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
 
-        # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
-        test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                             collate_fn=data_collator)
+            # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+            test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
+                                 collate_fn=data_collator)
 
-    buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
-                             args.random_ex, args.cat)
-    test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
-                                  args.random_ex, args.cat)
+        buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
+                                 args.random_ex, args.cat)
+        test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
+                                      args.random_ex, args.cat)
 
 
-    if args.negative_examples:
-        negative_dataset = load_dataset(args.negative_data_path, streaming=True)
-        negative_train_tokenized = negative_dataset['train'].take(10000).map(tokenize,
-                                                                 remove_columns=['text', 'meta']).with_format("torch")
-        # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
+        if args.negative_examples:
+            negative_dataset = load_dataset(args.negative_data_path, streaming=True)
+            negative_train_tokenized = negative_dataset['train'].map(tokenize,
+                                                                     remove_columns=['text', 'meta']).with_format("torch")
+            # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
-        negative_test_tokenized = negative_dataset['test'].take(10000).map(tokenize,
-                                                               remove_columns=['text', 'meta']).with_format("torch")
+            negative_test_tokenized = negative_dataset['test'].map(tokenize,
+                                                                   remove_columns=['text', 'meta']).with_format("torch")
 
-        # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
-        negative_train_dl = DataLoader(negative_train_tokenized,
-                                       batch_size=args.batch_size, collate_fn=data_collator)
-        negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
-                                      collate_fn=data_collator)
+            # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
+            negative_train_dl = DataLoader(negative_train_tokenized,
+                                           batch_size=args.batch_size, collate_fn=data_collator)
+            negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
+                                          collate_fn=data_collator)
 
     eval_ind = args.logging_step
 
