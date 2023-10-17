@@ -931,25 +931,25 @@ def main():
         if args.regression_objective:
             tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
-            train_dl = DataLoader(tokenized_train, drop_last=True, batch_size=args.batch_size,
+            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
                               collate_fn=regression_collate)
 
             tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
-            test_dl = DataLoader(tokenized_test, drop_last=True, batch_size=args.batch_size,
+            test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
                                  collate_fn=regression_collate)
 
         else:
             tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
-            train_dl = DataLoader(tokenized_train, drop_last=True, batch_size=args.batch_size,
+            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
                               collate_fn=data_collator)
 
             tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
 
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
-            test_dl = DataLoader(tokenized_test, drop_last=True, batch_size=args.batch_size,
+            test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
                                  collate_fn=data_collator)
 
         buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
@@ -968,9 +968,9 @@ def main():
                                                                    remove_columns=['text', 'meta']).with_format("torch")
 
             # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
-            negative_train_dl = DataLoader(negative_train_tokenized, drop_last=True,
+            negative_train_dl = DataLoader(negative_train_tokenized,
                                            batch_size=args.batch_size, collate_fn=data_collator, num_workers=2)
-            negative_test_dl = DataLoader(negative_test_tokenized, drop_last=True, batch_size=args.batch_size,
+            negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
                                           collate_fn=data_collator)
 
     eval_ind = args.logging_step
