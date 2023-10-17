@@ -1017,18 +1017,18 @@ def main():
         ]
     print("dataset")
     # with accelerator.main_process_first():
-    dataset = load_dataset(args.data_path, streaming=True).take(50000)
+    dataset = load_dataset(args.data_path, streaming=True)
     # dataset = dataset.filter(check_example)
     dataset = dataset.map(batched_process, batched=True)
     print("tokenizing")
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
     if args.regression_objective:
-        tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+        tokenized_train = dataset['train'].take(50000).map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
         # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
         train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
                           collate_fn=regression_collate, num_workers=2, persistent_workers=True)
 
-        tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+        tokenized_test = dataset['test'].take(10000).map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
         # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
         test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
                              collate_fn=regression_collate, num_workers=2, persistent_workers=True)
@@ -1053,12 +1053,12 @@ def main():
 
 
     if args.negative_examples:
-        negative_dataset = load_dataset(args.negative_data_path, streaming=True).take(10000)
-        negative_train_tokenized = negative_dataset['train'].map(tokenize,
+        negative_dataset = load_dataset(args.negative_data_path, streaming=True)
+        negative_train_tokenized = negative_dataset['train'].take(10000).map(tokenize,
                                                                  remove_columns=['text', 'meta']).with_format("torch")
         # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
-        negative_test_tokenized = negative_dataset['test'].map(tokenize,
+        negative_test_tokenized = negative_dataset['test'].take(10000).map(tokenize,
                                                                remove_columns=['text', 'meta']).with_format("torch")
 
         # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
