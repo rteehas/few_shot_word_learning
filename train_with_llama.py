@@ -800,13 +800,13 @@ def main():
         first_index = output[0]
 
         new_text = ".".join(split[first_index:])
-        print("replacements and text:")
-        print(to_replace, new_text)
+        # print("replacements and text:")
+        # print(to_replace, new_text)
 
         nonce = "<{}_new>".format(to_replace.lower())
 
         modified_text = re.sub(r"\b({})\b".format(to_replace), nonce, new_text, flags=re.I)
-        print("modified = {}".format(modified_text))
+        # print("modified = {}".format(modified_text))
 
         ex['base text'] = new_text
         ex['text'] = modified_text
