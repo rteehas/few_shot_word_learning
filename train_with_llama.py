@@ -800,10 +800,13 @@ def main():
         first_index = output[0]
 
         new_text = ".".join(split[first_index:])
+        print("replacements and text:")
+        print(to_replace, new_text)
 
         nonce = "<{}_new>".format(to_replace.lower())
 
-        modified_text = re.sub(r"\b({})\b".format(to_replace.lower()), nonce, new_text, flags=re.I)
+        modified_text = re.sub(r"\b({})\b".format(to_replace), nonce, new_text, flags=re.I)
+        print("modified = {}".format(modified_text))
 
         ex['base text'] = new_text
         ex['text'] = modified_text
@@ -980,8 +983,8 @@ def main():
 
     warmup_steps = int(args.max_steps * 0.03)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.max_steps)
-    print("Buffer Nonces = {}".format(buffer.nonces))
-    print("Token Mapping = {}".format(token_mapping))
+    # print("Buffer Nonces = {}".format(buffer.nonces))
+    # print("Token Mapping = {}".format(token_mapping))
 
 
     # print("loading buffer")
