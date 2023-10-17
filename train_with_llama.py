@@ -813,8 +813,24 @@ def main():
 
         return ex
 
+    def batched_process(batch):
 
+        new_texts = []
+        base_texts = []
+        for text in batch['text']:
+            if re.search(r"\b({})\b".format("|".join(words)), text, flags=re.I):
+                contained_words = [w for w in words if re.search(r"\b({})\b".format(w), text, flags=re.I) is not None]
+                to_replace = np.random.choice(contained_words)
+                split = text.split(".")
+                output = [idx for idx, element in enumerate(split) if re.search(r"\b({})\b".format(to_replace), element, flags=re.I) is not None]
+                first_index = output[0]
+                new_text = ".".join(split[first_index:])
+                nonce = "<{}_new>".format(to_replace.lower())
+                modified_text = re.sub(r"\b({})\b".format(to_replace), nonce, new_text, flags=re.I)
+                new_texts.append(modified_text)
+                base_texts.append(text)
 
+        return {'base text': base_texts, 'text': new_texts}
 
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
@@ -924,8 +940,8 @@ def main():
     print("dataset")
     with accelerator.main_process_first():
         dataset = load_dataset(args.data_path, streaming=True)
-        dataset = dataset.filter(check_example)
-        dataset = dataset.map(create_base_and_nonce)
+        # dataset = dataset.filter(check_example)
+        dataset = dataset.map(batched_process, batched=True)
         print("tokenizing")
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
         if args.regression_objective:
