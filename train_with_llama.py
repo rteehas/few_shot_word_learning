@@ -782,7 +782,7 @@ def main():
 
     def check_example(ex):
         found = False
-        if re.search("|".join(words), ex['text'], flags=re.I):
+        if re.search(r"\b({})\b".format("|".join(words)), ex['text'], flags=re.I):
             found = True
 
         return found
