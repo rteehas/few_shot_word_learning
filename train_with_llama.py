@@ -980,7 +980,8 @@ def main():
 
     warmup_steps = int(args.max_steps * 0.03)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.max_steps)
-
+    print("Buffer Nonces = {}".format(buffer.nonces))
+    print("Token Mapping = {}".format(token_mapping))
 
 
     # print("loading buffer")
@@ -1049,7 +1050,7 @@ def main():
                 contexts = []
                 for j in range(batch['input_ids'].shape[0]):
                     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                    assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample, batch['input_ids'][j])
+                    assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample, tokenizerTask.decode(batch['input_ids'][j,:]))
                     n = to_sample[0]
                     if n in buffer.buffer:
                         sample = buffer.retrieve(n, batch)
