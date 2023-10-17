@@ -1017,7 +1017,7 @@ def main():
         ]
     print("dataset")
     # with accelerator.main_process_first():
-    dataset = load_dataset(args.data_path, streaming=True)
+    dataset = load_dataset(args.data_path, streaming=True).take(50000)
     # dataset = dataset.filter(check_example)
     dataset = dataset.map(batched_process, batched=True)
     print("tokenizing")
@@ -1053,7 +1053,7 @@ def main():
 
 
     if args.negative_examples:
-        negative_dataset = load_dataset(args.negative_data_path, streaming=True)
+        negative_dataset = load_dataset(args.negative_data_path, streaming=True).take(10000)
         negative_train_tokenized = negative_dataset['train'].map(tokenize,
                                                                  remove_columns=['text', 'meta']).with_format("torch")
         # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
