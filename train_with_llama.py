@@ -838,8 +838,9 @@ def main():
 
 
     words = word_dict['train']['words'] + word_dict['test']['words']
-    nonces = list(map(lambda w: "<{}_new>".format(w), words))
+    nonces = list(map(lambda w: "<{}_new>".format(w.lower()), words))
     nonces = list(set(nonces))
+    print("Nonces = {}".format(nonces))
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
     mask_token_id = tokenizerMLM.mask_token_id
