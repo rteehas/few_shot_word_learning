@@ -788,7 +788,7 @@ def main():
         return found
 
     def create_base_and_nonce(ex):
-        contained_words = [w for w in words if re.search(w, ex['text'], flags=re.I) is not None]
+        contained_words = [w for w in words if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None]
 
         to_replace = np.random.choice(contained_words)
 
