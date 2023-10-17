@@ -487,8 +487,8 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 indices_in_base,indices_in_replaced = get_matching_indices(base_ids[i][base_attn_mask[i] == 1].tolist(),
                                                                            task_ids[i][task_attn[i] == 1].tolist())
-                print(indices_in_base, "base")
-                print(indices_in_replaced, "replaced")
+                # print(indices_in_base, "base")
+                # print(indices_in_replaced, "replaced")
                 # if self.num_regression_hiddens is None:
                 #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
                 # else:
