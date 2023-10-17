@@ -6,7 +6,8 @@ from datasets import load_from_disk, load_dataset
 from torch import nn
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
-from torch.utils.data import Dataset, DataLoader, TensorDataset
+from torch.utils.data import Dataset, DataLoader, TensorDataset, IterableDataset
+# from torch.utils.data.datapipes.iter.combinatorics import ShufflerIterDataPipe
 from torch.utils.data.dataloader import default_collate
 
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
@@ -688,6 +689,83 @@ class MorphMemoryModelLLAMA(nn.Module):
 #
 #         return out_batch
 
+
+
+# class ConstantLengthDataset(IterableDataset):
+#     """
+#     Iterable dataset that returns constant length chunks of tokens from stream of text files.
+#         Args:
+#             tokenizer (Tokenizer): The processor used for proccessing the data.
+#             dataset (dataset.Dataset): Dataset with text files.
+#             infinite (bool): If True the iterator is reset after dataset reaches end else stops.
+#             seq_length (int): Length of token sequences to return.
+#             num_of_sequences (int): Number of token sequences to keep in buffer.
+#             chars_per_token (int): Number of characters per token used to estimate number of tokens in text buffer.
+#             tokenized (bool): If true we use a pretokenized dataset.
+#     """
+#
+#     def __init__(
+#         self,
+#         tokenizer,
+#         dataset,
+#         infinite=False,
+#         seq_length=1024,
+#         num_of_sequences=1024,
+#         chars_per_token=3.6,
+#         tokenized=False,
+#     ):
+#         self.tokenizer = tokenizer
+#         self.concat_token_id = tokenizer.bos_token_id
+#         self.dataset = dataset
+#         self.seq_length = seq_length
+#         self.epoch = 0
+#         self.infinite = infinite
+#         self.current_size = 0
+#         self.tokenized = tokenized
+#
+#         if self.tokenized:
+#             self.max_buffer_size = seq_length * num_of_sequences
+#             self.content_field = "input_ids"
+#         else:
+#             self.max_buffer_size = seq_length * chars_per_token * num_of_sequences
+#             self.content_field = "content"
+#
+#     def __iter__(self):
+#         iterator = iter(self.dataset)
+#         more_examples = True
+#         while more_examples:
+#             buffer, buffer_len = [], 0
+#             while True:
+#                 if buffer_len >= self.max_buffer_size:
+#                     break
+#                 try:
+#                     buffer.append(next(iterator)[self.content_field])
+#                     buffer_len += len(buffer[-1])
+#                 except StopIteration:
+#                     if self.infinite:
+#                         iterator = iter(self.dataset)
+#                         self.epoch += 1
+#                         # logger.info(f"Dataset epoch: {self.epoch}")
+#                     else:
+#                         more_examples = False
+#                         break
+#             if self.tokenized:
+#                 tokenized_inputs = buffer
+#             else:
+#                 tokenized_inputs = self.tokenizer(buffer, truncation=False)["input_ids"]
+#             all_token_ids = []
+#             for tokenized_input in tokenized_inputs:
+#                 all_token_ids.extend(tokenized_input + [self.concat_token_id])
+#             for i in range(0, len(all_token_ids), self.seq_length):
+#                 input_ids = all_token_ids[i : i + self.seq_length]
+#                 if len(input_ids) == self.seq_length:
+#                     self.current_size += 1
+#                     yield torch.tensor(input_ids)
+#
+#     def shuffle(self, buffer_size=1000):
+#         return ShufflerIterDataPipe(self, buffer_size=buffer_size)
+
+
 def get_arguments():
     parser = ArgumentParser()
     parser.add_argument("--lr", type=float, default=1e-6)
@@ -938,56 +1016,56 @@ def main():
             },
         ]
     print("dataset")
-    with accelerator.main_process_first():
-        dataset = load_dataset(args.data_path, streaming=True)
-        # dataset = dataset.filter(check_example)
-        dataset = dataset.map(batched_process, batched=True)
-        print("tokenizing")
-        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
-        if args.regression_objective:
-            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
-            # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
-            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=regression_collate, num_workers=2, persistent_workers=True)
+    # with accelerator.main_process_first():
+    dataset = load_dataset(args.data_path, streaming=True)
+    # dataset = dataset.filter(check_example)
+    dataset = dataset.map(batched_process, batched=True)
+    print("tokenizing")
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
+    if args.regression_objective:
+        tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+        # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
+        train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
+                          collate_fn=regression_collate, num_workers=2, persistent_workers=True)
 
-            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
-            # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
-            test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=regression_collate, num_workers=2, persistent_workers=True)
+        tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+        # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+        test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
+                             collate_fn=regression_collate, num_workers=2, persistent_workers=True)
 
-        else:
-            tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
-            # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
+    else:
+        tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
+        # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
-            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=data_collator, num_workers=2, persistent_workers=True)
+        train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
+                          collate_fn=data_collator, num_workers=2, persistent_workers=True)
 
-            tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
+        tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
 
-            # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
-            test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=data_collator, num_workers=2, persistent_workers=True)
+        # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+        test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
+                             collate_fn=data_collator, num_workers=2, persistent_workers=True)
 
-        buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
-                                 args.random_ex, args.cat)
-        test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
-                                      args.random_ex, args.cat)
+    buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
+                             args.random_ex, args.cat)
+    test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
+                                  args.random_ex, args.cat)
 
 
-        if args.negative_examples:
-            negative_dataset = load_dataset(args.negative_data_path, streaming=True)
-            negative_train_tokenized = negative_dataset['train'].map(tokenize,
-                                                                     remove_columns=['text', 'meta']).with_format("torch")
-            # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
+    if args.negative_examples:
+        negative_dataset = load_dataset(args.negative_data_path, streaming=True)
+        negative_train_tokenized = negative_dataset['train'].map(tokenize,
+                                                                 remove_columns=['text', 'meta']).with_format("torch")
+        # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
-            negative_test_tokenized = negative_dataset['test'].map(tokenize,
-                                                                   remove_columns=['text', 'meta']).with_format("torch")
+        negative_test_tokenized = negative_dataset['test'].map(tokenize,
+                                                               remove_columns=['text', 'meta']).with_format("torch")
 
-            # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
-            negative_train_dl = DataLoader(negative_train_tokenized,
-                                           batch_size=args.batch_size, collate_fn=data_collator, num_workers=2, persistent_workers=True)
-            negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
-                                          collate_fn=data_collator, num_workers=2, persistent_workers=True)
+        # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
+        negative_train_dl = DataLoader(negative_train_tokenized,
+                                       batch_size=args.batch_size, collate_fn=data_collator, num_workers=2, persistent_workers=True)
+        negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
+                                      collate_fn=data_collator, num_workers=2, persistent_workers=True)
 
     eval_ind = args.logging_step
 
