@@ -41,10 +41,10 @@ class RetrievalBuffer():
             else:
                 locs = (batch['input_ids'] == n)
                 tups = locs.nonzero(as_tuple=True)
-                b, k, l = tups
-                uq = list(set([(i, j) for i, j in zip(b, k)]))
-                for (i, j) in uq:
-                    mem = self.tokenizerTask.decode(batch['input_ids'][i, j, :], skip_special_tokens=True,
+                b, k = tups
+                uq = list(set([i for i in b]))
+                for i in uq:
+                    mem = self.tokenizerTask.decode(batch['input_ids'][i,:], skip_special_tokens=True,
                                                 clean_up_tokenization_spaces=True)
 
                     if n in self.buffer:
