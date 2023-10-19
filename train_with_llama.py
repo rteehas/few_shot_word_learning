@@ -866,15 +866,19 @@ def main():
         return found
 
     def create_base_and_nonce(ex):
-        contained_words = [w for w in words if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None]
+        #contained_words = [w for w in words if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None]
 
-        to_replace = np.random.choice(contained_words)
-
+        #to_replace = np.random.choice(contained_words)
+        for w in words:
+            if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None:
+                to_replace=w
+                break
+        #print("to replace", to_replace)
         original_text =  ex['text']
 
         split = ex['text'].split(".")
         output = [idx for idx, element in enumerate(split) if re.search(r"\b({})\b".format(to_replace), element, flags=re.I) is not None]
-
+        #print("output index", output)
         first_index = output[0]
 
         new_text = ".".join(split[first_index:])
@@ -885,7 +889,8 @@ def main():
 
         modified_text = re.sub(r"\b({})\b".format(to_replace), nonce, new_text, flags=re.I)
         # print("modified = {}".format(modified_text))
-
+        #print("modified", modified_text)
+        #print("base", new_text)
         ex['base text'] = new_text
         ex['text'] = modified_text
 
@@ -1018,18 +1023,18 @@ def main():
         ]
     print("dataset")
     with accelerator.main_process_first():
-        dataset = load_from_disk(args.data_path, streaming=True)
-        # dataset = dataset.filter(check_example)
-        dataset = dataset.map(create_base_and_nonce)
+        dataset = load_from_disk(args.data_path)
+        #dataset = dataset.filter(check_example)
+        dataset = dataset.map(create_base_and_nonce, num_proc=2)
         print("tokenizing")
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
         if args.regression_objective:
-            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text'], num_proc=2).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
                               collate_fn=regression_collate)
 
-            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text'], num_proc=2).with_format("torch")
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
                                  collate_fn=regression_collate)
@@ -1054,13 +1059,13 @@ def main():
 
 
         if args.negative_examples:
-            negative_dataset = load_dataset(args.negative_data_path, streaming=True)
+            negative_dataset = load_from_disk(args.negative_data_path)
             negative_train_tokenized = negative_dataset['train'].map(tokenize,
-                                                                     remove_columns=['text', 'meta']).with_format("torch")
+                                                                     remove_columns=['text', 'meta'], num_proc=2).with_format("torch")
             # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
             negative_test_tokenized = negative_dataset['test'].map(tokenize,
-                                                                   remove_columns=['text', 'meta']).with_format("torch")
+                                                                   remove_columns=['text', 'meta'], num_proc=2).with_format("torch")
 
             # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
             negative_train_dl = DataLoader(negative_train_tokenized,
@@ -1148,6 +1153,8 @@ def main():
                 contexts = []
                 for j in range(batch['input_ids'].shape[0]):
                     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
+                    print("base", tokenizerTask.decode(batch['base_input_ids'][j,:]))
+                    print(batch['input_ids'].shape[0], "shape")
                     assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample, tokenizerTask.decode(batch['input_ids'][j,:]))
                     n = to_sample[0]
                     if n in buffer.buffer:
