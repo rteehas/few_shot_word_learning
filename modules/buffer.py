@@ -92,7 +92,7 @@ class RetrievalBuffer():
                                         truncation=True,
                                         padding='longest',
                                         return_tensors='pt')
-                print("context sample", samples)
+                # print("context sample", samples)
             else:
                 sample = " ".join(samples)
                 tokens = self.tokenizer(sample,

@@ -1088,17 +1088,17 @@ def main():
 
 
     # print("loading buffer")
-    # tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    # buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
-    # for inp in buffer_dl:
-    #     buffer.store(inp)
-    #
-    # print("Buffer has {} elements".format(len(buffer.buffer)))
-    #
-    # test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    # buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
-    # for inp in buffer_test_dl:
-    #     test_buffer.store(inp)
+    tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
+    buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
+    for inp in buffer_dl:
+        buffer.store_mlm(inp)
+
+    print("Buffer has {} elements".format(len(buffer.buffer)))
+
+    test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
+    buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
+    for inp in buffer_test_dl:
+        test_buffer.store_mlm(inp)
 
     print("Test buffer has {} elements".format(len(test_buffer.buffer)))
 
@@ -1163,15 +1163,15 @@ def main():
                             contexts.append(sample)
                         else:
                             print("Null context for {}".format(n))
-                    else:
-                        seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
-                                                clean_up_tokenization_spaces=True)
-                        sample = tokenizerMLM([seq],
-                                              max_length=tokenizerMLM.model_max_length,
-                                              truncation=True,
-                                              padding='longest',
-                                              return_tensors='pt')
-                        contexts.append(sample)
+                    # else:
+                    #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
+                    #                             clean_up_tokenization_spaces=True)
+                    #     sample = tokenizerMLM([seq],
+                    #                           max_length=tokenizerMLM.model_max_length,
+                    #                           truncation=True,
+                    #                           padding='longest',
+                    #                           return_tensors='pt')
+                    #     contexts.append(sample)
 
                 assert len(contexts) == batch['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), batch['input_ids'].shape[0])
                 batch['contexts'] = contexts
@@ -1277,8 +1277,8 @@ def main():
 
                 accelerator.log(log_dict)
 
-                buffer.store_task(batch)
-                buffer.cleanup()
+                # buffer.store_task(batch)
+                # buffer.cleanup()
 
 
 
@@ -1307,14 +1307,14 @@ def main():
                                     sample = test_buffer.retrieve(n, b)
                                     if sample is not None:
                                         contexts.append(sample)
-                                else:
-                                    seq = tokenizerTask.decode(b['input_ids'][j,:])
-                                    sample = tokenizerMLM([seq],
-                                              max_length=tokenizerMLM.model_max_length,
-                                              truncation=True,
-                                              padding='longest',
-                                              return_tensors='pt')
-                                    contexts.append(sample)
+                                # else:
+                                #     seq = tokenizerTask.decode(b['input_ids'][j,:])
+                                #     sample = tokenizerMLM([seq],
+                                #               max_length=tokenizerMLM.model_max_length,
+                                #               truncation=True,
+                                #               padding='longest',
+                                #               return_tensors='pt')
+                                #     contexts.append(sample)
 
                             assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
                             b['contexts'] = contexts
@@ -1349,8 +1349,8 @@ def main():
                                 total_test_regression_loss += t_out.regression_loss.detach().float()
                                 total_test_distillation_loss += t_out.distillation_loss.detach.float()
 
-                            test_buffer.store_task(b)
-                            test_buffer.cleanup()
+                            # test_buffer.store_task(b)
+                            # test_buffer.cleanup()
 
 
                         avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
