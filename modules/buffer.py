@@ -47,6 +47,8 @@ class RetrievalBuffer():
                     mem = self.tokenizerTask.decode(batch['input_ids'][i,:], skip_special_tokens=True,
                                                 clean_up_tokenization_spaces=True)
 
+                    print("memory", mem)
+
                     if n in self.buffer:
                         self.buffer[n] = [mem] + self.buffer[n]
                     else:
@@ -90,6 +92,7 @@ class RetrievalBuffer():
                                         truncation=True,
                                         padding='longest',
                                         return_tensors='pt')
+                print("context sample", samples)
             else:
                 sample = " ".join(samples)
                 tokens = self.tokenizer(sample,
