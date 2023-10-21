@@ -4,12 +4,12 @@ import re
 
 word_dict = load_from_disk("pile_word_replacements")
 words = word_dict['train']['words'] + word_dict['test']['words']
+
+
 def check_example(ex):
     found = False
-    for w in words:
-        if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None:
-            found = True
-            break
+    if re.search(r"\b({})\b".format("|".join(words)), ex['text'], flags=re.I):
+        found = True
 
     return found
 
@@ -24,8 +24,8 @@ if __name__ == "__main__":
     data = load_dataset("/scratch/work/public/ml-datasets/pile", streaming=True)
     data = data.filter(check)
     filtered = data.filter(check_example)
-    sample_train = filtered['train'].shuffle(buffer_size=100000).take(500000)
-    sample_test = filtered['test'].shuffle(buffer_size=10000).take(20000)
+    sample_train = filtered['train'].shuffle(buffer_size=1).take(150000)
+    sample_test = filtered['test'].shuffle(buffer_size=1).take(2000)
     sample_train = list(sample_train)
     sample_test = list(sample_test)
 
