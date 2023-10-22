@@ -2,6 +2,8 @@ from datasets import load_from_disk, load_dataset
 from datasets import DatasetDict, Dataset
 import re
 import os
+import torch.distributed as dist
+
 from datasets.distributed import split_dataset_by_node
 
 
@@ -24,6 +26,8 @@ def check(ex):
         return False
 
 if __name__ == "__main__":
+    dist.init_process_group(backend="gloo")
+
     data = load_dataset("/scratch/work/public/ml-datasets/pile", streaming=True)
     data = data.filter(check)
     filtered = data.filter(check_example)
