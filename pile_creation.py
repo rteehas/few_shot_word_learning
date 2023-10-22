@@ -27,6 +27,8 @@ if __name__ == "__main__":
     data = load_dataset("/scratch/work/public/ml-datasets/pile", streaming=True)
     data = data.filter(check)
     filtered = data.filter(check_example)
+    print("Rank:", os.environ["RANK"])
+    print("world size", os.environ["WORLD_SIZE"])
     train = split_dataset_by_node(filtered['train'], rank=int(os.environ["RANK"]), world_size=int(os.environ["WORLD_SIZE"]))
     test = split_dataset_by_node(filtered['test'], rank=int(os.environ["RANK"]), world_size=int(os.environ["WORLD_SIZE"]))
     sample_train = filtered['train'].shuffle(buffer_size=1).take(300000)
