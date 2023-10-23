@@ -2,19 +2,21 @@ from datasets import load_from_disk, load_dataset
 from datasets import DatasetDict, Dataset
 import re
 import os
-import torch.distributed as dist
-
+from torch.utils.data import DataLoader
 from datasets.distributed import split_dataset_by_node
 
 
 word_dict = load_from_disk("pile_word_replacements")
-words = word_dict['train']['words'] + word_dict['test']['words']
+words = word_dict['train']['words']
 
 
 def check_example(ex):
     found = False
-    if re.search(r"\b({})\b".format("|".join(words)), ex['text'], flags=re.I):
-        found = True
+
+    for w in words:
+        if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None:
+            found=True
+            break
 
     return found
 
@@ -26,23 +28,31 @@ def check(ex):
         return False
 
 if __name__ == "__main__":
-    dist.init_process_group(backend="gloo")
+    # dist.init_process_group(backend="gloo")
 
     data = load_dataset("/scratch/work/public/ml-datasets/pile", streaming=True)
     data = data.filter(check)
     filtered = data.filter(check_example)
-    print("Rank:", os.environ["RANK"])
-    print("world size", os.environ["WORLD_SIZE"])
-    train = split_dataset_by_node(filtered['train'], rank=int(os.environ["RANK"]), world_size=int(os.environ["WORLD_SIZE"]))
-    test = split_dataset_by_node(filtered['test'], rank=int(os.environ["RANK"]), world_size=int(os.environ["WORLD_SIZE"]))
-    sample_train = filtered['train'].shuffle(buffer_size=1).take(300000)
-    sample_test = filtered['test'].shuffle(buffer_size=1).take(2000)
-    sample_train = list(sample_train)
-    sample_test = list(sample_test)
+    # print("Rank:", os.environ["RANK"])
+    # print("world size", os.environ["WORLD_SIZE"])
+    sample_train = filtered['train'].shuffle(buffer_size=1)
+    # sample_test = filtered['test'].shuffle(buffer_size=1)
+
+    sample_train_dl = DataLoader(sample_train, num_workers=30)
+    total_samples = 500000
+    l = []
+
+    for i, ex in enumerate(sample_train_dl):
+        if i < total_samples:
+            l.append(ex)
+        else:
+            break
+
 
     sample_train = Dataset.from_dict(
-        {'text': [v['text'] for v in sample_train], 'meta': [v['meta'] for v in sample_train]})
-    sample_test = Dataset.from_dict(
-        {'text': [v['text'] for v in sample_test], 'meta': [v['meta'] for v in sample_test]})
+        {'text': [v['text'] for v in l], 'meta': [v['meta'] for v in l]})
+    sample_train.save_to_disk("pile_500k_train")
+    # sample_test = Dataset.from_dict(
+    #     {'text': [v['text'] for v in sample_test], 'meta': [v['meta'] for v in sample_test]})
 
-    DatasetDict({'train': sample_train, 'test': sample_test}).save_to_disk("pile_processing/pile_samples_large_{}".format(int(os.environ["RANK"])))
+    # DatasetDict({'train': sample_train, 'test': sample_test}).save_to_disk("pile_processing/pile_samples_large_{}".format(int(os.environ["RANK"])))
