@@ -1029,24 +1029,24 @@ def main():
         print("tokenizing")
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
         if args.regression_objective:
-            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
                               collate_fn=regression_collate)
 
-            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=['text', 'meta', 'base text']).with_format("torch")
+            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
                                  collate_fn=regression_collate)
 
         else:
-            tokenized_train = dataset['train'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
+            tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
                               collate_fn=data_collator)
 
-            tokenized_test = dataset['test'].map(tokenize, remove_columns=['text', 'meta']).with_format("torch")
+            tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
 
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
@@ -1061,11 +1061,11 @@ def main():
         if args.negative_examples:
             negative_dataset = load_from_disk(args.negative_data_path)
             negative_train_tokenized = negative_dataset['train'].map(tokenize,
-                                                                     remove_columns=['text', 'meta']).with_format("torch")
+                                                                     remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
             negative_test_tokenized = negative_dataset['test'].map(tokenize,
-                                                                   remove_columns=['text', 'meta']).with_format("torch")
+                                                                   remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
 
             # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
             negative_train_dl = DataLoader(negative_train_tokenized,
@@ -1081,22 +1081,22 @@ def main():
                 weight_decay=args.weight_decay
                 )
 
-    warmup_steps = int(args.max_steps * 0.03)
-    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.max_steps)
+    warmup_steps = int(args.epochs * len(train_dl) * 0.03)
+    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
     # print("Buffer Nonces = {}".format(buffer.nonces))
     # print("Token Mapping = {}".format(token_mapping))
 
 
     # print("loading buffer")
-    tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'))
+    tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
+    buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'), num_workers=30)
     for inp in buffer_dl:
         buffer.store_mlm(inp)
 
     print("Buffer has {} elements".format(len(buffer.buffer)))
 
-    test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names)
-    buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'))
+    test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
+    buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'), num_workers=30)
     for inp in buffer_test_dl:
         test_buffer.store_mlm(inp)
 
