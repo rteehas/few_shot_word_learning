@@ -1,5 +1,6 @@
 import re
 from argparse import ArgumentParser
+from functools import partial
 
 import torch
 from datasets import load_from_disk, load_dataset
@@ -916,6 +917,21 @@ def main():
 
         return {'base text': base_texts, 'text': new_texts}
 
+    def get_examples(buffer, ex):
+
+        new_ex = {}
+        for n in buffer.nonces:
+            if n in ex['text']:
+                new_ex['word'] = n
+                new_ex['example'] = ex['text']
+
+        return new_ex
+
+    def fill_buffer(buffer, ex):
+        n = tokenizerMLM.convert_tokens_to_ids(ex['word'])
+        buffer.buffer[n].appendleft(ex['example'])
+
+
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
 
@@ -943,6 +959,8 @@ def main():
     words = word_dict['train']['words'] + word_dict['test']['words']
     nonces = list(map(lambda w: "<{}_new>".format(w.lower()), words))
     nonces = list(set(nonces))
+    train_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['train']['words']))))
+    test_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['test']['words']))))
     # print("Nonces = {}".format(nonces))
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
@@ -1052,9 +1070,9 @@ def main():
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
                                  collate_fn=data_collator, shuffle=True, drop_last=True)
 
-        buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
+        buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM, tokenizerTask,
                                  args.random_ex, args.cat)
-        test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(nonces), tokenizerMLM, tokenizerTask,
+        test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(test_nonces), tokenizerMLM, tokenizerTask,
                                       args.random_ex, args.cat)
 
 
@@ -1086,19 +1104,23 @@ def main():
     # print("Buffer Nonces = {}".format(buffer.nonces))
     # print("Token Mapping = {}".format(token_mapping))
 
+    train_examples = dataset['train'].map(partial(get_examples, buffer), num_proc=30)
+    test_examples = dataset['test'].map(partial(get_examples, test_buffer), num_proc=30)
 
+    train_examples.map(partial(fill_buffer, buffer))
+    test_examples.map(partial(fill_buffer, test_buffer))
     # print("loading buffer")
-    tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
-    buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'), num_workers=30)
-    for inp in buffer_dl:
-        buffer.store_mlm(inp)
+    # tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
+    # buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'), num_workers=30)
+    # for inp in buffer_dl:
+    #     buffer.store_mlm(inp)
 
     print("Buffer has {} elements".format(len(buffer.buffer)))
 
-    test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
-    buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'), num_workers=30)
-    for inp in buffer_test_dl:
-        test_buffer.store_mlm(inp)
+    # test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
+    # buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'), num_workers=30)
+    # for inp in buffer_test_dl:
+    #     test_buffer.store_mlm(inp)
 
     print("Test buffer has {} elements".format(len(test_buffer.buffer)))
 
