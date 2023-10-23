@@ -1061,11 +1061,11 @@ def main():
         if args.negative_examples:
             negative_dataset = load_from_disk(args.negative_data_path)
             negative_train_tokenized = negative_dataset['train'].map(tokenize,
-                                                                     remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
+                                                                     remove_columns=negative_dataset['train'].column_names, num_proc=30).with_format("torch")
             # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
             negative_test_tokenized = negative_dataset['test'].map(tokenize,
-                                                                   remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
+                                                                   remove_columns=negative_dataset['train'].column_names, num_proc=30).with_format("torch")
 
             # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
             negative_train_dl = DataLoader(negative_train_tokenized,
