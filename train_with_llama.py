@@ -507,7 +507,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
                 logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
                 distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
-                distillation_loss = distillation_loss / (self.distillation_temp **2)
+                distillation_loss = distillation_loss * (self.distillation_temp **2)
                 # regression_loss = regression_loss
 
                 # cosines.append(cosine_soft)
