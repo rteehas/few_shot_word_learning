@@ -917,10 +917,10 @@ def main():
 
         return {'base text': base_texts, 'text': new_texts}
 
-    def get_examples(buffer, ex):
+    def get_examples(nonces, ex):
 
         new_ex = {}
-        for n in buffer.nonces:
+        for n in nonces:
             if n in ex['text']:
                 new_ex['word'] = n
                 new_ex['example'] = ex['text']
@@ -1104,8 +1104,8 @@ def main():
     # print("Buffer Nonces = {}".format(buffer.nonces))
     # print("Token Mapping = {}".format(token_mapping))
 
-    train_examples = dataset['train'].map(partial(get_examples, buffer), num_proc=30)
-    test_examples = dataset['test'].map(partial(get_examples, test_buffer), num_proc=30)
+    train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
+    test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
 
     train_examples.map(partial(fill_buffer, buffer))
     test_examples.map(partial(fill_buffer, test_buffer))
