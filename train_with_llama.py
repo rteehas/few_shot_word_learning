@@ -788,7 +788,7 @@ def get_arguments():
     parser.add_argument("--regression_objective", action="store_true")
     parser.add_argument("--regression_alpha", type=float, default=1.0)
     parser.add_argument("--distillation_temp", type=int, default=1.0)
-    parser.add_argument("--max_steps", type=int, required=True)
+    #parser.add_argument("--max_steps", type=int, required=True)
     parser.add_argument("--logging_step", type=int, required=True)
     parser.add_argument("--num_eval_steps", type=int, default=1000)
     return parser
