@@ -1,12 +1,13 @@
 import numpy as np
-
+# from queue import Queue
+from collections import defaultdict, deque
 
 class RetrievalBuffer():
 
     def __init__(self, max_num, k, nonce_list, tokenizer, tokenizerTask, random, cat):
         self.k = k
         self.max_num = max_num
-        self.buffer = {}
+        self.buffer = defaultdict(deque)
         self.nonces = nonce_list
         self.tokenizer = tokenizer
         self.tokenizerTask = tokenizerTask
@@ -27,10 +28,11 @@ class RetrievalBuffer():
                     mem = self.tokenizer.decode(mlm_inputs['input_ids'][i, j, :], skip_special_tokens=True,
                                                 clean_up_tokenization_spaces=True)
 
-                    if n in self.buffer:
-                        self.buffer[n] = [mem] + self.buffer[n]
-                    else:
-                        self.buffer[n] = [mem]
+                    self.buffer[n].appendleft(mem)
+                    # if n in self.buffer:
+                    #     self.buffer[n] = [mem] + self.buffer[n]
+                    # else:
+                    #     self.buffer[n] = [mem]
     def store_task(self, batch):
 
         nonces = [v for k,v in self.tokenizerTask.get_added_vocab().items()]
@@ -48,11 +50,11 @@ class RetrievalBuffer():
                                                 clean_up_tokenization_spaces=True)
 
                     print("memory", mem)
-
-                    if n in self.buffer:
-                        self.buffer[n] = [mem] + self.buffer[n]
-                    else:
-                        self.buffer[n] = [mem]
+                    self.buffer[n].appendleft(mem)
+                    # if n in self.buffer:
+                    #     self.buffer[n] = [mem] + self.buffer[n]
+                    # else:
+                    #     self.buffer[n] = [mem]
 
     def cleanup(self):
         for key in self.buffer:
