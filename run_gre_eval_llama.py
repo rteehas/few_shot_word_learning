@@ -31,7 +31,7 @@ def main():
     with open(args.sents, 'r') as fp:
         sents = json.load(fp)
 
-    if "pile" in args.sents:
+    if args.sent_version == "answer":
         with open("gre_examples_gpt4.json", 'r') as fp:
             auxiliary_sents = json.load(fp)
 
@@ -78,9 +78,9 @@ def main():
                         sent_dict = sents[ex['QUESTION']]
                     elif args.sent_version == "answer":
                         sent_dict = sents
-                        for k in sent_dict:
-                            if k in auxiliary_sents[ex['QUESTION']] and len(sent_dict[k]) < 10:
-                                sent_dict[k] += auxiliary_sents[ex['QUESTION']][k]
+                        for key in sent_dict:
+                            if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                                sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
                     outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k))
                 acc = sum(outputs) / len(outputs)
                 print("Accuracy for k = {} is {}".format(k, acc))
