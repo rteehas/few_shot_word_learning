@@ -31,6 +31,17 @@ def main():
     with open(args.sents, 'r') as fp:
         sents = json.load(fp)
 
+    if "pile" in args.sents:
+        for key in sents:
+            for i,example in enumerate(sents[key]):
+                split = example.split(".")
+                output = [idx for idx, element in enumerate(split) if
+                          re.search(r"\b({})\b".format(key), element, flags=re.I) is not None]
+                first_index = output[0]
+
+                new_text = ".".join(split[first_index:])
+                sents[key][i] = new_text
+
     if args.sent_version == "answer":
         with open("gre_examples_gpt4.json", 'r') as fp:
             auxiliary_sents = json.load(fp)
