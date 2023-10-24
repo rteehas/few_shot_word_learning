@@ -6,6 +6,7 @@ from functools import partial
 import json
 from argparse import ArgumentParser
 import numpy as np
+import itertools
 
 def get_arguments():
     parser = ArgumentParser()
@@ -21,6 +22,9 @@ def main():
     gre = load_from_disk("processed_kaplan_v0")
     subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
 
+    answers = subselection['train']['ANSWERS']
+    answers = list(itertools.chain(*answers))
+    answers = list(itertools.chain(*answers))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -53,6 +57,17 @@ def main():
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, 1, None).to(device)
     model.load_state_dict(torch.load(path + "/pytorch_model.bin"))
     model.device = device
+
+    new_nonces = list(map(lambda w: "<{}_new>".format(w.lower()), answers))
+    new_nonces = list(set(new_nonces))
+    tokenizerMLM.add_tokens(new_nonces)
+    tokenizerTask.add_tokens(new_nonces)
+    new_token_num = len(list(tokenizerTask.get_added_vocab().keys())) - len(nonces)
+
+    model.firstLM.resize_token_embeddings(len(tokenizerMLM))
+    model.secondLM.resize_token_embeddings(len(tokenizerTask))
+    model.add_new_tokens(new_token_num)
+
     with torch.no_grad():
         scores = {}
         for trial in range(3):
