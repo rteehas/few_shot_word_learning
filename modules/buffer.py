@@ -20,6 +20,7 @@ class RetrievalBuffer():
             if n not in mlm_inputs['input_ids']:
                 continue
             else:
+                print("here")
                 locs = (mlm_inputs['input_ids'] == n)
                 tups = locs.nonzero(as_tuple=True)
                 b, k, l = tups
@@ -27,8 +28,9 @@ class RetrievalBuffer():
                 for (i, j) in uq:
                     mem = self.tokenizer.decode(mlm_inputs['input_ids'][i, j, :], skip_special_tokens=True,
                                                 clean_up_tokenization_spaces=True)
-
+                    # print(mem)
                     self.buffer[n].appendleft(mem)
+                    # print(self.buffer[n])
                     # if n in self.buffer:
                     #     self.buffer[n] = [mem] + self.buffer[n]
                     # else:
@@ -90,7 +92,7 @@ class RetrievalBuffer():
                 return None
             if not self.cat:
                 tokens = self.tokenizer(samples,
-                                        max_length=self.tokenizer.model_max_length,
+                                        max_length=256,
                                         truncation=True,
                                         padding='longest',
                                         return_tensors='pt')
@@ -98,7 +100,7 @@ class RetrievalBuffer():
             else:
                 sample = " ".join(samples)
                 tokens = self.tokenizer(sample,
-                                        max_length=self.tokenizer.model_max_length,
+                                        max_length=256,
                                         truncation=True,
                                         padding='max_length',
                                         return_tensors='pt')

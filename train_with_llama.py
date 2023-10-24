@@ -828,15 +828,15 @@ def create_checkpoint_directories(args):
 
 def main():
     def tokenize(ex):
-        return tokenizerTask(ex['text'], truncation=True, max_length=tokenizerMLM.model_max_length, padding='max_length', return_tensors=None)
+        return tokenizerTask(ex['text'], truncation=True, max_length=256, padding='max_length', return_tensors=None)
 
     def tokenize_for_buffer(ex):
         return tokenizerMLM(ex['text'], truncation=True, return_tensors="pt")
 
     def tokenize_regression(ex):
 
-        inps = tokenizerTask(ex['text'], truncation=True, max_length=tokenizerMLM.model_max_length, padding='max_length', return_tensors=None)
-        base_inps = tokenizerTask(ex['base text'], truncation=True, max_length=tokenizerMLM.model_max_length, padding='max_length', return_tensors=None)
+        inps = tokenizerTask(ex['text'], truncation=True, max_length=256, padding='max_length', return_tensors=None)
+        base_inps = tokenizerTask(ex['base text'], truncation=True, max_length=256, padding='max_length', return_tensors=None)
         row = dict(input_ids=inps['input_ids'],
                 attention_mask=inps['attention_mask'],
                 base_input_ids=base_inps['input_ids'],
