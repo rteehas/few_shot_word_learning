@@ -77,3 +77,6 @@ def main():
 
     for value in scores:
         print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), round(np.std(np.array(scores[value]))), 4))
+
+if __name__ == "__main__":
+    main()
