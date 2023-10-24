@@ -267,9 +267,9 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
 def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seqs):
     probs = []
     for i,seq in enumerate(seqs):
-        context = tokenizerMLM(contexts[i], padding=True, return_tensors='pt')
+        context = tokenizerMLM(contexts[i], padding=True, truncation=True, max_length=256, return_tensors='pt')
         # print(context)
-        toks = tokenizerTask(seq, return_tensors="pt").to(model.device)
+        toks = tokenizerTask(seq, truncation=True, max_length=256, return_tensors="pt").to(model.device)
         labels = toks['input_ids'].clone()
         batch = {
             "contexts": [context],
