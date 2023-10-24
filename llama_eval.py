@@ -103,7 +103,7 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
         raise NotImplementedError
 
     probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
-    print(probs)
+    # print(probs)
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
@@ -246,7 +246,7 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
             samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
             # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
             samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
-            print("Samples for {}".format(w), samples)
+            # print("Samples for {}".format(w), samples)
             # new_samples = []
             # for s in samples:
             #     if w in s:
@@ -268,7 +268,7 @@ def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seq
     probs = []
     for i,seq in enumerate(seqs):
         context = tokenizerMLM(contexts[i], padding=True, return_tensors='pt')
-        print(context)
+        # print(context)
         toks = tokenizerTask(seq, return_tensors="pt").to(model.device)
         labels = toks['input_ids'].clone()
         batch = {
@@ -289,10 +289,10 @@ def get_sentence_probs(model, tokenizer, sequences, base_seqs):
         toks = tokenizer(seq, return_tensors="pt").to(model.device)
         question_toks = tokenizer(base)
         answer_length = len(question_toks['input_ids']) - 1 # for bos token
-        print(question_toks, answer_length)
+        # print(question_toks, answer_length)
         labels = toks['input_ids'].clone()
         answer_labels = labels[:, -answer_length:]
-        print(answer_labels)
+        # print(answer_labels)
         out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
         answer_logits = out.logits[:,-answer_length:, :]
         shift_logits = answer_logits[..., :-1, :].contiguous()
