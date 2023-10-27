@@ -1101,7 +1101,7 @@ def main():
                 weight_decay=args.weight_decay
                 )
 
-    warmup_steps = int(args.epochs * len(train_dl) * 0.03)
+    warmup_steps = int(args.epochs * (len(train_dl) / args.gradient_accumulation_steps) * 0.03)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
     # print("Buffer Nonces = {}".format(buffer.nonces))
     # print("Token Mapping = {}".format(token_mapping))
