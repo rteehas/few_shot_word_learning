@@ -31,6 +31,7 @@ from accelerate import DistributedDataParallelKwargs
 import psutil
 from modules.aggregators import TransformerSummarizer
 import numpy as np
+import random
 
 
 # def get_matching_indices(A, B):
@@ -59,6 +60,11 @@ import numpy as np
 #
 #     assert len(ordered_a) == len(ordered_b), "Matching indices must be of the same lengthi, A={}\nB={}".format(ordered_a, ordered_b)
 #     return ordered_a, ordered_b
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 def get_matching_indices(original, modified):
     corresponding_indices = []
     i = j = 0
@@ -933,7 +939,10 @@ def main():
         n = tokenizerMLM.convert_tokens_to_ids(ex['word'])
         buffer.buffer[n].appendleft(ex['example'])
 
-
+    g = torch.Generator()
+    g.manual_seed(0)
+    torch.manual_seed(0)
+    
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
 
@@ -1052,25 +1061,29 @@ def main():
             tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=regression_collate, drop_last=True, shuffle=True)
+                              collate_fn=regression_collate, drop_last=True,
+                              shuffle=True, num_workers=30, worker_init_fn=seed_worker)
 
             tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=regression_collate, shuffle=True, drop_last=True)
+                                 collate_fn=regression_collate, shuffle=True, drop_last=True,
+                                 num_workers=30, worker_init_fn=seed_worker)
 
         else:
             tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=data_collator, shuffle=True, drop_last=True)
+                              collate_fn=data_collator, shuffle=True, drop_last=True,
+                              num_workers=30, worker_init_fn=seed_worker)
 
             tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
 
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=data_collator, shuffle=True, drop_last=True)
+                                 collate_fn=data_collator, shuffle=True, drop_last=True,
+                                 num_workers=30, worker_init_fn=seed_worker)
 
         buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM, tokenizerTask,
                                  args.random_ex, args.cat)
@@ -1089,9 +1102,11 @@ def main():
 
             # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
             negative_train_dl = DataLoader(negative_train_tokenized,
-                                           batch_size=args.batch_size, collate_fn=data_collator, shuffle=True, drop_last=True)
+                                           batch_size=args.batch_size, collate_fn=data_collator, shuffle=True, drop_last=True,
+                                           num_workers=30, worker_init_fn=seed_worker)
             negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
-                                          collate_fn=data_collator, shuffle=True, drop_last=True)
+                                          collate_fn=data_collator, shuffle=True, drop_last=True,
+                                          num_workers=30, worker_init_fn=seed_worker)
 
     eval_ind = args.logging_step
 
