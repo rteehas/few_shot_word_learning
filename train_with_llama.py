@@ -1167,7 +1167,10 @@ def main():
                 "alpha": args.regression_alpha,
                 },
     )
-    ce_weight = 0.75 # use for weighting the cross entropy, distillation, and regression
+    if args.regression_objective and args.negative_examples:
+        # use for weighting the cross entropy, distillation, and regression
+        distillation_weight = args.regression_alpha
+        ce_weight = 1.0 - (args.regression_alpha + distillation_weight)
 
     for epoch in range(epochs):
         global_step = 0
@@ -1227,7 +1230,7 @@ def main():
                 # print(batch['input_ids'].shape[0])
                 out = model(batch)
                 if args.regression_objective and args.negative_examples:
-                    distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                    # distillation_weight = 1.0 - ce_weight - args.regression_alpha
                     loss = out.loss + args.regression_alpha * out.regression_loss + distillation_weight * out.distillation_loss
 
                 elif args.regression_objective:
@@ -1372,7 +1375,7 @@ def main():
                         t_out = model(b)
                         # all_losses = accelerator.gather(t_out.loss)
                         if args.regression_objective and args.negative_examples:
-                            distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                            # distillation_weight = 1.0 - ce_weight - args.regression_alpha
                             total_test_loss += t_out.loss + args.regression_alpha * t_out.regression_loss.detach().float() + distillation_weight * t_out.distillation_loss.detach().float()
                         elif args.regression_objective:
                             total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
