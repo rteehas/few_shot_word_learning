@@ -1153,6 +1153,7 @@ def main():
     ce_weight = 0.75 # use for weighting the cross entropy, distillation, and regression
 
     for epoch in range(epochs):
+        global_step = 0
         train_new_token_losses = []
         train_losses = []
         total_loss = 0
@@ -1258,7 +1259,7 @@ def main():
                 #         log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
                 #         if torch.isnan(torch.norm(param.grad.view(-1))):
                 #             raise Exception("Nan Gradient for {}".format(name))
-
+                global_step += 1
                 log_dict['train loss'] = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps
 
                 log_dict['train new token loss'] = accelerator.gather(total_new_token_loss).mean().item() / args.gradient_accumulation_steps
@@ -1307,112 +1308,96 @@ def main():
 
 
 
-            try:
-                if i != 0 and i % eval_ind == 0:
-                    opt.zero_grad(set_to_none=True)
-                    model.eval()
-                    with torch.no_grad():
-                        total_test_loss = 0
-                        total_test_nonce_loss = 0
-                        total_test_negative_loss = 0
-                        total_test_positive_loss = 0
-                        total_test_regression_loss = 0
-                        total_test_distillation_loss = 0
-                        test_log = {}
-                        ct = 0
-                        print("evaluating", i)
-                        for b in test_dl:
-                            ct += 1
-                            if ct >= args.num_eval_steps:
-                                break
-                            contexts = []
-                            for j in range(b['input_ids'].shape[0]):
-                                to_sample = list(set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
-                                assert (len(to_sample) == 1)
-                                n = to_sample[0]
-                                if n in test_buffer.buffer:
-                                    sample = test_buffer.retrieve(n, b)
-                                    if sample is not None:
-                                        contexts.append(sample)
-                                # else:
-                                #     seq = tokenizerTask.decode(b['input_ids'][j,:])
-                                #     sample = tokenizerMLM([seq],
-                                #               max_length=tokenizerMLM.model_max_length,
-                                #               truncation=True,
-                                #               padding='longest',
-                                #               return_tensors='pt')
-                                #     contexts.append(sample)
+            if global_step != 0 and global_step % eval_ind == 0:
+                opt.zero_grad(set_to_none=True)
+                model.eval()
+                with torch.no_grad():
+                    total_test_loss = 0
+                    total_test_nonce_loss = 0
+                    total_test_negative_loss = 0
+                    total_test_positive_loss = 0
+                    total_test_regression_loss = 0
+                    total_test_distillation_loss = 0
+                    test_log = {}
+                    ct = 0
+                    for b in test_dl:
+                        ct += 1
+                        if ct >= args.num_eval_steps:
+                            break
+                        contexts = []
+                        for j in range(b['input_ids'].shape[0]):
+                            to_sample = list(set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
+                            assert (len(to_sample) == 1)
+                            n = to_sample[0]
+                            if n in test_buffer.buffer:
+                                sample = test_buffer.retrieve(n, b)
+                                if sample is not None:
+                                    contexts.append(sample)
+                            # else:
+                            #     seq = tokenizerTask.decode(b['input_ids'][j,:])
+                            #     sample = tokenizerMLM([seq],
+                            #               max_length=tokenizerMLM.model_max_length,
+                            #               truncation=True,
+                            #               padding='longest',
+                            #               return_tensors='pt')
+                            #     contexts.append(sample)
 
-                            assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
-                            b['contexts'] = contexts
-
-                            if args.negative_examples:
-                                neg_test_batch = next(iter(negative_test_dl))
-                                b['negative_input_ids'] = neg_test_batch['input_ids']
-                                b['negative_attention_mask'] = neg_test_batch['attention_mask']
-                                b['negative_labels'] = neg_test_batch['labels']
-
-
-                            t_out = model(b)
-                            # all_losses = accelerator.gather(t_out.loss)
-                            if args.regression_objective and args.negative_examples:
-                                distillation_weight = 1.0 - ce_weight - args.regression_alpha
-                                total_test_loss += t_out.loss + args.regression_alpha * t_out.regression_loss.detach().float() + distillation_weight * t_out.distillation_loss.detach().float()
-                            elif args.regression_objective:
-                                total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
-                            else:
-                                total_test_loss += t_out.loss.detach().float()
-                            try:
-                                model.module.memory.memory = {}
-                            except:
-                                model.memory.memory = {}
-                            # all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                            total_test_nonce_loss += t_out.new_token_loss.detach()
-                            if args.negative_examples:
-                                total_test_positive_loss += t_out.positive_loss.detach().float()
-                                total_test_negative_loss += t_out.negative_loss.detach().float()
-
-                            if args.regression_objective:
-                                total_test_regression_loss += t_out.regression_loss.detach().float()
-                                total_test_distillation_loss += t_out.distillation_loss.detach.float()
-
-                            # test_buffer.store_task(b)
-                            # test_buffer.cleanup()
-
-                        print("calculating")
-                        avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
-                        avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / len(test_dl)
-                        print(avg_test, avg_new_tok)
-                        test_log['average test loss'] = avg_test
-                        test_log['average test loss on new tokens'] = avg_new_tok
-                        test_log['epoch'] = epoch
-                        test_log['eval step'] = i // eval_ind
+                        assert len(contexts) == b['input_ids'].shape[0], "Context has {} elements when it should have {}".format(len(contexts), b['input_ids'].shape[0])
+                        b['contexts'] = contexts
 
                         if args.negative_examples:
-                            test_log['average test loss on positive examples'] = accelerator.gather(total_test_positive_loss).sum().item() / len(test_dl)
-                            test_log['average test loss on negative examples'] = accelerator.gather(total_test_negative_loss).sum().item() / len(test_dl)
+                            neg_test_batch = next(iter(negative_test_dl))
+                            b['negative_input_ids'] = neg_test_batch['input_ids']
+                            b['negative_attention_mask'] = neg_test_batch['attention_mask']
+                            b['negative_labels'] = neg_test_batch['labels']
+
+
+                        t_out = model(b)
+                        # all_losses = accelerator.gather(t_out.loss)
+                        if args.regression_objective and args.negative_examples:
+                            distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                            total_test_loss += t_out.loss + args.regression_alpha * t_out.regression_loss.detach().float() + distillation_weight * t_out.distillation_loss.detach().float()
+                        elif args.regression_objective:
+                            total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
+                        else:
+                            total_test_loss += t_out.loss.detach().float()
+
+                        # all_new_tokens = accelerator.gather(t_out.new_token_loss)
+                        total_test_nonce_loss += t_out.new_token_loss.detach()
+                        if args.negative_examples:
+                            total_test_positive_loss += t_out.positive_loss.detach().float()
+                            total_test_negative_loss += t_out.negative_loss.detach().float()
 
                         if args.regression_objective:
-                            test_log['average regression test loss without alpha'] = accelerator.gather(total_test_regression_loss).sum().item() / len(test_dl)
+                            total_test_regression_loss += t_out.regression_loss.detach().float()
+                            total_test_distillation_loss += t_out.distillation_loss.detach.float()
 
-                        accelerator.log(test_log)
-                        accelerator.wait_for_everyone()
-                        save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
-                        os.makedirs(save_dir, exist_ok=True)
-                        #accelerator.save_state(save_dir)
-                        #tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                        #tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
-                        checkpoint_id += 1
-                    print("one back")
+                        # test_buffer.store_task(b)
+                        # test_buffer.cleanup()
 
-            except:
-                accelerator.wait_for_everyone()
-                save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
-                os.makedirs(save_dir, exist_ok=True)
-                accelerator.save_state(save_dir)
-                tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
-                checkpoint_id += 1
+                    avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
+                    avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / len(test_dl)
+                    test_log['average test loss'] = avg_test
+                    test_log['average test loss on new tokens'] = avg_new_tok
+                    test_log['epoch'] = epoch
+                    test_log['eval step'] = i // eval_ind
+
+                    if args.negative_examples:
+                        test_log['average test loss on positive examples'] = accelerator.gather(total_test_positive_loss).sum().item() / len(test_dl)
+                        test_log['average test loss on negative examples'] = accelerator.gather(total_test_negative_loss).sum().item() / len(test_dl)
+
+                    if args.regression_objective:
+                        test_log['average regression test loss without alpha'] = accelerator.gather(total_test_regression_loss).sum().item() / len(test_dl)
+
+                    accelerator.log(test_log)
+                    accelerator.wait_for_everyone()
+                    save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
+                    os.makedirs(save_dir, exist_ok=True)
+                    #accelerator.save_state(save_dir)
+                    #tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                    #tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                    checkpoint_id += 1
+
 
     accelerator.end_training()
 
