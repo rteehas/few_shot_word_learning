@@ -6,7 +6,7 @@ import torch
 from datasets import load_from_disk, load_dataset
 from torch import nn
 import torch.nn.functional as F
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, MSELoss
 from torch.utils.data import Dataset, DataLoader, TensorDataset, IterableDataset
 # from torch.utils.data.datapipes.iter.combinatorics import ShufflerIterDataPipe
 from torch.utils.data.dataloader import default_collate
@@ -510,10 +510,12 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
                 #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
-                soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
-                logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
-                distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
-                distillation_loss = distillation_loss * (self.distillation_temp **2)
+                distillation_loss = MSELoss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
+                                            base_outputs.logits[:, indices_in_base, :self.initial_second_ind])
+                # soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
+                # logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
+                # distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
+                # distillation_loss = distillation_loss * (self.distillation_temp **2)
                 # regression_loss = regression_loss
 
                 # cosines.append(cosine_soft)
@@ -942,7 +944,7 @@ def main():
     g = torch.Generator()
     g.manual_seed(0)
     torch.manual_seed(0)
-    
+
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
 
