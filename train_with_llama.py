@@ -1320,7 +1320,9 @@ def main():
                         total_test_distillation_loss = 0
                         test_log = {}
                         ct = 0
+                        print("evaluating", i)
                         for b in test_dl:
+                            ct += 1
                             if ct >= args.num_eval_steps:
                                 break
                             contexts = []
@@ -1377,9 +1379,10 @@ def main():
                             # test_buffer.store_task(b)
                             # test_buffer.cleanup()
 
-
+                        print("calculating")
                         avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
                         avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / len(test_dl)
+                        print(avg_test, avg_new_tok)
                         test_log['average test loss'] = avg_test
                         test_log['average test loss on new tokens'] = avg_new_tok
                         test_log['epoch'] = epoch
@@ -1396,10 +1399,11 @@ def main():
                         accelerator.wait_for_everyone()
                         save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
                         os.makedirs(save_dir, exist_ok=True)
-                        accelerator.save_state(save_dir)
-                        tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                        tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                        #accelerator.save_state(save_dir)
+                        #tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                        #tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
                         checkpoint_id += 1
+                    print("one back")
 
             except:
                 accelerator.wait_for_everyone()
