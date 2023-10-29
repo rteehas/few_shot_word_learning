@@ -463,14 +463,19 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                                       device=llama_outputs.logits.device).unique())
 
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-                print("negative id shape in model", negative_ids[i].shape)
+                # print("negative id shape in model", negative_ids[i].shape)
                 negative_embeds = F.embedding(negative_ids[i], new_w)
-                print("embed shape in model", negative_embeds.shape)
-                print("attention mask shape in model", negative_attn_mask[i].shape)
-                print("embed shape after unsqueeze", negative_embeds.unsqueeze(0).shape)
+                if len(negative_embeds.shape) == 2:
+                    negative_embeds = negative_embeds.unsqueeze(0)
+                    n_attn_mask = negative_attn_mask[i].unsqueeze(0)
+                else:
+                    n_attn_mask = negative_attn_mask[i]
+                # print("embed shape in model", negative_embeds.shape)
+                # print("attention mask shape in model", negative_attn_mask[i].shape)
+                # print("embed shape after unsqueeze", negative_embeds.unsqueeze(0).shape)
                 negative_outputs = self.secondLM.model(
                     inputs_embeds=negative_embeds,
-                    attention_mask=negative_attn_mask[i],
+                    attention_mask=n_attn_mask,
                     output_hidden_states=True
                 )
 
@@ -1222,7 +1227,7 @@ def main():
                 batch['contexts'] = contexts
                 if args.negative_examples:
                     neg_train_batch = next(iter(negative_train_dl))
-                    print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
+                    #print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
                     batch['negative_input_ids'] = neg_train_batch['input_ids']
                     batch['negative_attention_mask'] = neg_train_batch['attention_mask']
                     batch['negative_labels'] = neg_train_batch['labels']
