@@ -1418,9 +1418,9 @@ def main():
                     accelerator.wait_for_everyone()
                     save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
                     os.makedirs(save_dir, exist_ok=True)
-                    #accelerator.save_state(save_dir)
-                    #tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                    #tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                    accelerator.save_state(save_dir)
+                    tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                    tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
                     checkpoint_id += 1
 
 
