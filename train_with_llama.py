@@ -1177,6 +1177,7 @@ def main():
         distillation_weight = args.regression_alpha
         ce_weight = 1.0 - (args.regression_alpha + distillation_weight)
 
+    best_test_loss = 10000000
     for epoch in range(epochs):
         global_step = 0
         train_new_token_losses = []
@@ -1285,6 +1286,7 @@ def main():
                 #         if torch.isnan(torch.norm(param.grad.view(-1))):
                 #             raise Exception("Nan Gradient for {}".format(name))
                 global_step += 1
+                log_dict['global step'] = global_step
                 log_dict['train loss'] = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps
 
                 log_dict['train new token loss'] = accelerator.gather(total_new_token_loss).mean().item() / args.gradient_accumulation_steps
@@ -1416,12 +1418,14 @@ def main():
 
                     accelerator.log(test_log)
                     accelerator.wait_for_everyone()
-                    save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
-                    os.makedirs(save_dir, exist_ok=True)
-                    accelerator.save_state(save_dir)
-                    tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                    tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
-                    checkpoint_id += 1
+                    if total_test_loss < best_test_loss:
+                        best_test_loss = total_test_loss
+                        save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
+                        os.makedirs(save_dir, exist_ok=True)
+                        accelerator.save_state(save_dir)
+                        tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                        tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                        checkpoint_id += 1
 
 
     accelerator.end_training()
