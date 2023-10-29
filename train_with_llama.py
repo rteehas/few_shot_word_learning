@@ -1117,7 +1117,7 @@ def main():
 
     eval_ind = args.logging_step
 
-    opt = AdamW(filter(lambda p: p.requires_grad, model.parameters()),
+    opt = AdamW(optimizer_grouped_parameters,
                 eps=epsilon,
                 lr=lr,
                 weight_decay=args.weight_decay
