@@ -515,7 +515,8 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
                 #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
-                distillation_loss = MSELoss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
+                mse_loss = MSELoss()
+                distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
                                             base_outputs.logits[:, indices_in_base, :self.initial_second_ind])
                 # soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
                 # logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
