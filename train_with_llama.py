@@ -196,7 +196,13 @@ class EmbeddingGenerator(nn.Module):
             num_layers = self.config.num_layers
             self.agg = TransformerSummarizer(input_size, nhead, num_layers)
 
-
+    def init_weights(self, mean, std):
+        for m in self.modules():
+            if isinstance(m, (nn.Linear, nn.Embedding)):
+                # Adjust the initialization based on target mean and std
+                m.weight.data.normal_(mean=mean, std=std)
+                if m.bias is not None:
+                    m.bias.data.zero_()
 
     def forward(self, inputs, attn_mask):
 
@@ -239,9 +245,14 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.dropout = nn.Dropout(0.2)
 
 
-        # with torch.no_grad():
-        #     self.firstLM_mean_embed = torch.mean(self.firstLM.get_input_embeddings().weight[:self.initial_first_ind, :], dim=0)
-        #     self.secondLM_mean_embed = torch.mean(self.secondLM.get_input_embeddings().weight[:self.initial_second_ind, :], dim=0)
+        with torch.no_grad():
+            # firstLM_mean_embed = torch.mean(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
+            secondLM_mean_embed = torch.mean(self.secondLM.get_output_embeddings().weight[:self.initial_second_ind, :].norm(dim=0))
+            # firstLM_std = torch.std(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
+            secondLM_std = torch.std(self.secondLM.get_output_embeddings().weight[:self.initial_first_ind, :].norm(dim=0))
+
+            self.emb_gen.init_weights(secondLM_mean_embed, secondLM_std)
+
         #     torch.register_buffer("firstLM_mean_embed", self.firstLM_mean_embed)
         #     torch.register_buffer("secondLM_mean_embed", self.secondLM_mean_embed)
 
