@@ -1040,8 +1040,8 @@ def main():
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers, args.distillation_temp)
     #model = torch.compile(model, dynamic=True)
     model = accelerator.prepare(model)
-    model.firstLM = torch.compile(model.firstLM)
-    model.secondLM = torch.compile(model.secondLM)
+    #model.module.firstLM = torch.compile(model.module.firstLM)
+    #model.module.secondLM = torch.compile(model.module.secondLM)
     print("initialized")
     ##pad to multiple of 64
     #for param in firstLM:
