@@ -1398,7 +1398,7 @@ def main():
 
                         if args.regression_objective:
                             total_test_regression_loss += t_out.regression_loss.detach().float()
-                            total_test_distillation_loss += t_out.distillation_loss.detach.float()
+                            total_test_distillation_loss += t_out.distillation_loss.detach().float()
 
                         # test_buffer.store_task(b)
                         # test_buffer.cleanup()
