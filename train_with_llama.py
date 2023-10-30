@@ -200,7 +200,8 @@ class EmbeddingGenerator(nn.Module):
         for m in self.modules():
             if isinstance(m, (nn.Linear, nn.Embedding)):
                 # Adjust the initialization based on target mean and std
-                m.weight.data.normal_(mean=mean, std=std)
+                new_std = torch.sqrt((mean ** 2) / self.output_hidden_size)
+                m.weight.data.normal_(mean=0.0, std=new_std)
                 if m.bias is not None:
                     m.bias.data.zero_()
 
