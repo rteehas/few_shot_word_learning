@@ -1038,6 +1038,7 @@ def main():
     print("init model")
     accelerator.wait_for_everyone()
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers, args.distillation_temp)
+    #model = torch.compile(model, dynamic=True)
     model = accelerator.prepare(model)
     print("initialized")
     ##pad to multiple of 64
