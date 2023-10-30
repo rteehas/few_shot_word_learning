@@ -32,6 +32,9 @@ import psutil
 from modules.aggregators import TransformerSummarizer
 import numpy as np
 import random
+#os.environ["TORCH_CPP_LOG_LEVEL"]="INFO"
+os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
+
 
 
 # def get_matching_indices(A, B):
@@ -176,12 +179,12 @@ class EmbeddingGenerator(nn.Module):
         self.input_hidden_size = firstLM.config.hidden_size
         self.output_hidden_size = secondLM.config.hidden_size
         self.num_attention_heads = firstLM.config.num_attention_heads
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.input_hidden_size,
+        encoder_layer = nn.TransformerEncoderLayer(d_model=self.input_hidden_size,
                                                    nhead=self.num_attention_heads,
                                                    activation='relu',
                                                    batch_first=True)
         self.num_layers = num_layers
-        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=self.num_layers)
+        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=self.num_layers)
 
         self.input_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
         self.output_emb_head = nn.Linear(self.input_hidden_size, self.output_hidden_size)
@@ -959,7 +962,7 @@ def main():
     # print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     # print("CPU Percent", psutil.cpu_percent())
     # print("Arguments: ", args)
-    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=False)
     accelerator = Accelerator(log_with="wandb", gradient_accumulation_steps=args.gradient_accumulation_steps, kwargs_handlers=[ddp_kwargs])
     # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
@@ -1260,6 +1263,8 @@ def main():
                                 param.grad.view(-1)).item()
                             if torch.isnan(torch.norm(param.grad.view(-1))):
                                 raise Exception("Nan Gradient for {}".format(name))
+                        if param.requires_grad and param.grad is None:
+                            print(name)
 
                 opt.step()
                 scheduler.step()
