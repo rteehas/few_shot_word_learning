@@ -247,9 +247,9 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         with torch.no_grad():
             # firstLM_mean_embed = torch.mean(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
-            secondLM_mean_embed = torch.mean(self.secondLM.get_output_embeddings().weight[:self.initial_second_ind, :].norm(dim=0))
+            secondLM_mean_embed = torch.mean(self.secondLM.get_output_embeddings().weight[:self.initial_second_ind, :].norm(dim=1))
             # firstLM_std = torch.std(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
-            secondLM_std = torch.std(self.secondLM.get_output_embeddings().weight[:self.initial_first_ind, :].norm(dim=0))
+            secondLM_std = torch.std(self.secondLM.get_output_embeddings().weight[:self.initial_first_ind, :].norm(dim=1))
 
             self.emb_gen.init_weights(secondLM_mean_embed, secondLM_std)
 
