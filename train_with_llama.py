@@ -204,6 +204,10 @@ class EmbeddingGenerator(nn.Module):
                 m.weight.data.normal_(mean=0.0, std=new_std)
                 if m.bias is not None:
                     m.bias.data.zero_()
+        for name, param in self.named_parameters():
+            if "weight" in name:
+                new_std = torch.sqrt((mean ** 2) / self.output_hidden_size)
+                param.data.normal_(mean=0.0, std=new_std)
 
     def forward(self, inputs, attn_mask):
 
@@ -823,6 +827,7 @@ def get_arguments():
     #parser.add_argument("--max_steps", type=int, required=True)
     parser.add_argument("--logging_step", type=int, required=True)
     parser.add_argument("--num_eval_steps", type=int, default=1000)
+    parser.add_argument("--resume_from_checkpoint", type=str)
     return parser
 
 
@@ -981,6 +986,11 @@ def main():
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
 
     accelerator.wait_for_everyone()
+    if args.resume_from_checkpoint is not None:
+        current_checkpoint_path = args.resume_from_checkpoint
+        tokenizerMLM = AutoTokenizer.from_pretrained(current_checkpoint_path, use_fast=False)
+        tokenizerTask = LlamaTokenizer.from_pretrained(current_checkpoint_path + "tokenizerTask",
+                                                       legacy=True, use_fast=False)
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True, use_fast=False)
     tokenizerTask.add_bos_token = True
@@ -1195,6 +1205,13 @@ def main():
         # use for weighting the cross entropy, distillation, and regression
         distillation_weight = args.regression_alpha
         ce_weight = 1.0 - (args.regression_alpha + distillation_weight)
+
+    if args.resume_from_checkpoint is not None:
+        matches = re.search(r'checkpoint_(\d+)_(\d+)', args.resume_from_checkpoint)
+        num1, num2 = matches.groups()
+        epoch = int(num1)
+        step = int(num2)
+        curr_global_step = step // args.gradient_accumulation_steps + (step % args.gradient_accumulation_steps)
 
     best_test_loss = 10000000
     for epoch in range(epochs):
