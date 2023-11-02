@@ -1098,28 +1098,25 @@ def main():
             # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
                               collate_fn=regression_collate, drop_last=True,
-                              shuffle=True, num_workers=30, worker_init_fn=seed_worker)
+                              shuffle=True, worker_init_fn=seed_worker, pin_memory=True)
 
             tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=regression_collate, shuffle=True, drop_last=True,
-                                 num_workers=30, worker_init_fn=seed_worker)
+                                 collate_fn=regression_collate, shuffle=True, drop_last=True, worker_init_fn=seed_worker, pin_memory=True)
 
         else:
             tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=data_collator, shuffle=True, drop_last=True,
-                              num_workers=30, worker_init_fn=seed_worker)
+                              collate_fn=data_collator, shuffle=True, drop_last=True, worker_init_fn=seed_worker, pin_memory=True)
 
             tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names, num_proc=30).with_format("torch")
 
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=data_collator, shuffle=True, drop_last=True,
-                                 num_workers=30, worker_init_fn=seed_worker)
+                                 collate_fn=data_collator, shuffle=True, drop_last=True, worker_init_fn=seed_worker, pin_memory=True)
 
         buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM, tokenizerTask,
                                  args.random_ex, args.cat)
@@ -1139,10 +1136,10 @@ def main():
             # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
             negative_train_dl = DataLoader(negative_train_tokenized,
                                            batch_size=args.batch_size, collate_fn=data_collator, shuffle=True, drop_last=True,
-                                           num_workers=30, worker_init_fn=seed_worker)
+                                           worker_init_fn=seed_worker, pin_memory=True)
             negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
                                           collate_fn=data_collator, shuffle=True, drop_last=True,
-                                          num_workers=30, worker_init_fn=seed_worker)
+                                          worker_init_fn=seed_worker, pin_memory=True)
 
     eval_ind = args.logging_step
 
@@ -1211,7 +1208,7 @@ def main():
     if args.resume_from_checkpoint is not None:
         matches = re.search(r'checkpoint_(\d+)_(\d+)', args.resume_from_checkpoint)
         num1, num2 = matches.groups()
-        epoch = int(num1)
+        base_epoch = int(num1)
         step = int(num2)
         curr_global_step = step // args.gradient_accumulation_steps + (step % args.gradient_accumulation_steps)
         train_dl = accelerator.skip_first_batches(train_dl, curr_global_step)
@@ -1222,7 +1219,7 @@ def main():
 
         global_step = curr_global_step
         accelerator.load_state(args.resume_from_checkpoint)
-        
+
     best_test_loss = 10000000
 
     for epoch in range(epochs):
