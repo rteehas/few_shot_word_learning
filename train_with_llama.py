@@ -1206,6 +1206,8 @@ def main():
         distillation_weight = args.regression_alpha
         ce_weight = 1.0 - (args.regression_alpha + distillation_weight)
 
+    global_step = 0
+
     if args.resume_from_checkpoint is not None:
         matches = re.search(r'checkpoint_(\d+)_(\d+)', args.resume_from_checkpoint)
         num1, num2 = matches.groups()
@@ -1218,9 +1220,13 @@ def main():
             negative_train_dl = accelerator.skip_first_batches(negative_train_dl, curr_global_step)
             negative_test_dl = accelerator.skip_first_batches(negative_test_dl, curr_global_step)
 
+        global_step = curr_global_step
+        accelerator.load_state(args.resume_from_checkpoint)
+        
     best_test_loss = 10000000
+
     for epoch in range(epochs):
-        global_step = 0
+
         train_new_token_losses = []
         train_losses = []
         total_loss = 0
