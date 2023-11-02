@@ -219,6 +219,7 @@ class EmbeddingGenerator(nn.Module):
     def forward(self, inputs, attn_mask):
 
         out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
+        out = self.norm(out)
 
         out = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
 
