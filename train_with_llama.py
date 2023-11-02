@@ -963,6 +963,17 @@ def main():
 
         return new_ex
 
+    def get_examples_single_sentence(nonces, ex):
+        new_ex = {}
+        for n in nonces:
+            if n in ex['text']:
+                sentences = ex['text'].split(".")
+                example_sentences = [s for s in sentences if n in s]
+                new_ex['word'] = n
+                new_ex['example'] = example_sentences
+
+        return new_ex
+
     def fill_buffer(buffer, ex):
         n = tokenizerMLM.convert_tokens_to_ids(ex['word'])
         buffer.buffer[n].appendleft(ex['example'])
