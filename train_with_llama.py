@@ -1212,6 +1212,11 @@ def main():
         epoch = int(num1)
         step = int(num2)
         curr_global_step = step // args.gradient_accumulation_steps + (step % args.gradient_accumulation_steps)
+        train_dl = accelerator.skip_first_batches(train_dl, curr_global_step)
+        test_dl = accelerator.skip_first_batches(test_dl, curr_global_step)
+        if args.negative_examples:
+            negative_train_dl = accelerator.skip_first_batches(negative_train_dl, curr_global_step)
+            negative_test_dl = accelerator.skip_first_batches(negative_test_dl, curr_global_step)
 
     best_test_loss = 10000000
     for epoch in range(epochs):
