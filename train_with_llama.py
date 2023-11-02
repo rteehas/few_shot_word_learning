@@ -1215,6 +1215,7 @@ def main():
         base_epoch = int(num1)
         step = int(num2) + 1 # correct for 0 first step
         assert step % args.gradient_accumulation_steps == 0, "Choose a checkpoint corresponding to a gradient update"
+        print("base epoch", base_epoch)
         if base_epoch != 0:
             curr_global_step = (step // (base_epoch * len(train_dl))) // args.gradient_accumulation_steps
             curr_neg_step = (step //(base_epoch * len(negative_train_dl))) // args.gradient_accumulation_steps
@@ -1225,14 +1226,14 @@ def main():
         train_dl = accelerator.skip_first_batches(train_dl, curr_global_step)
         if args.negative_examples:
             negative_train_dl = accelerator.skip_first_batches(negative_train_dl, curr_neg_step)
-
+        print("curr step", curr_global_step)
         global_step = curr_global_step
         accelerator.load_state(args.resume_from_checkpoint)
 
     best_test_loss = 10000000
-
+    print("training")
     for epoch in range(epochs):
-
+        print("epoch", epoch)
         train_new_token_losses = []
         train_losses = []
         total_loss = 0
