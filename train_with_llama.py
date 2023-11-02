@@ -1281,7 +1281,7 @@ def main():
                 out = model(batch)
                 if args.regression_objective and args.negative_examples:
                     # distillation_weight = 1.0 - ce_weight - args.regression_alpha
-                    loss = out.loss + args.regression_alpha * out.regression_loss + distillation_weight * out.distillation_loss
+                    loss = ce_weight * out.loss + args.regression_alpha * out.regression_loss + distillation_weight * out.distillation_loss
 
                 elif args.regression_objective:
 
@@ -1429,7 +1429,7 @@ def main():
                         # all_losses = accelerator.gather(t_out.loss)
                         if args.regression_objective and args.negative_examples:
                             # distillation_weight = 1.0 - ce_weight - args.regression_alpha
-                            total_test_loss += t_out.loss + args.regression_alpha * t_out.regression_loss.detach().float() + distillation_weight * t_out.distillation_loss.detach().float()
+                            total_test_loss += ce_weight * t_out.loss + args.regression_alpha * t_out.regression_loss.detach().float() + distillation_weight * t_out.distillation_loss.detach().float()
                         elif args.regression_objective:
                             total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
                         else:
