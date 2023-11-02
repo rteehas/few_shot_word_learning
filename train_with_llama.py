@@ -988,7 +988,7 @@ def main():
     accelerator.wait_for_everyone()
     if args.resume_from_checkpoint is not None:
         current_checkpoint_path = args.resume_from_checkpoint
-        tokenizerMLM = AutoTokenizer.from_pretrained(current_checkpoint_path, use_fast=False)
+        tokenizerMLM = AutoTokenizer.from_pretrained(current_checkpoint_path + "/tokenizerMLM", use_fast=False)
         tokenizerTask = LlamaTokenizer.from_pretrained(current_checkpoint_path + "tokenizerTask",
                                                        legacy=True, use_fast=False)
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
