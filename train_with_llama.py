@@ -1210,12 +1210,12 @@ def main():
         num1, num2 = matches.groups()
         base_epoch = int(num1)
         step = int(num2)
-        curr_global_step = step // args.gradient_accumulation_steps + (step % args.gradient_accumulation_steps)
+        assert step % args.gradient_accumulation_steps == 0, "Choose a checkpoint corresponding to a gradient update"
+        curr_global_step = base_epoch * len(train_dl) // args.gradient_accumulation_steps
+        curr_neg_step = base_epoch * len(negative_train_dl) // args.gradient_accumulation_steps
         train_dl = accelerator.skip_first_batches(train_dl, curr_global_step)
-        test_dl = accelerator.skip_first_batches(test_dl, curr_global_step)
         if args.negative_examples:
-            negative_train_dl = accelerator.skip_first_batches(negative_train_dl, curr_global_step)
-            negative_test_dl = accelerator.skip_first_batches(negative_test_dl, curr_global_step)
+            negative_train_dl = accelerator.skip_first_batches(negative_train_dl, curr_neg_step)
 
         global_step = curr_global_step
         accelerator.load_state(args.resume_from_checkpoint)
@@ -1381,7 +1381,7 @@ def main():
 
 
 
-            if global_step != 0 and global_step % eval_ind == 0:
+            if global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0:
                 opt.zero_grad(set_to_none=True)
                 model.eval()
                 with torch.no_grad():
