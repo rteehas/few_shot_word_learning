@@ -1141,6 +1141,13 @@ def main():
                                           collate_fn=data_collator, shuffle=True, drop_last=True,
                                           worker_init_fn=seed_worker, pin_memory=True)
 
+        train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
+        test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
+
+        train_examples.map(partial(fill_buffer, buffer))
+        test_examples.map(partial(fill_buffer, test_buffer))
+
+
     eval_ind = args.logging_step
 
     opt = AdamW(optimizer_grouped_parameters,
@@ -1154,11 +1161,7 @@ def main():
     # print("Buffer Nonces = {}".format(buffer.nonces))
     # print("Token Mapping = {}".format(token_mapping))
 
-    train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
-    test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
 
-    train_examples.map(partial(fill_buffer, buffer))
-    test_examples.map(partial(fill_buffer, test_buffer))
     # print("loading buffer")
     # tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
     # buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'), num_workers=30)
@@ -1205,6 +1208,7 @@ def main():
 
     global_step = 0
 
+    accelerator.wait_for_everyone()
     if args.resume_from_checkpoint is not None:
         matches = re.search(r'checkpoint_(\d+)_(\d+)', args.resume_from_checkpoint)
         num1, num2 = matches.groups()
