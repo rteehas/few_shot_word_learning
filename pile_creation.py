@@ -31,11 +31,12 @@ if __name__ == "__main__":
     # dist.init_process_group(backend="gloo")
 
     data = load_dataset("/scratch/work/public/ml-datasets/pile", streaming=True)
+    data = data.shuffle(buffer_size=1)
     data = data.filter(check)
     filtered = data.filter(check_example)
     # print("Rank:", os.environ["RANK"])
     # print("world size", os.environ["WORLD_SIZE"])
-    sample_train = filtered['train'].shuffle(buffer_size=1)
+    sample_train = filtered['train']
     # sample_test = filtered['test'].shuffle(buffer_size=1)
 
     sample_train_dl = DataLoader(sample_train, num_workers=30)
