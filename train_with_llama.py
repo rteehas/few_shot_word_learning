@@ -1390,7 +1390,7 @@ def main():
 
 
 
-            if global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0:
+            if global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0:
                 opt.zero_grad(set_to_none=True)
                 model.eval()
                 with torch.no_grad():
