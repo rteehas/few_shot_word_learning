@@ -854,7 +854,7 @@ def create_checkpoint_directories(args):
     else:
         neg_string = "without_negatives_or_regression"
 
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
     path = path.format(args.num_layers, args.batch_size * args.gradient_accumulation_steps, args.memory,
                        args.num_examples, args.lr, args.weight_decay, neg_string)
 
