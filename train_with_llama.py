@@ -1476,7 +1476,7 @@ def main():
                     accelerator.wait_for_everyone()
                     if total_test_loss < best_test_loss:
                         best_test_loss = total_test_loss
-                        save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, i)
+                        save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
                         os.makedirs(save_dir, exist_ok=True)
                         accelerator.save_state(save_dir)
                         tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
