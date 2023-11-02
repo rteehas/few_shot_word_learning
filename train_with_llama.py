@@ -827,7 +827,7 @@ def get_arguments():
     #parser.add_argument("--max_steps", type=int, required=True)
     parser.add_argument("--logging_step", type=int, required=True)
     parser.add_argument("--num_eval_steps", type=int, default=1000)
-    parser.add_argument("--resume_from_checkpoint", type=str)
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None)
     parser.add_argument("--single_sentence", action="store_true")
     return parser
 
