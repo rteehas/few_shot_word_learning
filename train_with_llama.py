@@ -828,6 +828,7 @@ def get_arguments():
     parser.add_argument("--logging_step", type=int, required=True)
     parser.add_argument("--num_eval_steps", type=int, default=1000)
     parser.add_argument("--resume_from_checkpoint", type=str)
+    parser.add_argument("--single_sentence", action="store_true")
     return parser
 
 
@@ -1151,9 +1152,13 @@ def main():
             negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
                                           collate_fn=data_collator, shuffle=True, drop_last=True,
                                           worker_init_fn=seed_worker, pin_memory=True)
+        if args.single_sentence:
+            train_examples = dataset['train'].map(partial(get_examples_single_sentence, train_nonces), num_proc=30)
+            test_examples = dataset['test'].map(partial(get_examples_single_sentence, test_nonces), num_proc=30)
+        else:
+            train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
+            test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
 
-        train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
-        test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
 
         train_examples.map(partial(fill_buffer, buffer))
         test_examples.map(partial(fill_buffer, test_buffer))
