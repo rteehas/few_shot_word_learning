@@ -1474,19 +1474,19 @@ def main():
                         # test_buffer.store_task(b)
                         # test_buffer.cleanup()
 
-                    avg_test = accelerator.gather(total_test_loss).sum().item() / len(test_dl)
-                    avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / len(test_dl)
+                    avg_test = accelerator.gather(total_test_loss).sum().item() / args.num_eval_steps
+                    avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / args.num_eval_steps
                     test_log['average test loss'] = avg_test
                     test_log['average test loss on new tokens'] = avg_new_tok
                     test_log['epoch'] = epoch
                     test_log['eval step'] = i // eval_ind
 
                     if args.negative_examples:
-                        test_log['average test loss on positive examples'] = accelerator.gather(total_test_positive_loss).sum().item() / len(test_dl)
-                        test_log['average test loss on negative examples'] = accelerator.gather(total_test_negative_loss).sum().item() / len(test_dl)
+                        test_log['average test loss on positive examples'] = accelerator.gather(total_test_positive_loss).sum().item() / args.num_eval_steps
+                        test_log['average test loss on negative examples'] = accelerator.gather(total_test_negative_loss).sum().item() / args.num_eval_steps
 
                     if args.regression_objective:
-                        test_log['average regression test loss without alpha'] = accelerator.gather(total_test_regression_loss).sum().item() / len(test_dl)
+                        test_log['average regression test loss without alpha'] = accelerator.gather(total_test_regression_loss).sum().item() / args.num_eval_steps
 
                     accelerator.log(test_log)
                     accelerator.wait_for_everyone()
