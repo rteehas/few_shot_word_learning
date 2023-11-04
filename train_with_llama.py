@@ -979,7 +979,7 @@ def main():
         for n in nonces:
             if n in ex['text']:
                 sentences = ex['text'].split(".")
-                example_sentences = [s for s in sentences if n in s]
+                example_sentences = [s + "." for s in sentences if n in s]
                 new_ex['word'] = n
                 new_ex['example'] = example_sentences
 
@@ -991,7 +991,9 @@ def main():
             buffer.buffer[n].appendleft(ex['example'])
         elif type(ex['example']) == list:
             for example in ex['example']:
-                buffer.buffer[n].appendleft(example)
+                example_toks = tokenizerMLM(example, truncation=True, max_length=256, return_tensors='pt')
+                if n in example_toks['input_ids']:
+                    buffer.buffer[n].appendleft(example)
 
 
     g = torch.Generator()
