@@ -987,7 +987,12 @@ def main():
 
     def fill_buffer(buffer, ex):
         n = tokenizerMLM.convert_tokens_to_ids(ex['word'])
-        buffer.buffer[n].appendleft(ex['example'])
+        if type(ex['example']) == str:
+            buffer.buffer[n].appendleft(ex['example'])
+        elif type(ex['example']) == list:
+            for example in ex['example']:
+                buffer.buffer[n].appendleft(example)
+
 
     g = torch.Generator()
     g.manual_seed(0)
