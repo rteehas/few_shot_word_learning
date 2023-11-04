@@ -214,7 +214,7 @@ class EmbeddingGenerator(nn.Module):
 
         self.output_emb_head.weight.data.normal_(mean=0.0, std=output_std)
         if self.output_emb_head.bias is not None:
-            self.output_emb_head.zero_()
+            self.output_emb_head.bias.zero_()
 
     def forward(self, inputs, attn_mask):
 
