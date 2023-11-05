@@ -60,11 +60,13 @@ class TransformerSummarizer(nn.Module):
         # self.pos_encoder = PositionalEncoding(input_size, dropout, max_len=num_positions)
         encoder_layers = TransformerEncoderLayer(input_size, nhead)
         self.transformer_encoder = TransformerEncoder(encoder_layers, num_layers)
+        self.norm = nn.LayerNorm(input_size)
 
 
     def forward(self, x):
         # seq_len = x.shape[1] # make sure to unsqueeze so batch size = 1
         # pos = torch.arange(seq_len, dtype=torch.long).unsqueeze(0)
-        out= self.transformer_encoder(x)
+        out = self.transformer_encoder(x)
+        out = self.norm(out)
         return torch.mean(out, dim=0, keepdim=True)
 
