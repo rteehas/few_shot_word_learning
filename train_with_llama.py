@@ -1522,13 +1522,13 @@ def main():
 
                     if args.negative_examples:
                         test_log['average test loss on positive examples'] = accelerator.gather(
-                            total_test_positive_loss).sum().item() / len(test_dl)
+                            total_test_positive_loss).sum().item() / args.num_eval_steps
                         test_log['average test loss on negative examples'] = accelerator.gather(
-                            total_test_negative_loss).sum().item() / len(test_dl)
+                            total_test_negative_loss).sum().item() / args.num_eval_steps
 
                     if args.regression_objective:
                         test_log['average regression test loss without alpha'] = accelerator.gather(
-                            total_test_regression_loss).sum().item() / len(test_dl)
+                            total_test_regression_loss).sum().item() / args.num_eval_steps
 
                     accelerator.log(test_log)
                     accelerator.wait_for_everyone()
