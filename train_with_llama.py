@@ -523,7 +523,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                 )
 
             if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                base_outputs = self.secondLM(input_ids=base_ids[i].unsqueeze(0),
+                with torch.no_grad():
+                    base_outputs = self.secondLM(input_ids=base_ids[i].unsqueeze(0),
                                              attention_mask=base_attn_mask[i].unsqueeze(0),
                                              labels=base_labels[i],
                                              output_hidden_states=True)
@@ -1531,11 +1532,12 @@ def main():
                             total_test_regression_loss).sum().item() / args.num_eval_steps
 
                     accelerator.log(test_log)
-                    accelerator.wait_for_everyone()
+
                     if total_test_loss < best_test_loss:
                         best_test_loss = total_test_loss
                         save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
                         os.makedirs(save_dir, exist_ok=True)
+                        accelerator.wait_for_everyone()
                         accelerator.save_state(save_dir)
                         tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
                         tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
