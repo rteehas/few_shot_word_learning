@@ -7,6 +7,7 @@ import json
 from argparse import ArgumentParser
 import numpy as np
 import itertools
+import pandas as pd
 
 
 def get_log_probs(pred, targ, shift=False):
