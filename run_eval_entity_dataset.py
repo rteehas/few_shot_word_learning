@@ -615,7 +615,7 @@ def format_emb_gen_entity_inferences(ex, pad_token='<|endoftext|>'):
     return ex
 
 def baseline_main():
-    data_file = ""
+    data_file = "entity_knowledge_propagation/blob/main/data/entity_inferences/disaster_explicit_attribute_independent.json"
     data = load_json(data_file)
     print(data_file, len(data))
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
