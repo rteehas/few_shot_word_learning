@@ -998,6 +998,8 @@ def main():
                 if n in example_toks['input_ids']:
                     buffer.buffer[n].appendleft(example)
 
+    def get_next_multiple_of(start, number):
+        return ((start // number) + 1) * number
 
     g = torch.Generator()
     g.manual_seed(0)
@@ -1040,6 +1042,10 @@ def main():
     train_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['train']['words']))))
     test_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['test']['words']))))
     # print("Nonces = {}".format(nonces))
+    total_nonces = len(nonces)
+    tok_size = get_next_multiple_of(total_nonces, 64)
+    fake_nonces = ["<new_token_{}".format(i) for i in range(tok_size)]
+    nonces = nonces + fake_nonces
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
     mask_token_id = tokenizerMLM.mask_token_id
@@ -1066,8 +1072,8 @@ def main():
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
     # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
-    firstLM.resize_token_embeddings(len(tokenizerMLM), pad_to_multiple_of=64)
-    secondLM.resize_token_embeddings(len(tokenizerTask), pad_to_multiple_of=64)  # pad for speed
+    firstLM.resize_token_embeddings(len(tokenizerMLM))
+    secondLM.resize_token_embeddings(len(tokenizerTask))  # pad for speed
     firstLM.eval()
     secondLM.eval()
     print("init memory")
