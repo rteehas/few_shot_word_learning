@@ -861,7 +861,7 @@ def model_main(path):
         post_loc_dict, pre_loc_dict = edit_func(
             batch,
             batch_prepended_def,
-            secondLM,
+            model,
             dataset_name=None)
 
         j = 0
