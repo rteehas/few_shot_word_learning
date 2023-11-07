@@ -1266,7 +1266,7 @@ def main():
         matches = re.search(r'checkpoint_(\d+)_(\d+)', args.resume_from_checkpoint)
         num1, num2 = matches.groups()
         base_epoch = int(num1)
-        step = int(num2) + 1  # correct for 0 first step
+        step = int(num2)  # correct for 0 first step
         # assert step % args.gradient_accumulation_steps == 0, "Choose a checkpoint corresponding to a gradient update"
         print("base epoch", base_epoch)
         #todo: implement for second epoch
