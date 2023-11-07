@@ -77,7 +77,8 @@ def emb_gen_dict_to(d, device):
                 new_dict[k] = dict_to(v, device)
             else:
                 new_dict[k] = v
-
+        else:
+            new_dict[k] = v
     return new_dict
 
 class CustomDataSetClass(Dataset):
