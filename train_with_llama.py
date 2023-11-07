@@ -18,7 +18,7 @@ import accelerate
 from accelerate import init_empty_weights, Accelerator
 from accelerate import load_checkpoint_and_dispatch
 from transformers.modeling_outputs import CausalLMOutputWithPast
-
+from accelerate.utils import DummyOptim, DummyScheduler
 from modules.buffer import RetrievalBuffer
 from modules.memory import OnlineProtoNet
 from modules.model_outputs import CausalLMOutputWithNewToken, CausalLMOutputWithNewTokenNegatives, \
@@ -1203,15 +1203,35 @@ def main():
         test_examples.map(partial(fill_buffer, test_buffer))
 
     eval_ind = args.logging_step
-
-    opt = AdamW(optimizer_grouped_parameters,
-                eps=epsilon,
-                lr=lr,
-                weight_decay=args.weight_decay
-                )
-
     warmup_steps = int(args.epochs * (len(train_dl) / args.gradient_accumulation_steps) * 0.03)
-    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
+    optimizer_cls = (
+        torch.optim.AdamW
+        if accelerator.state.deepspeed_plugin is None
+           or "optimizer" not in accelerator.state.deepspeed_plugin.deepspeed_config
+        else DummyOptim
+    )
+    opt = optimizer_cls(optimizer_grouped_parameters, lr=lr,
+                weight_decay=args.weight_decay)
+
+    # Creates Dummy Scheduler if `scheduler` was spcified in the config file else creates `args.lr_scheduler_type` Scheduler
+    if (
+            accelerator.state.deepspeed_plugin is None
+            or "scheduler" not in accelerator.state.deepspeed_plugin.deepspeed_config
+    ):
+        scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
+    else:
+        scheduler = DummyScheduler(
+            opt, total_num_steps=args.max_train_steps, warmup_num_steps=args.num_warmup_steps
+        )
+
+    # opt = AdamW(optimizer_grouped_parameters,
+    #             eps=epsilon,
+    #             lr=lr,
+    #             weight_decay=args.weight_decay
+    #             )
+
+
+    # scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
     # print("Buffer Nonces = {}".format(buffer.nonces))
     # print("Token Mapping = {}".format(token_mapping))
 
