@@ -1269,20 +1269,29 @@ def main():
         step = int(num2) + 1  # correct for 0 first step
         assert step % args.gradient_accumulation_steps == 0, "Choose a checkpoint corresponding to a gradient update"
         print("base epoch", base_epoch)
+        #todo: implement for second epoch
         if base_epoch != 0:
-            curr_global_step = (step // (base_epoch * len(train_dl))) // args.gradient_accumulation_steps
-            curr_neg_step = (step // (base_epoch * len(negative_train_dl))) // args.gradient_accumulation_steps
+            curr_global_step = step
+            curr_neg_step = step
+            # curr_global_step = (step // (base_epoch * len(train_dl))) // args.gradient_accumulation_steps
+            # curr_neg_step = (step // (base_epoch * len(negative_train_dl))) // args.gradient_accumulation_steps
         else:
-            curr_global_step = step // args.gradient_accumulation_steps
-            curr_neg_step = step // args.gradient_accumulation_steps
+            curr_global_step = step
+            curr_neg_step = step
+            # curr_global_step = step // args.gradient_accumulation_steps
+            # curr_neg_step = step // args.gradient_accumulation_steps
 
-        train_dl = accelerator.skip_first_batches(train_dl, curr_global_step)
+        active_train_dl = accelerator.skip_first_batches(train_dl, curr_global_step)
         if args.negative_examples:
-            negative_train_dl = accelerator.skip_first_batches(negative_train_dl, curr_neg_step)
+            active_negative_train_dl = accelerator.skip_first_batches(negative_train_dl, curr_neg_step)
         print("curr step", curr_global_step)
         global_step = curr_global_step
         accelerator.load_state(args.resume_from_checkpoint)
-
+    else:
+        active_train_dl = train_dl
+        if args.negative_examples:
+            active_negative_train_dl = negative_train_dl
+            
     best_test_loss = 10000000
     print("training")
     for epoch in range(epochs):
@@ -1295,7 +1304,7 @@ def main():
         total_negative_loss = 0
         total_regression_loss = 0
         total_distillation_loss = 0
-        for i, batch in enumerate(train_dl):
+        for i, batch in enumerate(active_train_dl):
             with accelerator.accumulate(model):
                 log_dict = {}
 
@@ -1340,7 +1349,7 @@ def main():
                                                                                 batch['input_ids'].shape[0])
                 batch['contexts'] = contexts
                 if args.negative_examples:
-                    neg_train_batch = next(iter(negative_train_dl))
+                    neg_train_batch = next(iter(active_negative_train_dl))
                     # print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
                     batch['negative_input_ids'] = neg_train_batch['input_ids']
                     batch['negative_attention_mask'] = neg_train_batch['attention_mask']
