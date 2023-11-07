@@ -564,22 +564,149 @@ def format_gpt_data(ex, pad_token='<|endoftext|>'):
     return ex
 
 
-def format_gpt2_data(ex, pad_token='<|endoftext|>'):
+def format_gpt2_data_entity_inferences(ex, pad_token='<|endoftext|>'):
     context = ex['definition'].split('<extra_id_0>')
     ex['original_def'] = ex['definition']
     assert len(context) == 2, context
     ex['left_context'] = context[0].strip()
     ex['right_context'] = context[1]
     ex['definition'] = ex['definition'].replace('<extra_id_0>', ex['def_target'][13:-13])
+    label = ex['label']
     for _, ps in ex['probe_sentences'].items():
         gpt_labels = []
-        gpt_labels.append(ps['probe_sentence'].replace('<extra_id_0>', ps['label'][13:-13]) + pad_token)
+        for option in ps['labels']:
+            gpt_labels.append(ps['probe_sentence'].replace(
+                '<extra_id_0>', option[13:-13]) + pad_token)
         ps_context = ps['probe_sentence'].split('<extra_id_0>')
         assert len(ps_context) == 2, ps_context
         ps['left_context_ps'] = ps_context[0].strip() + pad_token
         ps['right_context_ps'] = ps_context[1] + pad_token
         ps['original_ps'] = ps['probe_sentence']
-        ps['probe_sentence'] = ps['probe_sentence'].replace('<extra_id_0>', ps['label'][13:-13]) + pad_token
+        ps['probe_sentence'] = ps['probe_sentence'].replace('<extra_id_0>', label) + pad_token
         ps['gpt_labels'] = gpt_labels
-        ps['answer_str'] = ps['label'][13:-13]
+        ps['answer_str'] = label
     return ex
+
+
+def format_emb_gen_entity_inferences(ex, pad_token='<|endoftext|>'):
+    #extract the entity and then replace with new token
+    # process the def into the context later
+    context = ex['definition'].split('<extra_id_0>')
+    ex['original_def'] = ex['definition']
+    assert len(context) == 2, context
+    ex['left_context'] = context[0].strip()
+    ex['right_context'] = context[1]
+    ex['definition'] = ex['definition'].replace('<extra_id_0>', ex['def_target'][13:-13])
+    label = ex['label']
+    for _, ps in ex['probe_sentences'].items():
+        gpt_labels = []
+        for option in ps['labels']:
+            gpt_labels.append(ps['probe_sentence'].replace(
+                '<extra_id_0>', option[13:-13]) + pad_token)
+        ps_context = ps['probe_sentence'].split('<extra_id_0>')
+        assert len(ps_context) == 2, ps_context
+        ps['left_context_ps'] = ps_context[0].strip() + pad_token
+        ps['right_context_ps'] = ps_context[1] + pad_token
+        ps['original_ps'] = ps['probe_sentence']
+        ps['probe_sentence'] = ps['probe_sentence'].replace('<extra_id_0>', label) + pad_token
+        ps['gpt_labels'] = gpt_labels
+        ps['answer_str'] = label
+    return ex
+
+def baseline_main():
+    data_file = ""
+    data = load_json(data_file)
+    print(data_file, len(data))
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
+                                                   use_fast=False)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True)
+    tokenizerTask.pad_token = tokenizerTask.unk_token
+    data = [format_gpt2_data_entity_inferences(ex, pad_token = tokenizerTask.pad_token) for ex in data]
+    to_tsr = to_tsr_gpt_entity_inference
+    edit_func = prepend_def_gpt
+    device = "cuda"
+    all_outputs = []
+    for i, ex in enumerate(data):
+        output = {'ex_id': ex['ex_id']}
+        label = ex['label']
+        batch = to_tsr(tokenizerTask, ex, device)
+        batch_prepended_def = to_tsr(tokenizerTask,
+                                     ex,
+                                     device,
+                                     prepend_def=True,
+                                     prepend_sent=False,
+                                     random_def=None)
+        _, _, \
+        pre_edit_dict, post_edit_dict, \
+        post_loc_dict, pre_loc_dict = edit_func(
+            batch,
+            batch_prepended_def,
+            secondLM,
+            dataset_name=None)
+
+        j = 0
+        labels, pre_probs, pre_lls = compute_dist_over_labels_gpt(
+            tokenizerTask,
+            pre_edit_dict,
+            ex['probe_sentences'][f'template_{j}']['labels'],
+            batch["edit_inner"][j]['labels'],
+            batch["edit_inner"][j]['left_context_ps'],
+            batch["edit_inner"][j]['right_context_ps']
+        )
+
+        labels, post_probs, post_lls = compute_dist_over_labels_gpt(
+            tokenizerTask,
+            post_edit_dict,
+            ex['probe_sentences'][f'template_{j}']['labels'],
+            batch_prepended_def["edit_inner"][j]['labels'],
+            batch_prepended_def["edit_inner"][j]['left_context_ps'],
+            batch_prepended_def["edit_inner"][j]['right_context_ps']
+        )
+        result = None
+        pred_dist = None
+        if label in labels:
+            result = [p for p in
+                      zip(labels, pre_lls, post_lls, pre_probs, post_probs)
+                      if p[0] == label][0]
+            pred_dist = [list(zip(labels, pre_lls, post_lls, pre_probs,
+                                  post_probs)), label]
+        elif isinstance(label, list):
+            label_scores = []
+            all_scores = []
+            for p in zip(labels, pre_lls, post_lls, pre_probs,
+                         post_probs):
+                all_scores.append(p)
+                if p[0] in label:
+                    label_scores.append(p)
+            result = label_scores
+            pred_dist = [all_scores, label]
+        else:
+            print('-' * 60)
+            print('Probe Sentence {}: {}'.format(j,
+                                                 ex['probe_sentences'][
+                                                     f'template_{j}'][
+                                                     'probe_sentence']))
+            print('WARNING: Label not found! {}'.format(label))
+            print('         Labels {}'.format(labels))
+            for p in zip(labels, pre_lls, post_lls, pre_probs,
+                         post_probs):
+                print(p)
+
+        # if train_params['COMPUTE_SPECIFICITY']:
+        #     assert len(results_specificity) == len(data) - 1, \
+        #         (len(results_specificity), len(data))
+
+        output['results'] = result
+        output['probs'] = pred_dist
+        # output['sim_scores'] = {
+        #     'bleu_score': bleu_score,
+        #     'bert_score': bert_score,
+        #     'bleurt_score': bleurt_score,
+        #     'meteor_score': meteor_score,
+        # }
+        # output['specificity'] = results_specificity
+        all_outputs.append(output)
+        # bar()
+
+    return all_outputs
