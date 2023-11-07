@@ -952,7 +952,7 @@ def convert_new_token_example(ex):
     return new_ex
 
 def to_tsr_emb_gen(tokenizerTask, tokenizerMLM, ex, device, prepend_def=False,
-                                prepend_sent=False, random_def=None)
+                                prepend_sent=False, random_def=None):
     '''This function supports a single example only (i.e., bsize=1).'''
 
     definition = [ex['definition']]
@@ -1039,7 +1039,7 @@ def to_tsr_emb_gen(tokenizerTask, tokenizerMLM, ex, device, prepend_def=False,
     return emb_gen_dict_to(batch, device)
 
 
-def emb_gen_model_no_prepend(batch_pre, batch_post, model, dataset_name=None)
+def emb_gen_model_no_prepend(batch_pre, batch_post, model, dataset_name=None):
 
     with torch.no_grad():
         if dataset_name == 'ecbd':
