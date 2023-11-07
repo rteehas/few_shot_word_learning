@@ -1291,7 +1291,7 @@ def main():
         active_train_dl = train_dl
         if args.negative_examples:
             active_negative_train_dl = negative_train_dl
-            
+
     best_test_loss = 10000000
     print("training")
     for epoch in range(epochs):
