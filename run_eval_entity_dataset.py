@@ -621,7 +621,7 @@ def baseline_main():
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
                                                    use_fast=False)
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                low_cpu_mem_usage=True)
+                                                low_cpu_mem_usage=True).to("cuda")
     tokenizerTask.pad_token = tokenizerTask.unk_token
     data = [format_gpt2_data_entity_inferences(ex, pad_token = tokenizerTask.pad_token) for ex in data]
     to_tsr = to_tsr_gpt_entity_inference
