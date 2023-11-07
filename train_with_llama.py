@@ -1220,7 +1220,7 @@ def main():
         scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
     else:
         scheduler = DummyScheduler(
-            opt, total_num_steps=args.epochs * len(train_dl), warmup_num_steps=args.num_warmup_steps
+            opt, total_num_steps=args.epochs * len(train_dl), warmup_num_steps=warmup_steps
         )
 
     # opt = AdamW(optimizer_grouped_parameters,
