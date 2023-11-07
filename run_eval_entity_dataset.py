@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 import numpy as np
 import itertools
 import pandas as pd
-
+import re
 
 def get_log_probs(pred, targ, shift=False):
     NULL_TOKEN = 0  # a placeholder used for masked target locations
@@ -67,6 +67,18 @@ def dict_to(d, device):
 
     return new_dict
 
+def emb_gen_dict_to(d, device):
+    new_dict = {}
+    for k, v in d.items():
+        if k != "contexts":
+            if isinstance(v, torch.Tensor):
+                new_dict[k] = v.to(device)
+            elif isinstance(v, dict):
+                new_dict[k] = dict_to(v, device)
+            else:
+                new_dict[k] = v
+
+    return new_dict
 
 class CustomDataSetClass(Dataset):
 
@@ -274,20 +286,21 @@ def compute_dist_over_labels_gpt(tokenizer, edit_dict, labels_str, labels_tsr,
     lls = []
     for i in range(n_labels):
         total_len = \
-        (labels_tsr['input_ids'][i] == tokenizer.eos_token_id).nonzero(
+        (labels_tsr['input_ids'][i] == tokenizer.pad_token_id).nonzero(
             as_tuple=True)[0][0]
         # left and right contexts are the same for all labels
         left_len = \
-        (left_context_tsr['input_ids'][0] == tokenizer.eos_token_id).nonzero(
+        (left_context_tsr['input_ids'][0] == tokenizer.pad_token_id).nonzero(
             as_tuple=True)[0]
         right_len = \
-        (right_context_tsr['input_ids'][0] == tokenizer.eos_token_id).nonzero(
+        (right_context_tsr['input_ids'][0] == tokenizer.pad_token_id).nonzero(
             as_tuple=True)[0]
         start_loc = left_len
         span_len = total_len - left_len - right_len
 
         end_loc = start_loc + span_len
-
+        print(labels_tsr['input_ids'][i], "labels")
+        print(total_len, left_len, right_len)
         # print(total_len, left_len, right_len)
         # print(tokenizer.convert_ids_to_tokens(labels_tsr['input_ids'][i]))
         # print(tokenizer.convert_ids_to_tokens(labels_tsr['input_ids'][i,
@@ -324,14 +337,14 @@ def compute_perplexity_gpt(tokenizer, logits, label_ids, label_attention_mask,
     for i, l in enumerate(loss.view(batch_size, -1)):
 
         total_len = \
-        (labels_tsr['input_ids'][i] == tokenizer.eos_token_id).nonzero(
+        (labels_tsr['input_ids'][i] == tokenizer.pad_token_id).nonzero(
             as_tuple=True)[0]
         # left and right contexts are the same for all labels
         left_len = \
-        (left_context_tsr['input_ids'][0] == tokenizer.eos_token_id).nonzero(
+        (left_context_tsr['input_ids'][0] == tokenizer.pad_token_id).nonzero(
             as_tuple=True)[0]
         right_len = \
-        (right_context_tsr['input_ids'][0] == tokenizer.eos_token_id).nonzero(
+        (right_context_tsr['input_ids'][0] == tokenizer.pad_token_id).nonzero(
             as_tuple=True)[0]
         start_loc = left_len
         span_len = total_len - left_len - right_len
@@ -614,14 +627,30 @@ def format_emb_gen_entity_inferences(ex, pad_token='<|endoftext|>'):
         ps['answer_str'] = label
     return ex
 
-def baseline_main():
+def baseline_main(new_token=False):
     data_file = "entity_knowledge_propagation/data/entity_inferences/disaster_explicit_attribute_independent.json"
     data = load_json(data_file)
+    if new_token:
+        data = [convert_new_token_example(ex) for ex in data]
+        tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                       legacy=True,
+                                                       use_fast=False)
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                    low_cpu_mem_usage=True).to("cuda")
+
+        new_nonces = [ex['ent_str'] for ex in data]
+        tokenizerTask.add_tokens(new_nonces)
+        secondLM.resize_token_embeddings(len(tokenizerTask))
+        print(len(tokenizerTask))
+    else:
+        tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                       legacy=True,
+                                                       use_fast=False)
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                    low_cpu_mem_usage=True).to("cuda")
+
     print(data_file, len(data))
-    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
-                                                   use_fast=False)
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                low_cpu_mem_usage=True).to("cuda")
+
     tokenizerTask.pad_token = tokenizerTask.unk_token
     data = [format_gpt2_data_entity_inferences(ex, pad_token = tokenizerTask.pad_token) for ex in data]
     to_tsr = to_tsr_gpt_entity_inference
@@ -711,3 +740,386 @@ def baseline_main():
         # bar()
 
     return all_outputs
+
+def aggregate_results(scores):
+    pos_count_s = 0
+    pos_count_p = 0
+    delta_s = []
+    delta_p = []
+    odds_s = []
+    odds_p = []
+    for p in scores:
+        if isinstance(p, list):
+            _, s1, s2, p1, p2 = p[0]
+            for p_ in p[1:]:
+                s1 = np.logaddexp(s1, p_[1])
+                s2 = np.logaddexp(s2, p_[2])
+                p1 += p_[3]
+                p2 += p_[4]
+        else:
+            _, s1, s2, p1, p2 = p
+
+        if s2 > s1:
+            pos_count_s += 1
+        if p2 > p1:
+            pos_count_p += 1
+        delta_s.append(np.exp(s2) - np.exp(s1))
+        delta_p.append(p2 - p1)
+        odds_s.append(np.exp(s2) / np.exp(s1))
+        odds_p.append(p2 / p1)
+    n = len(scores)
+
+    return n, pos_count_s / n, np.mean(delta_s), np.mean(
+        odds_s), pos_count_p / n, np.mean(delta_p), np.mean(odds_p)
+
+def compute_top1_accuracy(pred_dist):
+    pre_count = 0
+    post_count = 0
+    for ex in pred_dist:
+        scores, label = ex
+        if not isinstance(label, list):
+            label = [label]
+
+        # pre
+        pre_probs = [s[-2] for s in scores]
+        pre_id = np.argmax(pre_probs)
+        if scores[pre_id][0] in label:
+            pre_count += 1
+
+        # post
+        post_probs = [s[-1] for s in scores]
+        post_id = np.argmax(post_probs)
+        if scores[post_id][0] in label:
+            post_count += 1
+
+    n = len(pred_dist)
+
+    return pre_count / n, post_count / n, n
+
+def model_main(path):
+    device = "cuda"
+    data_file = "entity_knowledge_propagation/data/entity_inferences/disaster_explicit_attribute_independent.json"
+    data = load_json(data_file)
+    data = [convert_new_token_example(ex) for ex in data]
+    tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
+    tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
+    nonces = list(tokenizerTask.get_added_vocab().keys())
+    tokenizerMLM.add_tokens(nonces)
+    tokenizerTask.add_tokens(nonces)
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+    firstLM.resize_token_embeddings(len(tokenizerMLM))
+    secondLM.resize_token_embeddings(len(tokenizerTask))
+
+
+    mask_token_id = tokenizerMLM.mask_token_id
+    if "mean" in path:
+        memory_config = AggregatorConfig()
+    elif "cls" in path:
+        memory_config = TransformerCLSConfig(
+            input_size=firstLM.config.hidden_size,
+            nhead=firstLM.config.num_attention_heads,
+            num_layers=1
+        )
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, 1, None).to(
+        device)
+    model.load_state_dict(torch.load(path + "/pytorch_model.bin"), strict=False)
+    model.device = device
+    new_nonces = [ex['ent_str'] for ex in data]
+    new_nonces = list(set(new_nonces))
+    tokenizerTask.add_tokens(new_nonces)
+    tokenizerMLM.add_tokens(new_nonces)
+    secondLM.resize_token_embeddings(len(tokenizerTask))
+    firstLM.resize_token_embeddings(len(tokenizerMLM))
+    firstLM.eval()
+    secondLM.eval()
+    new_token_num = len(new_nonces)
+    model.add_new_tokens(new_token_num)
+
+    print(data_file, len(data))
+
+    tokenizerTask.pad_token = tokenizerTask.unk_token
+    data = [format_gpt2_data_entity_inferences(ex, pad_token=tokenizerTask.pad_token) for ex in data]
+    to_tsr = to_tsr_emb_gen
+    edit_func = emb_gen_model_no_prepend
+
+    all_outputs = []
+    for i, ex in enumerate(data):
+        output = {'ex_id': ex['ex_id']}
+        label = ex['label']
+        batch = to_tsr(tokenizerTask, ex, device)
+        batch_prepended_def = to_tsr(tokenizerTask,
+                                     ex,
+                                     device,
+                                     prepend_def=True,
+                                     prepend_sent=False,
+                                     random_def=None)
+        _, _, \
+        pre_edit_dict, post_edit_dict, \
+        post_loc_dict, pre_loc_dict = edit_func(
+            batch,
+            batch_prepended_def,
+            secondLM,
+            dataset_name=None)
+
+        j = 0
+        labels, pre_probs, pre_lls = compute_dist_over_labels_gpt(
+            tokenizerTask,
+            pre_edit_dict,
+            ex['probe_sentences'][f'template_{j}']['labels'],
+            batch["edit_inner"][j]['labels'],
+            batch["edit_inner"][j]['left_context_ps'],
+            batch["edit_inner"][j]['right_context_ps']
+        )
+
+        labels, post_probs, post_lls = compute_dist_over_labels_gpt(
+            tokenizerTask,
+            post_edit_dict,
+            ex['probe_sentences'][f'template_{j}']['labels'],
+            batch_prepended_def["edit_inner"][j]['labels'],
+            batch_prepended_def["edit_inner"][j]['left_context_ps'],
+            batch_prepended_def["edit_inner"][j]['right_context_ps']
+        )
+        result = None
+        pred_dist = None
+        if label in labels:
+            result = [p for p in
+                      zip(labels, pre_lls, post_lls, pre_probs, post_probs)
+                      if p[0] == label][0]
+            pred_dist = [list(zip(labels, pre_lls, post_lls, pre_probs,
+                                  post_probs)), label]
+        elif isinstance(label, list):
+            label_scores = []
+            all_scores = []
+            for p in zip(labels, pre_lls, post_lls, pre_probs,
+                         post_probs):
+                all_scores.append(p)
+                if p[0] in label:
+                    label_scores.append(p)
+            result = label_scores
+            pred_dist = [all_scores, label]
+        else:
+            print('-' * 60)
+            print('Probe Sentence {}: {}'.format(j,
+                                                 ex['probe_sentences'][
+                                                     f'template_{j}'][
+                                                     'probe_sentence']))
+            print('WARNING: Label not found! {}'.format(label))
+            print('         Labels {}'.format(labels))
+            for p in zip(labels, pre_lls, post_lls, pre_probs,
+                         post_probs):
+                print(p)
+
+        # if train_params['COMPUTE_SPECIFICITY']:
+        #     assert len(results_specificity) == len(data) - 1, \
+        #         (len(results_specificity), len(data))
+
+        output['results'] = result
+        output['probs'] = pred_dist
+        # output['sim_scores'] = {
+        #     'bleu_score': bleu_score,
+        #     'bert_score': bert_score,
+        #     'bleurt_score': bleurt_score,
+        #     'meteor_score': meteor_score,
+        # }
+        # output['specificity'] = results_specificity
+        all_outputs.append(output)
+        # bar()
+
+    return all_outputs
+
+
+def convert_new_token_example(ex):
+    word = ex['ent_str']
+    nonce = "<{}_new>".format(word.lower())
+    modified_definition = re.sub(r"\b({})\b".format(word), nonce, ex['definition'], flags=re.I)
+    modified_ent_str = nonce
+    j=0
+    modified_probe_sentences = {}
+    for t in ex['probe_sentences']:
+        modified_probe_sentences[t] = {}
+        modified_probe_sentences[t]['probe_sentence'] = re.sub(r"\b({})\b".format(word), nonce, ex['probe_sentences'][t]['probe_sentence'], flags=re.I)
+        modified_probe_sentences[t]['labels'] = ex['probe_sentences'][t]['labels']
+    modified_fields = ['ent_str', 'probe_sentences', 'definition']
+    new_ex = {}
+    for key in ex:
+        if key not in modified_fields:
+            new_ex[key] = ex[key]
+
+    new_ex['ent_str'] = modified_ent_str
+    new_ex['probe_sentences'] = modified_probe_sentences
+    new_ex['definition'] = modified_definition
+    return new_ex
+
+def to_tsr_emb_gen(tokenizerTask, tokenizerMLM, ex, device, prepend_def=False,
+                                prepend_sent=False, random_def=None)
+    '''This function supports a single example only (i.e., bsize=1).'''
+
+    definition = [ex['definition']]
+    left_context = [ex['left_context']]
+    right_context = [ex['right_context']]
+    probe_labels = [v['gpt_labels'] for _, v in ex['probe_sentences'].items()]
+
+    if random_def is not None:
+        fake_def = random.choice(random_def)
+        probe_sentences = [fake_def + ' ' + v['probe_sentence'] for _, v in
+                           ex['probe_sentences'].items()]
+        left_context_ps = [fake_def + ' ' + v['left_context_ps'] for _, v
+                           in ex['probe_sentences'].items()]
+        probe_labels = [[fake_def + ' ' + l for l in pl] for pl in
+                        probe_labels]
+
+    elif prepend_def and not prepend_sent:
+        probe_sentences = [definition[0] + ' ' + v['probe_sentence'] for _, v in
+                           ex['probe_sentences'].items()]
+        left_context_ps = [definition[0] + ' ' + v['left_context_ps'] for _, v
+                           in ex['probe_sentences'].items()]
+        probe_labels = [[definition[0] + ' ' + l for l in pl] for pl in
+                        probe_labels]
+    elif prepend_sent and not prepend_def:
+        probe_sentences = [ex['additional_sent'] + ' ' + v['probe_sentence'] for
+                           _, v in ex['probe_sentences'].items()]
+        left_context_ps = [ex['additional_sent'] + ' ' + v['left_context_ps']
+                           for _, v in ex['probe_sentences'].items()]
+        probe_labels = [ex['additional_sent'] + ' ' + pl for pl in probe_labels]
+    else:
+        probe_sentences = [v['probe_sentence'] for _, v in
+                           ex['probe_sentences'].items()]
+        left_context_ps = [v['left_context_ps'] for _, v in
+                           ex['probe_sentences'].items()]
+
+
+
+    right_context_ps = [v['right_context_ps'] for _, v in
+                        ex['probe_sentences'].items()]
+
+    definition_tok = tokenizerTask(definition, padding=True, return_tensors="pt")
+    def_label_tok = tokenizerTask(definition, padding=True, return_tensors="pt")
+    # left_context_tok = tokenizer(left_context, padding=True,
+    #                              return_tensors="pt")
+    # right_context_tok = tokenizer(right_context, padding=True,
+    #                               return_tensors="pt")
+    probe_sentences_tok = [
+        tokenizerTask(ps, padding=True, return_tensors="pt").to(device) for
+        ps in probe_sentences]
+    probe_labels_tok = [
+        tokenizerTask(pl, padding=True, return_tensors="pt").to(device) for
+        pl in probe_labels]
+    left_context_ps_tok = [
+        tokenizerTask(lc, padding=True, return_tensors="pt").to(device) for
+        lc in left_context_ps]
+    right_context_ps_tok = [
+        tokenizerTask(rc, padding=True, return_tensors="pt").to(device) for
+        rc in right_context_ps]
+
+    edit_inner = [{'probe_sentence': ps} for ps in probe_sentences_tok]
+    for i, ps in enumerate(edit_inner):
+        ps['labels'] = probe_labels_tok[i]
+        ps['left_context_ps'] = left_context_ps_tok[i]
+        ps['right_context_ps'] = right_context_ps_tok[i]
+
+    def_ = {**definition_tok}
+    def_["labels"] = def_label_tok["input_ids"]
+
+    ctx_toks = tokenizerMLM(definition, truncation=True, return_tensors='pt')
+
+
+    batch = {
+        "edit_inner": edit_inner,  # Edit examples
+        "definition": def_,  # Locality
+        "cond": None,
+        "labels": None,
+        'contexts': [ctx_toks]
+        # "bleu_score": _bleu_score,
+        # "bert_score": _bert_score,
+        # "bleurt_score": _bleurt_score,
+        # "meteor_score": _meteor_score
+    }
+
+    return emb_gen_dict_to(batch, device)
+
+
+def emb_gen_model_no_prepend(batch_pre, batch_post, model, dataset_name=None)
+
+    with torch.no_grad():
+        if dataset_name == 'ecbd':
+            ex = {}
+            ex['input_ids'] = batch_pre["edit_inner"][0]['probe_sentence'][
+                'input_ids'][0].unsqueeze(0)
+            ex['labels'] = batch_pre["edit_inner"][0]['probe_sentence'][
+                'input_ids'][0].unsqueeze(0)  # Dummy label
+            ex['attention_mask'] = batch_pre["edit_inner"][0]['probe_sentence'][
+                'attention_mask'][0].unsqueeze(0)
+            ex['contexts'] = batch_pre['contexts']
+        else:
+            ex = {}
+            ex['input_ids'] = batch_pre["edit_inner"][0]['labels']['input_ids'][
+                0].unsqueeze(0)
+            ex['attention_mask'] = batch_pre["edit_inner"][0]['labels'][
+                'attention_mask'][0].unsqueeze(0)
+            ex['labels'] = batch_pre["edit_inner"][0]['labels']['input_ids'][
+                0].unsqueeze(0)
+            ex['contexts'] = batch_pre['contexts']
+
+        pre_edit_logits = model(ex).logits
+
+    # Prepend def
+    with torch.set_grad_enabled(False):
+
+        if dataset_name == 'ecbd':
+            ex = {}
+            ex['input_ids'] = batch_post["edit_inner"][0]['probe_sentence'][
+                'input_ids'][0].unsqueeze(0)
+            ex['labels'] = batch_post["edit_inner"][0]['probe_sentence'][
+                'input_ids'][0].unsqueeze(0)  # Dummy label
+            ex['attention_mask'] = batch_post["edit_inner"][0][
+                'probe_sentence']['attention_mask'][0].unsqueeze(0)
+            ex['contexts'] = batch_pre['contexts']
+
+        else:
+            ex = {}
+            ex['input_ids'] = batch_post["edit_inner"][0]['labels'][
+                'input_ids'][
+                0].unsqueeze(0)
+            ex['attention_mask'] = batch_post["edit_inner"][0]['labels'][
+                'attention_mask'][0].unsqueeze(0)
+            ex['labels'] = batch_post["edit_inner"][0]['labels']['input_ids'][
+                0].unsqueeze(0)
+            ex['contexts'] = batch_pre['contexts']
+
+        post_edit_logits = model(ex).logits
+
+
+    with torch.no_grad():
+        n_probe_labels = batch_pre['edit_inner'][0]['labels']['input_ids'].size(
+            0)
+        pre_edit_dict = []
+        post_edit_dict = []
+
+        for i in range(n_probe_labels):
+            if dataset_name == 'ecbd':
+                pre_label = \
+                batch_pre["edit_inner"][0]["probe_sentence"]['input_ids'][
+                    i].unsqueeze(0)
+                post_label = \
+                batch_post["edit_inner"][0]['probe_sentence']['input_ids'][
+                    i].unsqueeze(0)
+            else:
+                pre_label = \
+                batch_pre["edit_inner"][0]['labels']['input_ids'][
+                    i].unsqueeze(0)
+                post_label = \
+                batch_post["edit_inner"][0]['labels']['input_ids'][
+                    i].unsqueeze(0)
+
+            pre_edit_dict.append(
+                get_log_probs(pre_edit_logits, pre_label, shift=True))
+
+            post_edit_dict.append(
+                get_log_probs(post_edit_logits, post_label, shift=True))
+
+    post_loc_dict = None
+    pre_loc_dict = None
+
+    return pre_edit_logits, post_edit_logits, pre_edit_dict, post_edit_dict, \
+           post_loc_dict, pre_loc_dict
