@@ -1097,7 +1097,7 @@ def main():
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers,
                                   args.distillation_temp)
     # model = torch.compile(model, dynamic=True)
-    model = accelerator.prepare(model)
+    # model = accelerator.prepare(model)
     # model.module.firstLM = torch.compile(model.module.firstLM)
     # model.module.secondLM = torch.compile(model.module.secondLM)
     print("initialized")
@@ -1252,12 +1252,12 @@ def main():
     print("Total nonces = {}".format(len(nonces)))
     if args.negative_examples:
 
-        opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
-            opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
+        model, opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
+            model, opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
         )
     else:
-        opt, train_dl, test_dl, scheduler = accelerator.prepare(
-            opt, train_dl, test_dl, scheduler
+        model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
+            model, opt, train_dl, test_dl, scheduler
         )
     accelerator.register_for_checkpointing(opt)
     accelerator.register_for_checkpointing(scheduler)
