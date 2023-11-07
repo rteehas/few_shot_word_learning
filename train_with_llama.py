@@ -287,7 +287,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
     @property
     def initial_first_ind(self):
-        return int(self.firstLM.config.vocab_size - self.num_new_tokens)
+        return int(self.firstLM.config.vocab_size - self.num_new_tokens - 39)
 
     @property
     def initial_second_ind(self):
@@ -1043,9 +1043,9 @@ def main():
     test_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['test']['words']))))
     # print("Nonces = {}".format(nonces))
     total_nonces = len(nonces)
-    tok_size = get_next_multiple_of(total_nonces, 64)
-    fake_nonces = ["<new_token_{}".format(i) for i in range(tok_size)]
-    nonces = nonces + fake_nonces
+    # tok_size = get_next_multiple_of(total_nonces, 64)
+    # fake_nonces = ["<new_token_{}".format(i) for i in range(tok_size)]
+    # nonces = nonces + fake_nonces
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
     mask_token_id = tokenizerMLM.mask_token_id
@@ -1072,7 +1072,7 @@ def main():
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
     # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
-    firstLM.resize_token_embeddings(len(tokenizerMLM))
+    firstLM.resize_token_embeddings(len(tokenizerMLM) + 39)
     secondLM.resize_token_embeddings(len(tokenizerTask))  # pad for speed
     firstLM.eval()
     secondLM.eval()
