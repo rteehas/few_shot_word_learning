@@ -847,8 +847,9 @@ def model_main(path):
     for i, ex in enumerate(data):
         output = {'ex_id': ex['ex_id']}
         label = ex['label']
-        batch = to_tsr(tokenizerTask, ex, device)
+        batch = to_tsr(tokenizerTask, tokenizerMLM, ex, device)
         batch_prepended_def = to_tsr(tokenizerTask,
+                                     tokenizerMLM,
                                      ex,
                                      device,
                                      prepend_def=True,
