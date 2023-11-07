@@ -801,7 +801,7 @@ def model_main(path):
     device = "cuda"
     data_file = "entity_knowledge_propagation/data/entity_inferences/disaster_explicit_attribute_independent.json"
     data = load_json(data_file)
-    data = [convert_new_token_example(ex) for ex in data]
+    data = [convert_new_token_example(ex) for ex in data if ex['ent_str'] in ex['definition']]
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
@@ -849,6 +849,7 @@ def model_main(path):
         output = {'ex_id': ex['ex_id']}
         label = ex['label']
         batch = to_tsr(tokenizerTask, tokenizerMLM, ex, device)
+        print(batch['contexts'], tokenizerMLM.decode(batch['contexts'][0]['input_ids'][0]))
         batch_prepended_def = to_tsr(tokenizerTask,
                                      tokenizerMLM,
                                      ex,
