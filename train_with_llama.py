@@ -1163,12 +1163,12 @@ def main():
                                  collate_fn=data_collator, shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                                  pin_memory=True)
 
-        buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM,
-                                 tokenizerTask,
-                                 args.random_ex, args.cat)
-        test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(test_nonces),
-                                      tokenizerMLM, tokenizerTask,
-                                      args.random_ex, args.cat)
+        # buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM,
+        #                          tokenizerTask,
+        #                          args.random_ex, args.cat)
+        # test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(test_nonces),
+        #                               tokenizerMLM, tokenizerTask,
+        #                               args.random_ex, args.cat)
 
         if args.negative_examples:
             negative_dataset = load_from_disk(args.negative_data_path)
@@ -1191,16 +1191,16 @@ def main():
             negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
                                           collate_fn=data_collator, shuffle=True, drop_last=True,
                                           worker_init_fn=seed_worker, pin_memory=True)
-        if args.single_sentence:
-            train_examples = dataset['train'].map(partial(get_examples_single_sentence, train_nonces), num_proc=30)
-            test_examples = dataset['test'].map(partial(get_examples_single_sentence, test_nonces), num_proc=30)
-        else:
-            train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
-            test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
-
-
-        train_examples.map(partial(fill_buffer, buffer))
-        test_examples.map(partial(fill_buffer, test_buffer))
+        # if args.single_sentence:
+        #     train_examples = dataset['train'].map(partial(get_examples_single_sentence, train_nonces), num_proc=30)
+        #     test_examples = dataset['test'].map(partial(get_examples_single_sentence, test_nonces), num_proc=30)
+        # else:
+        #     train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
+        #     test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
+        #
+        #
+        # train_examples.map(partial(fill_buffer, buffer))
+        # test_examples.map(partial(fill_buffer, test_buffer))
 
     eval_ind = args.logging_step
 
@@ -1221,14 +1221,14 @@ def main():
     # for inp in buffer_dl:
     #     buffer.store_mlm(inp)
 
-    print("Buffer has {} elements".format(len(buffer.buffer)))
-
-    # test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
-    # buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'), num_workers=30)
-    # for inp in buffer_test_dl:
-    #     test_buffer.store_mlm(inp)
-
-    print("Test buffer has {} elements".format(len(test_buffer.buffer)))
+    # print("Buffer has {} elements".format(len(buffer.buffer)))
+    #
+    # # test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
+    # # buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'), num_workers=30)
+    # # for inp in buffer_test_dl:
+    # #     test_buffer.store_mlm(inp)
+    #
+    # print("Test buffer has {} elements".format(len(test_buffer.buffer)))
 
     print("Total nonces = {}".format(len(nonces)))
     if args.negative_examples:
@@ -1317,23 +1317,23 @@ def main():
                     model.secondLM.eval()
                 # model.zero_grad()
 
-                contexts = []
-                for j in range(batch['input_ids'].shape[0]):
-                    to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                    # print("base", tokenizerTask.decode(batch['base_input_ids'][j,:]))
-                    # print(batch['input_ids'].shape[0], "shape")
-                    assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample,
-                                                                                                            tokenizerTask.decode(
-                                                                                                                batch[
-                                                                                                                    'input_ids'][
-                                                                                                                j, :]))
-                    n = to_sample[0]
-                    if n in buffer.buffer:
-                        sample = buffer.retrieve(n, batch)
-                        if sample is not None:
-                            contexts.append(sample)
-                        else:
-                            print("Null context for {}".format(n))
+                # contexts = []
+                # for j in range(batch['input_ids'].shape[0]):
+                #     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
+                #     # print("base", tokenizerTask.decode(batch['base_input_ids'][j,:]))
+                #     # print(batch['input_ids'].shape[0], "shape")
+                #     assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample,
+                #                                                                                             tokenizerTask.decode(
+                #                                                                                                 batch[
+                #                                                                                                     'input_ids'][
+                #                                                                                                 j, :]))
+                #     n = to_sample[0]
+                #     if n in buffer.buffer:
+                #         sample = buffer.retrieve(n, batch)
+                #         if sample is not None:
+                #             contexts.append(sample)
+                #         else:
+                #             print("Null context for {}".format(n))
                     # else:
                     #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
                     #                             clean_up_tokenization_spaces=True)
@@ -1344,10 +1344,10 @@ def main():
                     #                           return_tensors='pt')
                     #     contexts.append(sample)
 
-                assert len(contexts) == batch['input_ids'].shape[
-                    0], "Context has {} elements when it should have {}".format(len(contexts),
-                                                                                batch['input_ids'].shape[0])
-                batch['contexts'] = contexts
+                # assert len(contexts) == batch['input_ids'].shape[
+                #     0], "Context has {} elements when it should have {}".format(len(contexts),
+                #                                                                 batch['input_ids'].shape[0])
+                # batch['contexts'] = contexts
                 if args.negative_examples:
                     neg_train_batch = next(iter(active_negative_train_dl))
                     # print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
@@ -1411,7 +1411,7 @@ def main():
 
                 log_dict['train new token loss'] = accelerator.gather(
                     total_new_token_loss).mean().item() / args.gradient_accumulation_steps
-                log_dict['num_words_seen'] = len(buffer.buffer)
+                # log_dict['num_words_seen'] = len(buffer.buffer)
                 total_loss = 0
                 total_new_token_loss = 0
                 if args.negative_examples:
@@ -1472,29 +1472,29 @@ def main():
                         ct += 1
                         if ct >= args.num_eval_steps:
                             break
-                        contexts = []
-                        for j in range(b['input_ids'].shape[0]):
-                            to_sample = list(
-                                set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
-                            assert (len(to_sample) == 1)
-                            n = to_sample[0]
-                            if n in test_buffer.buffer:
-                                sample = test_buffer.retrieve(n, b)
-                                if sample is not None:
-                                    contexts.append(sample)
-                            # else:
-                            #     seq = tokenizerTask.decode(b['input_ids'][j,:])
-                            #     sample = tokenizerMLM([seq],
-                            #               max_length=tokenizerMLM.model_max_length,
-                            #               truncation=True,
-                            #               padding='longest',
-                            #               return_tensors='pt')
-                            #     contexts.append(sample)
-
-                        assert len(contexts) == b['input_ids'].shape[
-                            0], "Context has {} elements when it should have {}".format(len(contexts),
-                                                                                        b['input_ids'].shape[0])
-                        b['contexts'] = contexts
+                        # contexts = []
+                        # for j in range(b['input_ids'].shape[0]):
+                        #     to_sample = list(
+                        #         set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
+                        #     assert (len(to_sample) == 1)
+                        #     n = to_sample[0]
+                        #     if n in test_buffer.buffer:
+                        #         sample = test_buffer.retrieve(n, b)
+                        #         if sample is not None:
+                        #             contexts.append(sample)
+                        #     # else:
+                        #     #     seq = tokenizerTask.decode(b['input_ids'][j,:])
+                        #     #     sample = tokenizerMLM([seq],
+                        #     #               max_length=tokenizerMLM.model_max_length,
+                        #     #               truncation=True,
+                        #     #               padding='longest',
+                        #     #               return_tensors='pt')
+                        #     #     contexts.append(sample)
+                        #
+                        # assert len(contexts) == b['input_ids'].shape[
+                        #     0], "Context has {} elements when it should have {}".format(len(contexts),
+                        #                                                                 b['input_ids'].shape[0])
+                        # b['contexts'] = contexts
 
                         if args.negative_examples:
                             neg_test_batch = next(iter(negative_test_dl))
