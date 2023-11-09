@@ -254,7 +254,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
 
-        self.dropout = nn.Dropout(0.2)
+        # self.dropout = nn.Dropout(0.2)
 
         with torch.no_grad():
             # firstLM_mean_embed = torch.mean(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
@@ -460,7 +460,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                                          output_hidden_states=True)
 
             first_hidden = first_out.hidden_states
-            combined = self.dropout(combine_layers(first_hidden, self.layers))
+            combined = combine_layers(first_hidden, self.layers)
 
             if len(combined.shape) == 2:
                 combined = combined.unsqueeze(0)
@@ -1048,7 +1048,7 @@ def main():
     # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
-
+    device = accelerator.device
     accelerator.wait_for_everyone()
     if args.resume_from_checkpoint is not None:
         current_checkpoint_path = args.resume_from_checkpoint
@@ -1086,9 +1086,9 @@ def main():
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     accelerator.wait_for_everyone()
-    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True).to(device)
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                low_cpu_mem_usage=True)
+                                                low_cpu_mem_usage=True).to(device)
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     print("CPU Percent", psutil.cpu_percent())
     # with init_empty_weights():
@@ -1126,9 +1126,9 @@ def main():
     print("init model")
     accelerator.wait_for_everyone()
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers,
-                                  args.distillation_temp)
+                                  args.distillation_temp).to(device)
     # model = torch.compile(model, dynamic=True)
-    model = accelerator.prepare(model)
+    model.emb_gen = accelerator.prepare(model.emb_gen)
     # model.module.firstLM = torch.compile(model.module.firstLM)
     # model.module.secondLM = torch.compile(model.module.secondLM)
     print("initialized")
@@ -1145,12 +1145,12 @@ def main():
     no_decay = ["bias", "layer_norm.weight"]
     optimizer_grouped_parameters = [
         {
-            "params": [p for n, p in model.named_parameters() if
+            "params": [p for n, p in model.emb_gen.named_parameters() if
                        not any(nd in n for nd in no_decay) and p.requires_grad],
             "weight_decay": args.weight_decay,
         },
         {
-            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay) and p.requires_grad],
+            "params": [p for n, p in model.emb_gen.named_parameters() if any(nd in n for nd in no_decay) and p.requires_grad],
             "weight_decay": 0.0,
         },
     ]
