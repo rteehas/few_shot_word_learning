@@ -892,8 +892,9 @@ def main():
                    base_attention_mask=base_inps['attention_mask'])
         return row
 
-    def regression_collate(batch):
-
+    def regression_collate(max_num_examples, batch):
+        num_examples = np.random.choice(max_num_examples)
+        contexts = [sample_context(num_examples, b) for b in batch]
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
         base_batch = [dict(input_ids=b['base_input_ids'], attention_mask=b['base_attention_mask']) for b in batch]
 
@@ -906,7 +907,31 @@ def main():
             for k in coll:
                 final_collate[k] = coll[k]
 
+        final_collate['contexts'] = contexts
+
         return final_collate
+
+    def regular_collate(max_num_examples, batch):
+        num_examples = np.random.choice(max_num_examples)
+        contexts = [sample_context(num_examples, b) for b in batch]
+        input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
+        input_collate = data_collator(input_batch)
+        final_collate = {}
+        for k in input_collate:
+            final_collate[k] = input_collate[k]
+
+        final_collate['contexts'] = contexts
+        return final_collate
+
+    def sample_context(k, ex):
+        assert len(ex['sentenes']) >= k
+        sentences = np.random.choice(ex['sentenes'], size=k, replace=False)
+        ctx = tokenizerMLM(sentences, max_length=256,
+                                        truncation=True,
+                                        padding='longest',
+                                        return_tensors='pt')
+
+        return ctx
 
     def check_example(ex):
         found = False
@@ -1132,35 +1157,41 @@ def main():
         print("tokenizing")
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
         if args.regression_objective:
-            tokenized_train = dataset['train'].map(tokenize_regression, remove_columns=dataset['train'].column_names,
+            tokenized_train = dataset['train'].map(tokenize_regression,
+                                                   remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
                                                    num_proc=30).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                                  collate_fn=regression_collate, drop_last=True,
+                                  collate_fn=partial(regression_collate, args.num_examples), drop_last=True,
                                   shuffle=True, worker_init_fn=seed_worker, pin_memory=True)
 
-            tokenized_test = dataset['test'].map(tokenize_regression, remove_columns=dataset['train'].column_names,
+            tokenized_test = dataset['test'].map(tokenize_regression,
+                                                 remove_columns=[name for name in dataset['test'].column_names if name != "sentences"],
                                                  num_proc=30).with_format("torch")
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=regression_collate, shuffle=True, drop_last=True,
+                                 collate_fn=partial(regression_collate, args.num_examples), shuffle=True, drop_last=True,
                                  worker_init_fn=seed_worker, pin_memory=True)
 
         else:
-            tokenized_train = dataset['train'].map(tokenize, remove_columns=dataset['train'].column_names,
+            tokenized_train = dataset['train'].map(tokenize,
+                                                   remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
                                                    num_proc=30).with_format("torch")
             # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
             train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                                  collate_fn=data_collator, shuffle=True, drop_last=True, worker_init_fn=seed_worker,
+                                  collate_fn=partial(regular_collate, args.num_examples),
+                                  shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                                   pin_memory=True)
 
-            tokenized_test = dataset['test'].map(tokenize, remove_columns=dataset['train'].column_names,
+            tokenized_test = dataset['test'].map(tokenize,
+                                                 remove_columns=[name for name in dataset['test'].column_names if name != "sentences"],
                                                  num_proc=30).with_format("torch")
 
             # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
             test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=data_collator, shuffle=True, drop_last=True, worker_init_fn=seed_worker,
+                                 collate_fn=partial(regular_collate, args.num_examples),
+                                 shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                                  pin_memory=True)
 
         # buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM,
