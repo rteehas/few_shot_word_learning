@@ -78,21 +78,24 @@ def main():
     model.firstLM.resize_token_embeddings(len(tokenizerMLM))
     model.secondLM.resize_token_embeddings(len(tokenizerTask))
     model.add_new_tokens(new_token_num)
-
+    model.eval()
     with torch.no_grad():
         scores = {}
         for trial in range(3):
             for k in range(1, 7):
                 outputs = []
                 for ex in subselection['train']:
-                    if args.sent_version == "question":
-                        sent_dict = sents[ex['QUESTION']]
-                    elif args.sent_version == "answer":
-                        sent_dict = sents
-                        for key in sent_dict:
-                            if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
-                                sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                    outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k))
+                    try:
+                        if args.sent_version == "question":
+                            sent_dict = sents[ex['QUESTION']]
+                        elif args.sent_version == "answer":
+                            sent_dict = sents
+                            for key in sent_dict:
+                                if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                                    sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+                        outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k))
+                    except:
+                        continue
                 acc = sum(outputs) / len(outputs)
                 print("Accuracy for k = {} is {}".format(k, acc))
                 if k in scores:
