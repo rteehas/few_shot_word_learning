@@ -30,7 +30,7 @@ def check(ex):
 if __name__ == "__main__":
     # dist.init_process_group(backend="gloo")
 
-    data = load_dataset("/scratch/work/public/ml-datasets/pile", streaming=True)
+    data = load_dataset("stanford-crfm/DSIR-filtered-pile-50M", streaming=True)
     data = data.shuffle(buffer_size=1)
     data = data.filter(check)
     filtered = data.filter(check_example)
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # sample_test = filtered['test'].shuffle(buffer_size=1)
 
     sample_train_dl = DataLoader(sample_train, num_workers=30)
-    total_samples = 500000
+    total_samples = 150000
     l = []
 
     for i, ex in enumerate(sample_train_dl):
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     sample_train = Dataset.from_dict(
         {'text': [v['text'] for v in l], 'meta': [v['meta'] for v in l]})
-    sample_train.save_to_disk("pile_500k_train")
+    sample_train.save_to_disk("filtered_pile_500k_train")
     # sample_test = Dataset.from_dict(
     #     {'text': [v['text'] for v in sample_test], 'meta': [v['meta'] for v in sample_test]})
 
