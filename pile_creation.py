@@ -14,15 +14,16 @@ def check_example(ex):
     found = False
 
     for w in words:
-        if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None:
+        if re.search(r"\b({})\b".format(w), ex['contents'], flags=re.I) is not None:
             found=True
             break
 
     return found
 
 def check(ex):
-    pile_set = ex['meta']['pile_set_name'].lower()
-    if "github" not in pile_set and "europarl" not in pile_set:
+    pile_set = [n.lower() for n in ex['metadata']['pile_set_name']]
+    excluded = ['github', 'europarl', 'stackexchange']
+    if not any(x in pile_set for x in excluded):
         return True
     else:
         return False
@@ -30,7 +31,7 @@ def check(ex):
 if __name__ == "__main__":
     # dist.init_process_group(backend="gloo")
 
-    data = load_dataset("/scratch/work/public/ml-datasets/pile", streaming=True)
+    data = load_dataset("stanford-crfm/DSIR-filtered-pile-50M", streaming=True)
     data = data.shuffle(buffer_size=1)
     data = data.filter(check)
     filtered = data.filter(check_example)
