@@ -635,6 +635,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_memories = [o.memories[0] for o in outs]  # list of the dictionaries
 
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+            print("positive losses", torch.stack([o.positive_loss for o in outs]))
+            print("negative losses", torch.stack([o.negative_loss for o in outs]))
             final_positive_loss = torch.stack([o.positive_loss for o in outs]).mean()
             final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
             final_positive_logits = torch.stack([o.positive_logits for o in outs])
@@ -893,7 +895,7 @@ def main():
         return row
 
     def regression_collate(max_num_examples, batch):
-        num_examples = np.random.choice(max_num_examples)
+        num_examples = np.random.choice(max_num_examples) + 1
         contexts = [sample_context(num_examples, b) for b in batch]
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
         base_batch = [dict(input_ids=b['base_input_ids'], attention_mask=b['base_attention_mask']) for b in batch]
@@ -912,9 +914,11 @@ def main():
         return final_collate
 
     def regular_collate(max_num_examples, batch):
-        num_examples = np.random.choice(max_num_examples)
+        num_examples = np.random.choice(max_num_examples) + 1
         contexts = [sample_context(num_examples, b) for b in batch]
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
+        for b  in batch:
+            print("sequence", tokenizerTask.decode(b['input_ids']))
         input_collate = data_collator(input_batch)
         final_collate = {}
         for k in input_collate:
@@ -924,8 +928,9 @@ def main():
         return final_collate
 
     def sample_context(k, ex):
-        assert len(ex['sentenes']) >= k
-        sentences = np.random.choice(ex['sentenes'], size=k, replace=False)
+        assert len(ex['sentences']) >= k
+        sentences = np.random.choice(ex['sentences'], size=k, replace=False).tolist()
+        #print(sentences)
         ctx = tokenizerMLM(sentences, max_length=256,
                                         truncation=True,
                                         padding='longest',
@@ -1336,6 +1341,8 @@ def main():
         total_regression_loss = 0
         total_distillation_loss = 0
         for i, batch in enumerate(active_train_dl):
+            #if global_step==3:
+             #   break
             with accelerator.accumulate(model):
                 log_dict = {}
 
