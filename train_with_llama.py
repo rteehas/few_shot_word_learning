@@ -1156,88 +1156,88 @@ def main():
         },
     ]
     print("dataset")
-    with accelerator.main_process_first():
-        dataset = load_from_disk(args.data_path)
-        # dataset = dataset.filter(check_example)
-        # dataset = dataset.map(create_base_and_nonce, num_proc=2)
-        print("tokenizing")
-        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
-        if args.regression_objective:
-            tokenized_train = dataset['train'].map(tokenize_regression,
-                                                   remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
-                                                   num_proc=2).with_format("torch")
-            # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
-            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                                  collate_fn=partial(regression_collate, args.num_examples), drop_last=True,
-                                  shuffle=True, worker_init_fn=seed_worker, pin_memory=True)
+    # with accelerator.main_process_first():
+    dataset = load_from_disk(args.data_path)
+    # dataset = dataset.filter(check_example)
+    # dataset = dataset.map(create_base_and_nonce, num_proc=2)
+    print("tokenizing")
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
+    if args.regression_objective:
+        tokenized_train = dataset['train'].map(tokenize_regression,
+                                               remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
+                                               num_proc=2).with_format("torch")
+        # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
+        train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
+                              collate_fn=partial(regression_collate, args.num_examples), drop_last=True,
+                              shuffle=True, worker_init_fn=seed_worker, pin_memory=True)
 
-            tokenized_test = dataset['test'].map(tokenize_regression,
-                                                 remove_columns=[name for name in dataset['test'].column_names if name != "sentences"],
-                                                 num_proc=2).with_format("torch")
-            # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
-            test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=partial(regression_collate, args.num_examples), shuffle=True, drop_last=True,
-                                 worker_init_fn=seed_worker, pin_memory=True)
+        tokenized_test = dataset['test'].map(tokenize_regression,
+                                             remove_columns=[name for name in dataset['test'].column_names if name != "sentences"],
+                                             num_proc=2).with_format("torch")
+        # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+        test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
+                             collate_fn=partial(regression_collate, args.num_examples), shuffle=True, drop_last=True,
+                             worker_init_fn=seed_worker, pin_memory=True)
 
-        else:
-            tokenized_train = dataset['train'].map(tokenize,
-                                                   remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
-                                                   num_proc=2).with_format("torch")
-            # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
+    else:
+        tokenized_train = dataset['train'].map(tokenize,
+                                               remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
+                                               num_proc=2).with_format("torch")
+        # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
-            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                                  collate_fn=partial(regular_collate, args.num_examples),
-                                  shuffle=True, drop_last=True, worker_init_fn=seed_worker,
-                                  pin_memory=True)
+        train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
+                              collate_fn=partial(regular_collate, args.num_examples),
+                              shuffle=True, drop_last=True, worker_init_fn=seed_worker,
+                              pin_memory=True)
 
-            tokenized_test = dataset['test'].map(tokenize,
-                                                 remove_columns=[name for name in dataset['test'].column_names if name != "sentences"],
-                                                 num_proc=2).with_format("torch")
+        tokenized_test = dataset['test'].map(tokenize,
+                                             remove_columns=[name for name in dataset['test'].column_names if name != "sentences"],
+                                             num_proc=2).with_format("torch")
 
-            # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
-            test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                                 collate_fn=partial(regular_collate, args.num_examples),
-                                 shuffle=True, drop_last=True, worker_init_fn=seed_worker,
-                                 pin_memory=True)
+        # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+        test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
+                             collate_fn=partial(regular_collate, args.num_examples),
+                             shuffle=True, drop_last=True, worker_init_fn=seed_worker,
+                             pin_memory=True)
 
-        # buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM,
-        #                          tokenizerTask,
-        #                          args.random_ex, args.cat)
-        # test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(test_nonces),
-        #                               tokenizerMLM, tokenizerTask,
-        #                               args.random_ex, args.cat)
+    # buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM,
+    #                          tokenizerTask,
+    #                          args.random_ex, args.cat)
+    # test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(test_nonces),
+    #                               tokenizerMLM, tokenizerTask,
+    #                               args.random_ex, args.cat)
 
-        if args.negative_examples:
-            negative_dataset = load_from_disk(args.negative_data_path)
-            negative_train_tokenized = negative_dataset['train'].map(tokenize,
-                                                                     remove_columns=negative_dataset[
-                                                                         'train'].column_names,
-                                                                     num_proc=2).with_format("torch")
-            # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
+    if args.negative_examples:
+        negative_dataset = load_from_disk(args.negative_data_path)
+        negative_train_tokenized = negative_dataset['train'].map(tokenize,
+                                                                 remove_columns=negative_dataset[
+                                                                     'train'].column_names,
+                                                                 num_proc=2).with_format("torch")
+        # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
-            negative_test_tokenized = negative_dataset['test'].map(tokenize,
-                                                                   remove_columns=negative_dataset[
-                                                                       'train'].column_names, num_proc=2).with_format(
-                "torch")
+        negative_test_tokenized = negative_dataset['test'].map(tokenize,
+                                                               remove_columns=negative_dataset[
+                                                                   'train'].column_names, num_proc=2).with_format(
+            "torch")
 
-            # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
-            negative_train_dl = DataLoader(negative_train_tokenized,
-                                           batch_size=args.batch_size, collate_fn=data_collator, shuffle=True,
-                                           drop_last=True,
-                                           worker_init_fn=seed_worker, pin_memory=True)
-            negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
-                                          collate_fn=data_collator, shuffle=True, drop_last=True,
-                                          worker_init_fn=seed_worker, pin_memory=True)
-        # if args.single_sentence:
-        #     train_examples = dataset['train'].map(partial(get_examples_single_sentence, train_nonces), num_proc=30)
-        #     test_examples = dataset['test'].map(partial(get_examples_single_sentence, test_nonces), num_proc=30)
-        # else:
-        #     train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
-        #     test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
-        #
-        #
-        # train_examples.map(partial(fill_buffer, buffer))
-        # test_examples.map(partial(fill_buffer, test_buffer))
+        # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
+        negative_train_dl = DataLoader(negative_train_tokenized,
+                                       batch_size=args.batch_size, collate_fn=data_collator, shuffle=True,
+                                       drop_last=True,
+                                       worker_init_fn=seed_worker, pin_memory=True)
+        negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
+                                      collate_fn=data_collator, shuffle=True, drop_last=True,
+                                      worker_init_fn=seed_worker, pin_memory=True)
+    # if args.single_sentence:
+    #     train_examples = dataset['train'].map(partial(get_examples_single_sentence, train_nonces), num_proc=30)
+    #     test_examples = dataset['test'].map(partial(get_examples_single_sentence, test_nonces), num_proc=30)
+    # else:
+    #     train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
+    #     test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
+    #
+    #
+    # train_examples.map(partial(fill_buffer, buffer))
+    # test_examples.map(partial(fill_buffer, test_buffer))
 
     eval_ind = args.logging_step
 
@@ -1280,6 +1280,7 @@ def main():
     accelerator.register_for_checkpointing(opt)
     accelerator.register_for_checkpointing(scheduler)
     checkpoint_id = 0
+    accelerator.wait_for_everyone()
     accelerator.init_trackers(
         project_name="fewshot_llama",
         config={"num_examples": args.num_examples,
@@ -1298,7 +1299,7 @@ def main():
 
     global_step = 0
 
-    accelerator.wait_for_everyone()
+
     if args.resume_from_checkpoint is not None:
         matches = re.search(r'checkpoint_(\d+)_(\d+)', args.resume_from_checkpoint)
         num1, num2 = matches.groups()
