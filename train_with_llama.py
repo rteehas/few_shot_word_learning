@@ -1062,13 +1062,15 @@ def main():
     # tokenizerTask.add_eos_token = True
 
     tokenizerTask.pad_token = tokenizerTask.unk_token
-    word_dict = load_from_disk(args.word_path)
+    if args.word_path != '':
+        word_dict = load_from_disk(args.word_path)
 
-    words = word_dict['train']['words'] + word_dict['test']['words']
-    nonces = list(map(lambda w: "<{}_new>".format(w.lower()), words))
-    nonces = list(set(nonces))
-    train_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['train']['words']))))
-    test_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['test']['words']))))
+        words = word_dict['train']['words'] + word_dict['test']['words']
+        nonces = list(map(lambda w: "<{}_new>".format(w.lower()), words))
+        nonces = list(set(nonces))
+    else:
+        nonces = ["<nonce>"]
+        
     # print("Nonces = {}".format(nonces))
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
