@@ -1209,13 +1209,21 @@ def main():
 
     if args.negative_examples:
         negative_dataset = load_from_disk(args.negative_data_path)
-        negative_train_tokenized = negative_dataset['train'].map(tokenize,
+        if negative_dataset['train'].num_rows > dataset['train'].num_rows:
+            negative_train = negative_dataset['train'].select(list(range(dataset['train'].num_rows)))
+        else:
+            negative_train = negative_dataset['train']
+        if negative_dataset['test'].num_rows > dataset['test'].num_rows:
+            negative_test = negative_dataset['test'].select(list(range(dataset['test'].num_rows)))
+        else:
+            negative_test = negative_dataset['test']
+        negative_train_tokenized = negative_train.map(tokenize,
                                                                  remove_columns=negative_dataset[
                                                                      'train'].column_names,
                                                                  num_proc=2).with_format("torch")
         # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
-        negative_test_tokenized = negative_dataset['test'].map(tokenize,
+        negative_test_tokenized = negative_test.map(tokenize,
                                                                remove_columns=negative_dataset[
                                                                    'train'].column_names, num_proc=2).with_format(
             "torch")
