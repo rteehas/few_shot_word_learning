@@ -15,7 +15,7 @@ import time
 
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+    os.environ['MASTER_PORT'] = '26689'
 
     # Initialize the process group
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
@@ -132,10 +132,13 @@ def main(rank, world_size):
         ex['scores'] = [score.item() for score in scores]
         return ex
     ctr = 0
+    print("before setup")
     setup(rank, world_size)
     torch.set_grad_enabled(False)
-    tokenizer = AutoTokenizer.from_pretrained("distillroberta-base", use_fast=True)
-    model = RobertaForMaskedLM.from_pretrained("distillroberta-base", low_cpu_mem_usage=True)
+    print("after setup")
+    tokenizer = AutoTokenizer.from_pretrained("distilroberta-base", use_fast=True)
+    model = RobertaForMaskedLM.from_pretrained("distilroberta-base", low_cpu_mem_usage=True)
+    print("rank")
     ddp_model = DDP(model, device_ids=[rank])
     data = load_from_disk("pile_medium_regression_v3")
     datasets.disable_caching()
