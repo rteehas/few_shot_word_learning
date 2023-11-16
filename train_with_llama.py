@@ -1062,13 +1062,15 @@ def main():
     # tokenizerTask.add_eos_token = True
 
     tokenizerTask.pad_token = tokenizerTask.unk_token
-    word_dict = load_from_disk(args.word_path)
+    if args.word_path != '':
+        word_dict = load_from_disk(args.word_path)
 
-    words = word_dict['train']['words'] + word_dict['test']['words']
-    nonces = list(map(lambda w: "<{}_new>".format(w.lower()), words))
-    nonces = list(set(nonces))
-    train_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['train']['words']))))
-    test_nonces = list(set(list(map(lambda w: "<{}_new>".format(w.lower()), word_dict['test']['words']))))
+        words = word_dict['train']['words'] + word_dict['test']['words']
+        nonces = list(map(lambda w: "<{}_new>".format(w.lower()), words))
+        nonces = list(set(nonces))
+    else:
+        nonces = ["<nonce>"]
+        
     # print("Nonces = {}".format(nonces))
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
@@ -1209,13 +1211,21 @@ def main():
 
     if args.negative_examples:
         negative_dataset = load_from_disk(args.negative_data_path)
-        negative_train_tokenized = negative_dataset['train'].map(tokenize,
+        if negative_dataset['train'].num_rows > dataset['train'].num_rows:
+            negative_train = negative_dataset['train'].select(list(range(dataset['train'].num_rows)))
+        else:
+            negative_train = negative_dataset['train']
+        if negative_dataset['test'].num_rows > dataset['test'].num_rows:
+            negative_test = negative_dataset['test'].select(list(range(dataset['test'].num_rows)))
+        else:
+            negative_test = negative_dataset['test']
+        negative_train_tokenized = negative_train.map(tokenize,
                                                                  remove_columns=negative_dataset[
                                                                      'train'].column_names,
                                                                  num_proc=2).with_format("torch")
         # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
 
-        negative_test_tokenized = negative_dataset['test'].map(tokenize,
+        negative_test_tokenized = negative_test.map(tokenize,
                                                                remove_columns=negative_dataset[
                                                                    'train'].column_names, num_proc=2).with_format(
             "torch")
