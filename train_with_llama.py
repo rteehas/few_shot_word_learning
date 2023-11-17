@@ -1079,7 +1079,7 @@ def main():
     print("CPU Percent", psutil.cpu_percent())
     token_mapping = {v: k for k, v in
                      zip(tokenizerTask.convert_tokens_to_ids(nonces), tokenizerMLM.convert_tokens_to_ids(nonces))}
-
+    print(token_mapping)
     # data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizerTask, return_tensors="pt", padding=True)
 
     # ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
