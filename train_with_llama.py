@@ -1341,6 +1341,7 @@ def main():
             active_negative_train_dl = negative_train_dl
 
     best_test_loss = 10000000
+    best_new_token_loss = 10000000
     print("training")
     for epoch in range(epochs):
         print("epoch", epoch)
@@ -1594,9 +1595,17 @@ def main():
 
                     accelerator.log(test_log)
 
-                    if total_test_loss < best_test_loss:
-                        best_test_loss = total_test_loss
+                    if avg_test < best_test_loss or avg_new_tok < best_new_token_loss:
+                        best_test_loss = avg_test
+                        best_new_token_loss = avg_new_tok
                         save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
+                        num_copies = 0
+                        tmp_save_dir = save_dir
+                        while os.isdir(tmp_save_dir):
+                            num_copies += 1
+                            tmp_save_dir = save_dir + "_{}".format(num_copies)
+
+                        save_dir = tmp_save_dir
                         os.makedirs(save_dir, exist_ok=True)
                         accelerator.wait_for_everyone()
                         accelerator.save_state(save_dir)
