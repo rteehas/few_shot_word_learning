@@ -156,6 +156,25 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
 
     return new_input_ids
 
+@torch.no_grad
+def generate_definition(batch, model, tokenizer):
+    
+    prompts = ["The word \"<nonce>\" is defined as", "The word \"<nonce>\" means"]
+    ctx = batch['contexts']
+    outputs = []
+    for i in range(batch['input_ids'][0]):
+        for prompt in prompts:
+            inputs = tokenizer(prompt, truncation=True, return_tensors='pt')
+            out = generate(model, ctx[i], inputs['input_ids'][i], inputs['attention_mask'], 50)
+            result = {
+                'generated definition': tokenizer.decode(out[0], skip_special_tokens=True, clean_up_tokenization_spaces=True),
+                'context sentences': [tokenizer.decode(ctx[i][j], 
+                                        skip_special_tokens=True, 
+                                        clean_up_tokenization_spaces=True) for j in range(ctx[i].shape[0])]
+                'prompt': prompt,
+            }
+            outputs.append(result)
+    return outputs
 
 class Memory():
     def __init__(self):
@@ -1507,7 +1526,8 @@ def main():
                 # buffer.store_task(batch)
                 # buffer.cleanup()
 
-            if global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0:
+            if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
+                    or i % len(active_train_dl) ==0:
                 opt.zero_grad(set_to_none=True)
                 model.eval()
                 with torch.no_grad():
@@ -1601,7 +1621,7 @@ def main():
                         save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
                         num_copies = 0
                         tmp_save_dir = save_dir
-                        while os.isdir(tmp_save_dir):
+                        while os.path.isdir(tmp_save_dir):
                             num_copies += 1
                             tmp_save_dir = save_dir + "_v{}".format(num_copies)
 
