@@ -1603,7 +1603,7 @@ def main():
                         tmp_save_dir = save_dir
                         while os.isdir(tmp_save_dir):
                             num_copies += 1
-                            tmp_save_dir = save_dir + "_{}".format(num_copies)
+                            tmp_save_dir = save_dir + "_v{}".format(num_copies)
 
                         save_dir = tmp_save_dir
                         os.makedirs(save_dir, exist_ok=True)
