@@ -7,6 +7,7 @@ import json
 from argparse import ArgumentParser
 import numpy as np
 import itertools
+import re
 
 def get_arguments():
     parser = ArgumentParser()
@@ -15,6 +16,62 @@ def get_arguments():
     parser.add_argument("--defs", type=str, default='')
     parser.add_argument("--sent_version", type=str)
     return parser
+
+def create_checkpoint_directories(args):
+    if args.negative_examples and args.regression_objective:
+        neg_string = "with_negatives_and_regression"
+    elif args.negative_examples:
+        neg_string = "with_negatives"
+    elif args.regression_objective:
+        neg_string = "with_regression"
+    else:
+        neg_string = "without_negatives_or_regression"
+
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/{}_layers/last_{}/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
+    path = path.format(args.num_layers, args.num_feature_layers, args.batch_size * args.gradient_accumulation_steps, args.memory,
+                       args.num_examples, args.lr, args.weight_decay, neg_string)
+
+    if args.negative_examples and args.regression_objective:
+        alpha_str = "distillation_weight_{}_temp_{}/".format(args.regression_alpha, args.distillation_temp)
+        hidden_str = "output_embedding_cosine/"
+
+        path = path + alpha_str + hidden_str
+
+    suffix = "checkpoints/"
+    if os.path.isdir(path + suffix):
+        suffix = "checkpoints2/"
+    path = path + suffix
+    os.makedirs(path, exist_ok=True)
+
+    return path
+
+
+def extract_arguments_from_path(path):
+    args = {}
+
+    # Adjusting the regex pattern to include num_feature_layers
+    regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/(\d+)_layers/last_(\d+)/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
+    match = re.search(regex, path)
+
+    if match:
+        args['num_layers'] = int(match.group(1))
+        args['num_feature_layers'] = int(match.group(2))
+        args['batch_size'] = int(match.group(3))  # Adjust this if you need to divide by gradient_accumulation_steps
+        args['memory'] = match.group(4)
+        args['num_examples'] = int(match.group(5))
+        args['lr'] = float(match.group(6))
+        args['weight_decay'] = float(match.group(7))
+
+        neg_string = match.group(8)
+        if neg_string == "with_negatives":
+            args['negative_examples'] = True
+            args['regression_objective'] = False
+        else:
+            # Assuming other cases are not relevant as they are not represented in the example path
+            args['negative_examples'] = False
+            args['regression_objective'] = False
+
+    return args
 
 def main():
     args = get_arguments().parse_args()
@@ -49,15 +106,17 @@ def main():
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
-    tokenizerMLM.add_tokens(nonces)
-    tokenizerTask.add_tokens(nonces)
+    # tokenizerMLM.add_tokens(nonces)
+    # tokenizerTask.add_tokens(nonces)
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
     firstLM.resize_token_embeddings(len(tokenizerMLM))
     secondLM.resize_token_embeddings(len(tokenizerTask))
-    if "mean" in path:
+
+    config_args = extract_arguments_from_path(args.path)
+    if config_args['memory'] == "mean":
         memory_config = AggregatorConfig()
-    elif "cls" in path:
+    elif config_args['memory'] == 'cls':
         memory_config = TransformerCLSConfig(
             input_size=firstLM.config.hidden_size,
             nhead=firstLM.config.num_attention_heads,
@@ -65,19 +124,22 @@ def main():
         )
 
     mask_token_id = tokenizerMLM.mask_token_id
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, 1, None).to(device)
-    model.load_state_dict(torch.load(path + "/pytorch_model.bin"))
+    layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, config_args['num_layers'], None).to(device)
+    model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
     model.device = device
+    model.firstLM.eval()
+    model.secondLM.eval()
 
-    new_nonces = list(map(lambda w: "<{}_new>".format(w.lower()), answers))
-    new_nonces = list(set(new_nonces))
-    tokenizerMLM.add_tokens(new_nonces)
-    tokenizerTask.add_tokens(new_nonces)
-    new_token_num = len(list(tokenizerTask.get_added_vocab().keys())) - len(nonces)
+    # new_nonces = list(map(lambda w: "<{}_new>".format(w.lower()), answers))
+    # new_nonces = list(set(new_nonces))
+    # tokenizerMLM.add_tokens(new_nonces)
+    # tokenizerTask.add_tokens(new_nonces)
+    # new_token_num = len(list(tokenizerTask.get_added_vocab().keys())) - len(nonces)
 
-    model.firstLM.resize_token_embeddings(len(tokenizerMLM))
-    model.secondLM.resize_token_embeddings(len(tokenizerTask))
-    model.add_new_tokens(new_token_num)
+    # model.firstLM.resize_token_embeddings(len(tokenizerMLM))
+    # model.secondLM.resize_token_embeddings(len(tokenizerTask))
+    # model.add_new_tokens(new_token_num)
     model.eval()
     with torch.no_grad():
         scores = {}
