@@ -170,7 +170,7 @@ def generate_definition(batch, model, tokenizer):
                 'generated definition': tokenizer.decode(out[0], skip_special_tokens=True, clean_up_tokenization_spaces=True),
                 'context sentences': [tokenizer.decode(ctx[i][j], 
                                         skip_special_tokens=True, 
-                                        clean_up_tokenization_spaces=True) for j in range(ctx[i].shape[0])]
+                                        clean_up_tokenization_spaces=True) for j in range(ctx[i].shape[0])],
                 'prompt': prompt,
             }
             outputs.append(result)
