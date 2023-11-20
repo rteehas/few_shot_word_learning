@@ -863,6 +863,7 @@ def get_arguments():
     parser.add_argument("--num_eval_steps", type=int, default=1000)
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
     parser.add_argument("--single_sentence", action="store_true")
+    parser.add_argument("--num_feature_layers", type=int, default=1)
     return parser
 
 
@@ -876,8 +877,8 @@ def create_checkpoint_directories(args):
     else:
         neg_string = "without_negatives_or_regression"
 
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/{}_layers/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
-    path = path.format(args.num_layers, args.batch_size * args.gradient_accumulation_steps, args.memory,
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/{}_layers/last_{}/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
+    path = path.format(args.num_layers, args.num_feature_layers, args.batch_size * args.gradient_accumulation_steps, args.memory,
                        args.num_examples, args.lr, args.weight_decay, neg_string)
 
     if args.negative_examples and args.regression_objective:
@@ -1147,7 +1148,8 @@ def main():
 
     print("init model")
     accelerator.wait_for_everyone()
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), [-1], mask_token_id, memory_config, args.num_layers,
+    layers = [-1 * (x + 1) for x in range(args.num_feature_layers)]
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, args.num_layers,
                                   args.distillation_temp).to(accelerator.device)
     # model = torch.compile(model, dynamic=True)
     model.emb_gen = accelerator.prepare(model.emb_gen)
