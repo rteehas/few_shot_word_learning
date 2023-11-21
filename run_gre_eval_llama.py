@@ -62,14 +62,14 @@ def extract_arguments_from_path(path):
         args['lr'] = float(match.group(5))
         args['weight_decay'] = float(match.group(6))
 
-        neg_string = match.group(8)
-        if neg_string == "with_negatives":
-            args['negative_examples'] = True
-            args['regression_objective'] = False
-        else:
-            # Assuming other cases are not relevant as they are not represented in the example path
-            args['negative_examples'] = False
-            args['regression_objective'] = False
+        # neg_string = match.group(8)
+        # if neg_string == "with_negatives":
+        #     args['negative_examples'] = True
+        #     args['regression_objective'] = False
+        # else:
+        #     # Assuming other cases are not relevant as they are not represented in the example path
+        #     args['negative_examples'] = False
+        #     args['regression_objective'] = False
 
     return args
 
