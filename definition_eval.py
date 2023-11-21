@@ -4,7 +4,7 @@ from torch.optim import adamw
 from train_with_llama import *
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
     get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig
-
+from copy import deepcopy
 
 device = "cuda"
 
@@ -110,19 +110,26 @@ def run_baseline(def_task, lr):
     fname_format = "definition_task_outputs/baseline_generations_lr_{}"
     print(lr)
     all_outputs = []
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True)
+
+
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                   legacy=True,
+                                                   use_fast=False)
+    tokenizerTask.pad_token = tokenizerTask.unk_token
+    tokenizerTask.add_tokens(["<nonce>"])
+    secondLM.resize_token_embeddings(len(tokenizerTask))
+    orig_input_embeds = deepcopy(secondLM.get_input_embeddings())
+    orig_output_embeds = deepcopy(secondLM.get_output_embeddings())
     for k in range(1,4):
         print("k", k)
         for ex in def_task:
-            tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                           legacy=True,
-                                                           use_fast=False)
-            secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                        low_cpu_mem_usage=True).to(device)
-            tokenizerTask.pad_token = tokenizerTask.unk_token
-            tokenizerTask.add_tokens(["<nonce>"])
-            secondLM.resize_token_embeddings(len(tokenizerTask))
+
             step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
 
+            secondLM.set_input_embeddings(orig_input_embeds)
+            secondLM.set_output_embeddings(orig_output_embeds)
             all_outputs += step_outputs
 
     save_dir = fname_format.format(lr)
