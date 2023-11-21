@@ -50,26 +50,48 @@ def extract_arguments_from_path(path):
     args = {}
 
     # Adjusting the regex pattern to include num_feature_layers
-    regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/(\d+)_layers/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
-    match = re.search(regex, path)
+    if "last" in path:
+        regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/(\d+)_layers/last_(\d+)/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
+        match = re.search(regex, path)
 
-    if match:
-        args['num_layers'] = int(match.group(1))
-        # args['num_feature_layers'] = int(match.group(2))
-        args['batch_size'] = int(match.group(2))  # Adjust this if you need to divide by gradient_accumulation_steps
-        args['memory'] = match.group(3)
-        args['num_examples'] = int(match.group(4))
-        args['lr'] = float(match.group(5))
-        args['weight_decay'] = float(match.group(6))
+        if match:
+            args['num_layers'] = int(match.group(1))
+            args['num_feature_layers'] = int(match.group(2))
+            args['batch_size'] = int(match.group(2))  # Adjust this if you need to divide by gradient_accumulation_steps
+            args['memory'] = match.group(4)
+            args['num_examples'] = int(match.group(5))
+            args['lr'] = float(match.group(6))
+            args['weight_decay'] = float(match.group(7))
 
-        # neg_string = match.group(8)
-        # if neg_string == "with_negatives":
-        #     args['negative_examples'] = True
-        #     args['regression_objective'] = False
-        # else:
-        #     # Assuming other cases are not relevant as they are not represented in the example path
-        #     args['negative_examples'] = False
-        #     args['regression_objective'] = False
+            # neg_string = match.group(8)
+            # if neg_string == "with_negatives":
+            #     args['negative_examples'] = True
+            #     args['regression_objective'] = False
+            # else:
+            #     # Assuming other cases are not relevant as they are not represented in the example path
+            #     args['negative_examples'] = False
+            #     args['regression_objective'] = False
+    else:
+        regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/(\d+)_layers/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
+        match = re.search(regex, path)
+
+        if match:
+            args['num_layers'] = int(match.group(1))
+            # args['num_feature_layers'] = int(match.group(2))
+            args['batch_size'] = int(match.group(2))  # Adjust this if you need to divide by gradient_accumulation_steps
+            args['memory'] = match.group(3)
+            args['num_examples'] = int(match.group(4))
+            args['lr'] = float(match.group(5))
+            args['weight_decay'] = float(match.group(6))
+
+            # neg_string = match.group(8)
+            # if neg_string == "with_negatives":
+            #     args['negative_examples'] = True
+            #     args['regression_objective'] = False
+            # else:
+            #     # Assuming other cases are not relevant as they are not represented in the example path
+            #     args['negative_examples'] = False
+            #     args['regression_objective'] = False
 
     return args
 
@@ -125,8 +147,10 @@ def main():
         )
 
     mask_token_id = tokenizerMLM.mask_token_id
-    # layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
-    layers=[-1]
+    if 'num_feature_layers' in config_args:
+        layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
+    else:
+        layers=[-1]
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, config_args['num_layers'], None).to(device)
     model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
     model.device = device
