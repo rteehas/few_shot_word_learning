@@ -117,6 +117,7 @@ def run_baseline(def_task):
                                                                use_fast=False)
                 secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                             low_cpu_mem_usage=True).to(device)
+                tokenizerTask.pad_token = tokenizerTask.unk_token
                 tokenizerTask.add_tokens(["<nonce>"])
                 secondLM.resize_token_embeddings(len(tokenizerTask))
                 step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
