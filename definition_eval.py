@@ -6,12 +6,14 @@ from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, Ll
     get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig
 from copy import deepcopy
 from datasets import Dataset
+from run_gre_eval_llama import extract_arguments_from_path
 
 device = "cuda"
 
 definition_prompt = "Given the following examples: {}, give the definition of a new word \"{}\".\n Definition:"
 
-def generate_definitions_emb_gen(model, ex, k, with_prompt):
+@torch.no_grad
+def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt):
     examples = np.random.choice(ex['replaced_examples'], size=k, replace=False)
     context = tokenizerMLM(examples.tolist(), truncation=True, padding='longest', return_tensors='pt')
     nonce = "<{}_new>".format(ex['word'].lower())
@@ -26,7 +28,9 @@ def generate_definitions_emb_gen(model, ex, k, with_prompt):
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     new_ex = {'definition': ex['definition'],
            'word':ex['word'],
-           'generated definition': generated_def}
+           'generated definition': generated_def,
+            'examples': examples.tolist(),
+            'prompt': prompt}
     return new_ex
 
 @torch.no_grad
@@ -142,12 +146,72 @@ def run_baseline(def_task, lr):
     Dataset.from_dict(data_dict).save_to_disk(save_dir)
 
 
-def run_emb_gen(def_task, args):
-    pass
+def run_emb_gen(def_task, path):
+    config_args = extract_arguments_from_path(args.path)
+    fname_format = "definition_task_outputs/emb_gen_generations"
+    tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
+    tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
+    nonces = list(tokenizerTask.get_added_vocab().keys())
+    # tokenizerMLM.add_tokens(nonces)
+    # tokenizerTask.add_tokens(nonces)
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+    firstLM.resize_token_embeddings(len(tokenizerMLM))
+    secondLM.resize_token_embeddings(len(tokenizerTask))
+
+    config_args = extract_arguments_from_path(args.path)
+    print(config_args)
+    if config_args['memory'] == "mean":
+        memory_config = AggregatorConfig()
+    elif config_args['memory'] == 'cls':
+        memory_config = TransformerCLSConfig(
+            input_size=firstLM.config.hidden_size,
+            nhead=firstLM.config.num_attention_heads,
+            num_layers=1
+        )
+
+    mask_token_id = tokenizerMLM.mask_token_id
+    if 'num_feature_layers' in config_args:
+        layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
+    else:
+        layers=[-1]
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, config_args['num_layers'], None).to(device)
+    model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
+    model.device = device
+    model.firstLM.eval()
+    model.secondLM.eval()
+
+    # new_nonces = list(map(lambda w: "<{}_new>".format(w.lower()), answers))
+    # new_nonces = list(set(new_nonces))
+    # tokenizerMLM.add_tokens(new_nonces)
+    # tokenizerTask.add_tokens(new_nonces)
+    # new_token_num = len(list(tokenizerTask.get_added_vocab().keys())) - len(nonces)
+
+    # model.firstLM.resize_token_embeddings(len(tokenizerMLM))
+    # model.secondLM.resize_token_embeddings(len(tokenizerTask))
+    # model.add_new_tokens(new_token_num)
+    model.eval()
+    all_outputs = []
+    for k in range(1,4):
+        for ex in def_task:
+            step_output_with_prompt = generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt=True)
+            step_output_without_prompt = generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt=False)
+            all_outputs.append(step_output_with_prompt)
+            all_outputs.append(step_output_without_prompt)
+
+    # save_dir = fname_format.format(lr)
+    keys = all_outputs[0].keys()
+    data_dict = {}
+    for key in keys:
+        data_dict[key] = [output_ex[key] for output_ex in all_outputs]
+    print("Saving...")
+    Dataset.from_dict(data_dict).save_to_disk(fname_format)
+    return all_outputs
 
 def get_arguments():
     parser = ArgumentParser()
     parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--path", type=str)
     return parser
 
 
