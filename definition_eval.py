@@ -146,7 +146,7 @@ def run_emb_gen(def_task, args):
 
 def get_arguments():
     parser = ArgumentParser()
-    parser.add_argument("--lr", type=float)
+    parser.add_argument("--lr", type=float, default=1e-3)
     return parser
 
 
