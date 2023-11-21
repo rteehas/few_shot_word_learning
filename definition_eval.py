@@ -119,7 +119,7 @@ def run_baseline(def_task):
                                                             low_cpu_mem_usage=True).to(device)
                 tokenizerTask.add_tokens(["<nonce>"])
                 secondLM.resize_token_embeddings(len(tokenizerTask))
-                step_outputs = generate_definitions_examples(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
+                step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
 
                 all_outputs += step_outputs
 
