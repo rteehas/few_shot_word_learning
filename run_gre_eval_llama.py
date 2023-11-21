@@ -50,12 +50,12 @@ def extract_arguments_from_path(path):
     args = {}
 
     # Adjusting the regex pattern to include num_feature_layers
-    regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/(\d+)_layers/last_(\d+)/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
+    regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/(\d+)_layers(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
     match = re.search(regex, path)
 
     if match:
         args['num_layers'] = int(match.group(1))
-        args['num_feature_layers'] = int(match.group(2))
+        # args['num_feature_layers'] = int(match.group(2))
         args['batch_size'] = int(match.group(3))  # Adjust this if you need to divide by gradient_accumulation_steps
         args['memory'] = match.group(4)
         args['num_examples'] = int(match.group(5))
@@ -124,7 +124,8 @@ def main():
         )
 
     mask_token_id = tokenizerMLM.mask_token_id
-    layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
+    # layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
+    layers=[-1]
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, config_args['num_layers'], None).to(device)
     model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
     model.device = device
