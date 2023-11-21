@@ -5,6 +5,7 @@ from train_with_llama import *
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
     get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig
 from copy import deepcopy
+from datasets import Dataset
 
 device = "cuda"
 
