@@ -151,7 +151,7 @@ def get_arguments():
 
 
 if __name__ == "__main__":
-    args = get_arguments()
+    args = get_arguments().parse_args()
     def_task = load_from_disk("initial_wordnet_def_task")
     def_task = def_task.map(replace_for_llama_baseline)
     run_baseline(def_task, args.lr)
