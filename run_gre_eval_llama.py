@@ -56,11 +56,11 @@ def extract_arguments_from_path(path):
     if match:
         args['num_layers'] = int(match.group(1))
         # args['num_feature_layers'] = int(match.group(2))
-        args['batch_size'] = int(match.group(3))  # Adjust this if you need to divide by gradient_accumulation_steps
-        args['memory'] = match.group(4)
-        args['num_examples'] = int(match.group(5))
-        args['lr'] = float(match.group(6))
-        args['weight_decay'] = float(match.group(7))
+        args['batch_size'] = int(match.group(2))  # Adjust this if you need to divide by gradient_accumulation_steps
+        args['memory'] = match.group(3)
+        args['num_examples'] = int(match.group(4))
+        args['lr'] = float(match.group(5))
+        args['weight_decay'] = float(match.group(6))
 
         neg_string = match.group(8)
         if neg_string == "with_negatives":
