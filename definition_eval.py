@@ -105,41 +105,49 @@ def gradient_descent_tuning(model, tokenizerTask, ex, k, num_steps, lr):
 
     return all_step_outputs
 
-def run_baseline(def_task):
-    max_num_steps = 8
+def run_baseline(def_task, lr):
+    max_num_steps = 5
     fname_format = "definition_task_outputs/baseline_generations_lr_{}"
-    for lr in [3e-4, 1e-3, 3e-3]:
-        all_outputs = []
-        for k in range(1,4):
-            for ex in def_task:
-                tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                               legacy=True,
-                                                               use_fast=False)
-                secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                            low_cpu_mem_usage=True).to(device)
-                tokenizerTask.pad_token = tokenizerTask.unk_token
-                tokenizerTask.add_tokens(["<nonce>"])
-                secondLM.resize_token_embeddings(len(tokenizerTask))
-                step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
+    print(lr)
+    all_outputs = []
+    for k in range(1,4):
+        print("k", k)
+        for ex in def_task:
+            tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                           legacy=True,
+                                                           use_fast=False)
+            secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                        low_cpu_mem_usage=True).to(device)
+            tokenizerTask.pad_token = tokenizerTask.unk_token
+            tokenizerTask.add_tokens(["<nonce>"])
+            secondLM.resize_token_embeddings(len(tokenizerTask))
+            step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
 
-                all_outputs += step_outputs
+            all_outputs += step_outputs
 
-        save_dir = fname_format.format(lr)
-        keys = all_outputs[0].keys()
-        data_dict = {}
-        for key in keys:
-            data_dict[key] = [output_ex[key] for output_ex in all_outputs]
-
-        Dataset.from_dict(data_dict).save_to_disk(fname_format)
+    save_dir = fname_format.format(lr)
+    keys = all_outputs[0].keys()
+    data_dict = {}
+    for key in keys:
+        data_dict[key] = [output_ex[key] for output_ex in all_outputs]
+    print("Saving...")
+    Dataset.from_dict(data_dict).save_to_disk(save_dir)
 
 
 def run_emb_gen(def_task, args):
     pass
 
+def get_arguments():
+    parser = ArgumentParser()
+    parser.add_argument("--lr", type=float)
+    return parser
+
+
 if __name__ == "__main__":
+    args = get_arguments()
     def_task = load_from_disk("initial_wordnet_def_task")
     def_task = def_task.map(replace_for_llama_baseline)
-    run_baseline(def_task)
+    run_baseline(def_task, args.lr)
 
 
 
