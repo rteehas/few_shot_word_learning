@@ -114,6 +114,7 @@ def main():
     secondLM.resize_token_embeddings(len(tokenizerTask))
 
     config_args = extract_arguments_from_path(args.path)
+    print(config_args)
     if config_args['memory'] == "mean":
         memory_config = AggregatorConfig()
     elif config_args['memory'] == 'cls':
