@@ -1097,8 +1097,8 @@ def main():
     mask_token_id = tokenizerMLM.mask_token_id
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     print("CPU Percent", psutil.cpu_percent())
-    token_mapping = {v: k for k, v in
-                     zip(tokenizerTask.convert_tokens_to_ids(nonces), tokenizerMLM.convert_tokens_to_ids(nonces))}
+    # token_mapping = {v: k for k, v in
+    #                  zip(tokenizerTask.convert_tokens_to_ids(nonces), tokenizerMLM.convert_tokens_to_ids(nonces))}
     print(token_mapping)
     # data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizerTask, return_tensors="pt", padding=True)
 
@@ -1120,8 +1120,8 @@ def main():
     # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
     # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
 
-    firstLM.resize_token_embeddings(len(tokenizerMLM))
-    secondLM.resize_token_embeddings(len(tokenizerTask))  # pad for speed
+    # firstLM.resize_token_embeddings(len(tokenizerMLM))
+    # secondLM.resize_token_embeddings(len(tokenizerTask))  # pad for speed
     firstLM.eval()
     secondLM.eval()
     print("init memory")
