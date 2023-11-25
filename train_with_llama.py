@@ -34,7 +34,7 @@ import psutil
 from modules.aggregators import TransformerSummarizer
 import numpy as np
 import random
-
+from accelerate.utils import DummyOptim, DummyScheduler
 # os.environ["TORCH_CPP_LOG_LEVEL"]="INFO"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 
@@ -1156,7 +1156,7 @@ def main():
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, args.num_layers,
                                   args.distillation_temp).to(accelerator.device)
     # model = torch.compile(model, dynamic=True)
-    model.emb_gen = accelerator.prepare(model.emb_gen)
+    # model.emb_gen = accelerator.prepare(model.emb_gen)
     # model.module.firstLM = torch.compile(model.module.firstLM)
     # model.module.secondLM = torch.compile(model.module.secondLM)
     print("initialized")
@@ -1182,6 +1182,8 @@ def main():
             "weight_decay": 0.0,
         },
     ]
+
+
     print("dataset")
     # with accelerator.main_process_first():
     dataset = load_from_disk(args.data_path)
@@ -1276,14 +1278,33 @@ def main():
 
     eval_ind = args.logging_step
 
-    opt = AdamW(optimizer_grouped_parameters,
-                eps=epsilon,
-                lr=lr,
-                weight_decay=args.weight_decay
-                )
-
+    # opt = AdamW(optimizer_grouped_parameters,
+    #             eps=epsilon,
+    #             lr=lr,
+    #             weight_decay=args.weight_decay
+    #             )
     warmup_steps = int(args.epochs * (len(train_dl) / args.gradient_accumulation_steps) * 0.03)
-    scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
+    optimizer_cls = (
+        torch.optim.AdamW
+        if accelerator.state.deepspeed_plugin is None
+           or "optimizer" not in accelerator.state.deepspeed_plugin.deepspeed_config
+        else DummyOptim
+    )
+    opt = optimizer_cls(optimizer_grouped_parameters, lr=lr,
+                weight_decay=args.weight_decay)
+
+    # Creates Dummy Scheduler if `scheduler` was spcified in the config file else creates `args.lr_scheduler_type` Scheduler
+    if (
+            accelerator.state.deepspeed_plugin is None
+            or "scheduler" not in accelerator.state.deepspeed_plugin.deepspeed_config
+    ):
+        scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
+    else:
+        scheduler = DummyScheduler(
+            opt, total_num_steps=args.epochs * len(train_dl), warmup_num_steps=warmup_steps
+        )
+
+    # scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
     # print("Buffer Nonces = {}".format(buffer.nonces))
     # print("Token Mapping = {}".format(token_mapping))
 
@@ -1305,11 +1326,11 @@ def main():
     print("Total nonces = {}".format(len(nonces)))
     if args.negative_examples:
 
-        opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
+        model, opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
             opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
         )
     else:
-        opt, train_dl, test_dl, scheduler = accelerator.prepare(
+        model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
             opt, train_dl, test_dl, scheduler
         )
     accelerator.register_for_checkpointing(opt)
