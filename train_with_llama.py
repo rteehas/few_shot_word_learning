@@ -35,10 +35,7 @@ from modules.aggregators import TransformerSummarizer
 import numpy as np
 import random
 from accelerate.utils import DummyOptim, DummyScheduler
-<<<<<<< 3ec4251f501f7c904803387c012826b7795840b6
 import deepspeed
-=======
->>>>>>> initial ds commit
 # os.environ["TORCH_CPP_LOG_LEVEL"]="INFO"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 
@@ -277,8 +274,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers, config=self.memory_config)
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
-        # deepspeed.zero.register_external_parameter(self, self.secondLM.get_output_embeddings().weight)
-        # deepspeed.zero.register_external_parameter(self, self.secondLM.get_input_embeddings().weight)
+        deepspeed.zero.register_external_parameter(self, self.secondLM.get_output_embeddings().weight)
+        deepspeed.zero.register_external_parameter(self, self.secondLM.get_input_embeddings().weight)
 
         #self.dropout = nn.Dropout(0.2)
 
