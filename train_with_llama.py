@@ -1358,7 +1358,7 @@ def main():
     if args.negative_examples:
 
         model, opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
-            opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
+            model, opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
         )
     else:
         model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
