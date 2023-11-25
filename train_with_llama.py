@@ -35,7 +35,10 @@ from modules.aggregators import TransformerSummarizer
 import numpy as np
 import random
 from accelerate.utils import DummyOptim, DummyScheduler
+<<<<<<< 3ec4251f501f7c904803387c012826b7795840b6
 import deepspeed
+=======
+>>>>>>> initial ds commit
 # os.environ["TORCH_CPP_LOG_LEVEL"]="INFO"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 
@@ -1358,7 +1361,7 @@ def main():
     if args.negative_examples:
 
         model, opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl = accelerator.prepare(
-            model, opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
+            opt, train_dl, test_dl, scheduler, negative_train_dl, negative_test_dl
         )
     else:
         model, opt, train_dl, test_dl, scheduler = accelerator.prepare(
