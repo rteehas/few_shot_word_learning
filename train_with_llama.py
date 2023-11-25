@@ -276,6 +276,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         #self.dropout = nn.Dropout(0.2)
 
         with torch.no_grad():
+            print(self.secondLM.get_output_embeddings().weight.shape)
             # firstLM_mean_embed = torch.mean(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
             output_mean_embed = torch.mean(
                 self.secondLM.get_output_embeddings().weight.norm(dim=1))
@@ -1117,10 +1118,9 @@ def main():
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     #accelerator.wait_for_everyone()
-    with accelerator.main_process_first():
-        firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True).to(accelerator.device)
-        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                low_cpu_mem_usage=True).to(accelerator.device)
+    #with accelerator.main_process_first():
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base")
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf")
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     print("CPU Percent", psutil.cpu_percent())
     # with init_empty_weights():
