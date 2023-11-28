@@ -119,7 +119,7 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
         new_tok_indices = [v for k,v in tokenizer.get_added_vocab().items()]
         zero_grad_indices = torch.arange(0, len(tokenizer)) != any(new_tok_indices)
         inputs = [tokenizer(sample, truncation=True, padding='longest', return_tensors='pt') for sample in samples]
-        print(inputs[0]['input_ids'])
+        # print(inputs[0]['input_ids'])
         for step in range(max_steps):
             for inp in inputs:
                 model.train()
