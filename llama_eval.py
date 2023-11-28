@@ -111,11 +111,12 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
 
 
 def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
-    sentence_stem = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\n"
-    definition_stem = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\n"
-    sentence_template = "Word: {}\nExamples: {}\n"
-    definition_template = "Word: {}\nDefinition: {}.\nExamples: {}\n"
-    seq_template = "Sentence: {}"
+    # sentence_stem = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\n"
+    # definition_stem = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\n"
+    sentence_template = "Here are some sentences for a new word \"{}\":\n{}"
+    # sentence_template = "Word: {}\nExamples: {}\n"
+    # definition_template = "Word: {}\nDefinition: {}.\nExamples: {}\n"
+    # seq_template = "Sentence: {}"
     nonce_template = "<{}_new>"
 
     base_seqs, labels = prepare_for_top_1_selection(ex)
@@ -152,14 +153,19 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
             if type(w) == str:
                 nonce = nonce_template.format(w.lower())
                 definition = defs[w]
-                formatted_examples_with_definition = [definition_template.format(nonce, definition, ex) for ex in
-                                                      examples]
+                def_s = "The word {} is defined as {}".format(nonce, definition)
+                formatted_examples_with_definition = []
+                for example in examples:
+                    new_example = examples + [def_s]
+                    formatted_examples_with_definition.append(sentence_template.format(nonce, "\n".join(new_example)))
             else:
                 formatted_examples_with_definition = []
                 for i, v in enumerate(w):
                     nonce = nonce_template.format(v.lower())
                     definition = defs[v]
-                    formatted_example = definition_template.format(nonce, definition, examples[i])
+                    def_s = "The word {} is defined as {}".format(nonce, definition)
+                    new_example =  examples[i] + [def_s]
+                    formatted_example = sentence_template.format(nonce, "\n".join(new_example))
                     formatted_examples_with_definition.append(formatted_example)
 
             seq_minus_sentence = definition_stem + "".join(formatted_examples_with_definition)
@@ -175,7 +181,7 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
                     formatted_example = sentence_template.format(nonce, examples[i])
                     formatted_examples.append(formatted_example)
 
-            seq_minus_sentence = sentence_stem + "".join(formatted_examples)
+            seq_minus_sentence = "".join(formatted_examples)
 
         if type(w) == str:
             nonce = nonce_template.format(w.lower())
@@ -185,7 +191,7 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
             new_s = s
             for v in w:
                 new_s = re.sub(r"\b({})\b".format(v), nonce_template.format(v), new_s)
-        seq = seq_minus_sentence + seq_template.format(new_s)
+        seq = seq_minus_sentence + "\n" + new_s
         question_seqs.append(new_s)
         seqs.append(seq)
 
@@ -193,8 +199,9 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
 
 
 def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
-    sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
-    definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
+    # sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
+    sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
+    # definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
 
     base_seqs, labels = prepare_for_top_2_selection(ex)
     answers = ex["ANSWERS"][0]
@@ -204,14 +211,14 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
         nonce = "<{}_new>".format(w.lower())
         samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k)
         samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
+        if with_definition and defs is not None:
+            definition = defs[w]
+            def_s = "The word {} is defined as {}".format(nonce, definition)
+            samples.append(def_s)
         example_string = " \n".join(samples)
 
         new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
-        if with_definition and defs is not None:
-            definition = defs[w]
-            seq = definition_template.format(nonce, definition, example_string, new_s)
-        else:
-            seq = sentence_template.format(nonce, example_string, new_s)
+        seq = sentence_template.format(nonce, example_string + "\n" + new_s)
         seqs.append(seq)
         question_seqs.append(new_s)
 
