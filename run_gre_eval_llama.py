@@ -196,7 +196,7 @@ def eval_baseline(args):
                 step_2_acc = sum(step_2_results) / len(step_2_results)
                 print("Accuracy for step 1 of GD for k= {} is {}".format(k, step_1_acc))
                 print("Accuracy for step 2 of GD for k= {} is {}".format(k, step_2_acc))
-                key = "k = {}, step = {}".format()
+                key = "k = {}, step = {}"
                 step_accs = [step_1_acc, step_2_acc]
                 for idx in range(2):
                     k = key.format(k, idx + 1)
