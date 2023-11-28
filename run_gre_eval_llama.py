@@ -185,6 +185,10 @@ def eval_baseline(args):
             if not args.tuning:
                 acc = sum(outputs) / len(outputs)
                 print("Accuracy for k = {} is {}".format(k, acc))
+                if k in scores:
+                    scores[k].append(acc)
+                else:
+                    scores[k] = [acc]
             else:
                 step_1_results = [o[0] for o in outputs]
                 step_2_results = [o[1] for o in outputs]
@@ -192,11 +196,16 @@ def eval_baseline(args):
                 step_2_acc = sum(step_2_results) / len(step_2_results)
                 print("Accuracy for step 1 of GD for k= {} is {}".format(k, step_1_acc))
                 print("Accuracy for step 2 of GD for k= {} is {}".format(k, step_2_acc))
+                key = "k = {}, step = {}".format()
+                step_accs = [step_1_acc, step_2_acc]
+                for idx in range(2):
+                    k = key.format(k, idx + 1)
+                    if k in scores:
+                        scores[k].append(step_accs[idx])
+                    else:
+                        scores[k] = [step_accs[idx]]
 
-            if k in scores:
-                scores[k].append(acc)
-            else:
-                scores[k] = [acc]
+
 
 
     for value in scores:
