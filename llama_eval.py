@@ -280,7 +280,7 @@ def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=Non
 
     return seqs, labels, question_seqs, final_samples
 
-def prepare_emb_gen_batch(ex, sent_dict, k):
+def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None):
 
     if ex["ANSWER_TYPE"] == "top_1":
         question = ex["QUESTION"]
@@ -312,6 +312,10 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
             samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
             # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
             samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
+            if with_def and defs is not None:
+                definition = defs[w]
+                def_s = "The word {} is defined as {}".format(nonce, definition)
+                samples.append(def_s)
             # print("Samples for {}".format(w), samples)
             # new_samples = []
             # for s in samples:
