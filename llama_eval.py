@@ -143,8 +143,8 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
                     elif ex["ANSWER_TYPE"] == "top_2":
                         outputs.append(evaluate_type_2(probs, labels))
 
-        model.get_input_embeddings().weight = orig_input_embeds
-        model.get_output_embeddings().weight = orig_output_embeds
+        model.get_input_embeddings().weight = torch.nn.Parameter(orig_input_embeds)
+        model.get_output_embeddings().weight = torch.nn.Parameter(orig_output_embeds)
         return outputs
     else:
         with torch.no_grad():
