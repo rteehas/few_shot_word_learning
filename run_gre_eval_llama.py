@@ -18,6 +18,7 @@ def get_arguments():
     parser.add_argument("--sent_version", type=str)
     parser.add_argument("--init_method", type=str, default="random")
     parser.add_argument("--setting", type=str, default="emb_gen")
+    parser.add_argument("--tuning", action="store_true")
     return parser
 
 def create_checkpoint_directories(args):
@@ -178,7 +179,7 @@ def eval_baseline(args):
                             for key in sent_dict:
                                 if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
                                     sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, sent_dict,k, False, None))
+                        outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, sent_dict,k, False, None, args.tuning))
                     except:
                         continue
                 acc = sum(outputs) / len(outputs)
