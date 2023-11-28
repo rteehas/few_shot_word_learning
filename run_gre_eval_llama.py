@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 import numpy as np
 import itertools
 import re
+from init_baseline import *
 
 def get_arguments():
     parser = ArgumentParser()
@@ -15,6 +16,8 @@ def get_arguments():
     parser.add_argument("--sents", type=str, required=True)
     parser.add_argument("--defs", type=str, default='')
     parser.add_argument("--sent_version", type=str)
+    parser.add_argument("--init_method", type=str, default="random")
+    parser.add_argument("--setting", type=str, default="emb_gen")
     return parser
 
 def create_checkpoint_directories(args):
@@ -116,9 +119,9 @@ def eval_baseline(args):
     gre = load_from_disk("processed_kaplan_v0")
     subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
 
-    # answers = subselection['train']['ANSWERS']
-    # answers = list(itertools.chain(*answers))
-    # answers = list(itertools.chain(*answers))
+    answers = subselection['train']['ANSWERS']
+    answers = list(itertools.chain(*answers))
+    answers = list(itertools.chain(*answers))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -146,8 +149,19 @@ def eval_baseline(args):
                                                    use_fast=False)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    tokenizerTask.add_tokens(["<nonce>"])
-    secondLM.resize_token_embeddings(len(tokenizerTask))
+    # tokenizerTask.add_tokens(["<nonce>"])
+    nonces = list(map(lambda w: "<{}_new>".format(w), answers))
+    nonces = list(set(nonces))
+    # secondLM.resize_token_embeddings(len(tokenizerTask))
+    if args.init_method == "random":
+        secondLM, tokenizerTask = default_init(secondLM, tokenizerTask, nonces)
+    elif args.init_method == "mean":
+        secondLM, tokenizerTask = mean_init(secondLM, tokenizerTask, nonces)
+    elif args.init_method == "zero":
+        secondLM, tokenizerTask = zero_init(secondLM, tokenizerTask, nonces)
+    elif args.init_method == "random_mean":
+        secondLM, tokenizerTask = random_mean_init(secondLM, tokenizerTask, nonces)
+
     secondLM.eval()
     with torch.no_grad():
         scores = {}
@@ -184,103 +198,106 @@ def eval_baseline(args):
 
 def main():
     args = get_arguments().parse_args()
-    path = args.path
-    gre = load_from_disk("processed_kaplan_v0")
-    subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
+    if args.setting == "baseline":
+        eval_baseline(args)
+    elif args.setting == "emb_gen":
+        path = args.path
+        gre = load_from_disk("processed_kaplan_v0")
+        subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
 
-    answers = subselection['train']['ANSWERS']
-    answers = list(itertools.chain(*answers))
-    answers = list(itertools.chain(*answers))
+        answers = subselection['train']['ANSWERS']
+        answers = list(itertools.chain(*answers))
+        answers = list(itertools.chain(*answers))
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    with open(args.sents, 'r') as fp:
-        sents = json.load(fp)
+        with open(args.sents, 'r') as fp:
+            sents = json.load(fp)
 
-    if "pile" in args.sents:
-        for key in sents:
-            for i,example in enumerate(sents[key]):
-                split = example.split(".")
-                output = [idx for idx, element in enumerate(split) if
-                          re.search(r"\b({})\b".format(key), element, flags=re.I) is not None]
-                first_index = output[0]
+        if "pile" in args.sents:
+            for key in sents:
+                for i,example in enumerate(sents[key]):
+                    split = example.split(".")
+                    output = [idx for idx, element in enumerate(split) if
+                              re.search(r"\b({})\b".format(key), element, flags=re.I) is not None]
+                    first_index = output[0]
 
-                new_text = ".".join(split[first_index:])
-                sents[key][i] = new_text
+                    new_text = ".".join(split[first_index:])
+                    sents[key][i] = new_text
 
-    if args.sent_version == "answer":
-        with open("gre_examples_gpt4.json", 'r') as fp:
-            auxiliary_sents = json.load(fp)
+        if args.sent_version == "answer":
+            with open("gre_examples_gpt4.json", 'r') as fp:
+                auxiliary_sents = json.load(fp)
 
-    tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
-    tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
-    nonces = list(tokenizerTask.get_added_vocab().keys())
-    # tokenizerMLM.add_tokens(nonces)
-    # tokenizerTask.add_tokens(nonces)
-    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
-    firstLM.resize_token_embeddings(len(tokenizerMLM))
-    secondLM.resize_token_embeddings(len(tokenizerTask))
+        tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
+        tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
+        nonces = list(tokenizerTask.get_added_vocab().keys())
+        # tokenizerMLM.add_tokens(nonces)
+        # tokenizerTask.add_tokens(nonces)
+        firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+        firstLM.resize_token_embeddings(len(tokenizerMLM))
+        secondLM.resize_token_embeddings(len(tokenizerTask))
 
-    config_args = extract_arguments_from_path(args.path)
-    print(config_args)
-    if config_args['memory'] == "mean":
-        memory_config = AggregatorConfig()
-    elif config_args['memory'] == 'cls':
-        memory_config = TransformerCLSConfig(
-            input_size=firstLM.config.hidden_size,
-            nhead=firstLM.config.num_attention_heads,
-            num_layers=1
-        )
+        config_args = extract_arguments_from_path(args.path)
+        print(config_args)
+        if config_args['memory'] == "mean":
+            memory_config = AggregatorConfig()
+        elif config_args['memory'] == 'cls':
+            memory_config = TransformerCLSConfig(
+                input_size=firstLM.config.hidden_size,
+                nhead=firstLM.config.num_attention_heads,
+                num_layers=1
+            )
 
-    mask_token_id = tokenizerMLM.mask_token_id
-    if 'num_feature_layers' in config_args:
-        layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
-    else:
-        layers=[-1]
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, config_args['num_layers'], None).to(device)
-    model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
-    model.device = device
-    model.firstLM.eval()
-    model.secondLM.eval()
+        mask_token_id = tokenizerMLM.mask_token_id
+        if 'num_feature_layers' in config_args:
+            layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
+        else:
+            layers=[-1]
+        model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, config_args['num_layers'], None).to(device)
+        model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
+        model.device = device
+        model.firstLM.eval()
+        model.secondLM.eval()
 
-    # new_nonces = list(map(lambda w: "<{}_new>".format(w.lower()), answers))
-    # new_nonces = list(set(new_nonces))
-    # tokenizerMLM.add_tokens(new_nonces)
-    # tokenizerTask.add_tokens(new_nonces)
-    # new_token_num = len(list(tokenizerTask.get_added_vocab().keys())) - len(nonces)
+        # new_nonces = list(map(lambda w: "<{}_new>".format(w.lower()), answers))
+        # new_nonces = list(set(new_nonces))
+        # tokenizerMLM.add_tokens(new_nonces)
+        # tokenizerTask.add_tokens(new_nonces)
+        # new_token_num = len(list(tokenizerTask.get_added_vocab().keys())) - len(nonces)
 
-    # model.firstLM.resize_token_embeddings(len(tokenizerMLM))
-    # model.secondLM.resize_token_embeddings(len(tokenizerTask))
-    # model.add_new_tokens(new_token_num)
-    model.eval()
-    with torch.no_grad():
-        scores = {}
-        for trial in range(3):
-            for k in range(1, 7):
-                outputs = []
-                for ex in subselection['train']:
-                    try:
-                        if args.sent_version == "question":
-                            sent_dict = sents[ex['QUESTION']]
-                        elif args.sent_version == "answer":
-                            sent_dict = sents
-                            for key in sent_dict:
-                                if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
-                                    sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k))
-                    except:
-                        continue
-                acc = sum(outputs) / len(outputs)
-                print("Accuracy for k = {} is {}".format(k, acc))
-                if k in scores:
-                    scores[k].append(acc)
-                else:
-                    scores[k] = [acc]
+        # model.firstLM.resize_token_embeddings(len(tokenizerMLM))
+        # model.secondLM.resize_token_embeddings(len(tokenizerTask))
+        # model.add_new_tokens(new_token_num)
+        model.eval()
+        with torch.no_grad():
+            scores = {}
+            for trial in range(3):
+                for k in range(1, 7):
+                    outputs = []
+                    for ex in subselection['train']:
+                        try:
+                            if args.sent_version == "question":
+                                sent_dict = sents[ex['QUESTION']]
+                            elif args.sent_version == "answer":
+                                sent_dict = sents
+                                for key in sent_dict:
+                                    if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                                        sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+                            outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k))
+                        except:
+                            continue
+                    acc = sum(outputs) / len(outputs)
+                    print("Accuracy for k = {} is {}".format(k, acc))
+                    if k in scores:
+                        scores[k].append(acc)
+                    else:
+                        scores[k] = [acc]
 
 
-    for value in scores:
-        print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
+        for value in scores:
+            print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
 if __name__ == "__main__":
     main()

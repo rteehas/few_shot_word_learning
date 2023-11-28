@@ -40,3 +40,8 @@ def random_mean_init(model, tokenizer, new_tokens):
             model.get_output_embeddings().weight[idx, :] = MultivariateNormal(output_mean, output_cov).sample()
 
     return model, tokenizer
+
+def default_init(model, tokenizer, new_tokens):
+    tokenizer.add_tokens(new_tokens)
+    model.resize_token_embeddings(len(tokenizer))
+    return model, tokenizer
