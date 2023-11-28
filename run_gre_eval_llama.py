@@ -119,6 +119,14 @@ def eval_baseline(args):
     path = args.path
     gre = load_from_disk("processed_kaplan_v0")
     subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
+    if args.defs != '':
+        with open(args.defs, 'w') as fp:
+            defs = json.load(fp)
+            with_def = True
+            subselection = subselection.filter(partial(filter_gre(defs)))
+    else:
+        defs = None
+        with_def = True
 
     answers = subselection['train']['ANSWERS']
     answers = list(itertools.chain(*answers))
@@ -143,6 +151,7 @@ def eval_baseline(args):
     if args.sent_version == "answer":
         with open("gre_examples_gpt4.json", 'r') as fp:
             auxiliary_sents = json.load(fp)
+
 
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                 low_cpu_mem_usage=True).to(device)
@@ -178,7 +187,7 @@ def eval_baseline(args):
                     for key in sent_dict:
                         if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
                             sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, sent_dict,k, False, None, args.tuning))
+                outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, sent_dict,k, with_def, defs, args.tuning))
                 # except:
                 #
                 #     continue
@@ -249,6 +258,14 @@ def main():
             with open("gre_examples_gpt4.json", 'r') as fp:
                 auxiliary_sents = json.load(fp)
 
+        if args.defs != '':
+            with open(args.defs, 'w') as fp:
+                defs = json.load(fp)
+                with_def = True
+        else:
+            defs=None
+            with_def = True
+
         tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
         tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
         nonces = list(tokenizerTask.get_added_vocab().keys())
@@ -305,7 +322,7 @@ def main():
                                 for key in sent_dict:
                                     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
                                         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                            outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k))
+                            outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k,with_def,defs))
                         except:
                             continue
                     acc = sum(outputs) / len(outputs)
