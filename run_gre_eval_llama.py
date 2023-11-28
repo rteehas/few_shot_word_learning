@@ -171,19 +171,29 @@ def eval_baseline(args):
                 print("k = {}".format(k))
                 outputs = []
                 for ex in subselection['train']:
-                    try:
-                        if args.sent_version == "question":
-                            sent_dict = sents[ex['QUESTION']]
-                        elif args.sent_version == "answer":
-                            sent_dict = sents
-                            for key in sent_dict:
-                                if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
-                                    sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, sent_dict,k, False, None, args.tuning))
-                    except:
-                        continue
-                acc = sum(outputs) / len(outputs)
-                print("Accuracy for k = {} is {}".format(k, acc))
+                    # try:
+                    if args.sent_version == "question":
+                        sent_dict = sents[ex['QUESTION']]
+                    elif args.sent_version == "answer":
+                        sent_dict = sents
+                        for key in sent_dict:
+                            if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                                sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+                    outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, sent_dict,k, False, None, args.tuning))
+                    # except:
+                    #
+                    #     continue
+                if not args.tuning:
+                    acc = sum(outputs) / len(outputs)
+                    print("Accuracy for k = {} is {}".format(k, acc))
+                else:
+                    step_1_results = [o[0] for o in outputs]
+                    step_2_results = [o[1] for o in outputs]
+                    step_1_acc = sum(step_1_results) / len(step_1_results)
+                    step_2_acc = sum(step_2_results) / len(step_2_results)
+                    print("Accuracy for step 1 of GD for k= {} is {}".format(k, step_1_acc))
+                    print("Accuracy for step 2 of GD for k= {} is {}".format(k, step_2_acc))
+
                 if k in scores:
                     scores[k].append(acc)
                 else:
