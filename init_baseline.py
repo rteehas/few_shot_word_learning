@@ -27,8 +27,8 @@ def random_mean_init(model, tokenizer, new_tokens):
     with torch.no_grad():
         input_mean = model.get_input_embeddings().weight.mean(dim=0)
         output_mean = model.get_output_embeddings().weight.mean(dim=0)
-        input_cov = torch.cov(model.get_input_embeddings().weight, dim=0)
-        output_cov = torch.cov(model.get_output_embeddings().weight, dim=0)
+        input_cov = torch.cov(model.get_input_embeddings().weight)
+        output_cov = torch.cov(model.get_output_embeddings().weight)
 
     tokenizer.add_tokens(new_tokens)
     model.resize_token_embeddings(len(tokenizer))
