@@ -12,7 +12,7 @@ from init_baseline import *
 
 def get_arguments():
     parser = ArgumentParser()
-    parser.add_argument("--path", type=str, required=True)
+    parser.add_argument("--path", type=str)
     parser.add_argument("--sents", type=str, required=True)
     parser.add_argument("--defs", type=str, default='')
     parser.add_argument("--sent_version", type=str)
