@@ -38,4 +38,5 @@ def random_mean_init(model, tokenizer, new_tokens):
             idx = tokenizer.convert_tokens_to_ids(tok)
             model.get_input_embeddings().weight[idx, :] = MultivariateNormal(input_mean, input_cov).sample()
             model.get_output_embeddings().weight[idx, :] = MultivariateNormal(output_mean, output_cov).sample()
+
     return model, tokenizer

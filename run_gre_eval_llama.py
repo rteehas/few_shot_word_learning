@@ -95,6 +95,93 @@ def extract_arguments_from_path(path):
 
     return args
 
+def gradient_descent_tuning_gre(model, tokenizer, ex, lr, max_num_steps):
+    new_tok_index = tokenizer.convert_tokens_to_ids("<nonce>")
+    zero_grad_indices = torch.arange(0, len(tokenizer)) != new_tok_index
+    for param in model.parameters():
+        param.requires_grad = False
+    for param in model.get_input_embeddings().parameters():
+        param.requires_grad = True
+    for param in model.get_output_embeddings().parameters():
+        param.requires_grad = True
+
+    opt = AdamW([p for p in model.parameters() if p.requires_grad],
+                lr=lr)
+
+    pass
+
+def eval_baseline(args):
+    args = get_arguments().parse_args()
+    path = args.path
+    gre = load_from_disk("processed_kaplan_v0")
+    subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
+
+    # answers = subselection['train']['ANSWERS']
+    # answers = list(itertools.chain(*answers))
+    # answers = list(itertools.chain(*answers))
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    with open(args.sents, 'r') as fp:
+        sents = json.load(fp)
+
+    if "pile" in args.sents:
+        for key in sents:
+            for i, example in enumerate(sents[key]):
+                split = example.split(".")
+                output = [idx for idx, element in enumerate(split) if
+                          re.search(r"\b({})\b".format(key), element, flags=re.I) is not None]
+                first_index = output[0]
+
+                new_text = ".".join(split[first_index:])
+                sents[key][i] = new_text
+
+    if args.sent_version == "answer":
+        with open("gre_examples_gpt4.json", 'r') as fp:
+            auxiliary_sents = json.load(fp)
+
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True)
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
+                                                   use_fast=False)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    tokenizerTask.add_tokens(["<nonce>"])
+    secondLM.resize_token_embeddings(len(tokenizerTask))
+    secondLM.eval()
+    with torch.no_grad():
+        scores = {}
+        for trial in range(3):
+            for k in range(1, 7):
+                outputs = []
+                for ex in subselection['train']:
+                    try:
+                        if args.sent_version == "question":
+                            sent_dict = sents[ex['QUESTION']]
+                        elif args.sent_version == "answer":
+                            sent_dict = sents
+                            for key in sent_dict:
+                                if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                                    sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+                        outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, sent_dict,k, False, None))
+                    except:
+                        continue
+                acc = sum(outputs) / len(outputs)
+                print("Accuracy for k = {} is {}".format(k, acc))
+                if k in scores:
+                    scores[k].append(acc)
+                else:
+                    scores[k] = [acc]
+
+
+    for value in scores:
+        print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
+
+
+
+
+
+
 def main():
     args = get_arguments().parse_args()
     path = args.path
