@@ -395,8 +395,8 @@ def filter_gre(sents, ex):
 
     return is_valid
 
-def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k):
-    samples, seqs, labels = prepare_emb_gen_batch(ex, sents, k)
+def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=False, defs=None):
+    samples, seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs)
     probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs)
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
