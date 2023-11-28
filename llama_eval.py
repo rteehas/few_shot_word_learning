@@ -1,8 +1,10 @@
+from copy import deepcopy
+
 import torch
 import numpy as np
 import itertools
 import re
-
+from train_with_llama import *
 from torch.nn import CrossEntropyLoss
 
 
@@ -94,20 +96,61 @@ def evaluate_baseline_example(model, tokenizer, ex):
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
 
-def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_definition=False, defs=None):
+def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_definition=False, defs=None, tuning=False, max_steps=2):
     if ex["ANSWER_TYPE"] == "top_1":
         seqs, labels, base_seqs, samples = prepare_type_1_fewshot(ex, sents, k, with_definition, defs)
     elif ex["ANSWER_TYPE"] == "top_2":
         seqs, labels, base_seqs, samples = prepare_for_type_2_fewshot(ex, sents, k, with_definition, defs)
     else:
         raise NotImplementedError
+    tokenizer.pad_token = tokenizer.unk_token
+    orig_input_embeds = model.get_input_embeddings().weight.clone()
+    orig_output_embeds = model.get_output_embeddings().weight.clone()
+    if tuning:
+        outputs = []
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.get_input_embeddings().parameters():
+            param.requires_grad = True
+        for param in model.get_output_embeddings().parameters():
+            param.requires_grad = True
+        opt = AdamW([p for p in model.parameters() if p.requires_grad],
+                    lr=1e-3)
+        new_tok_indices = [v for k,v in tokenizer.get_added_vocab().items()]
+        zero_grad_indices = torch.arange(0, len(tokenizer)) != any(new_tok_indices)
+        inputs = [tokenizer(sample, truncation=True, padding='longest', return_tensors='pt') for sample in samples]
+        for step in range(max_steps):
+            for inp in inputs:
+                model.train()
+                model.zero_grad()
+                opt.zero_grad()
+                output = model(input_ids=inp['input_ids'],
+                               attention_mask=inp['attention_mask'],
+                               labels=inp['input_ids'].clone())
+                loss = output.loss
+                loss.backward()
+                opt.step()
 
-    probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
-    # print(probs)
-    if ex["ANSWER_TYPE"] == "top_1":
-        return evaluate_type_1(probs, labels)
-    elif ex["ANSWER_TYPE"] == "top_2":
-        return evaluate_type_2(probs, labels)
+                model.get_input_embeddings().weight.grad[zero_grad_indices] = 0.
+                model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
+
+                probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
+                # print(probs)
+                if ex["ANSWER_TYPE"] == "top_1":
+                    outputs.append(evaluate_type_1(probs, labels))
+                elif ex["ANSWER_TYPE"] == "top_2":
+                    outputs.append(evaluate_type_2(probs, labels))
+
+        model.get_input_embeddings().weight = orig_input_embeds
+        model.get_output_embeddings().weight = orig_output_embeds
+        return outputs
+    else:
+        probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
+        # print(probs)
+        if ex["ANSWER_TYPE"] == "top_1":
+            return evaluate_type_1(probs, labels)
+        elif ex["ANSWER_TYPE"] == "top_2":
+            return evaluate_type_2(probs, labels)
 
 
 def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
