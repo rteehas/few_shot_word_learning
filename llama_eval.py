@@ -124,9 +124,9 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
                 model.train()
                 model.zero_grad()
                 opt.zero_grad()
-                output = model(input_ids=inp['input_ids'],
-                               attention_mask=inp['attention_mask'],
-                               labels=inp['input_ids'].clone())
+                output = model(input_ids=inp['input_ids'].to(model.device),
+                               attention_mask=inp['attention_mask'].to(model.device),
+                               labels=inp['input_ids'].clone().to(model.device))
                 loss = output.loss
                 loss.backward()
                 opt.step()
