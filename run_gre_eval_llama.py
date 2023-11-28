@@ -144,7 +144,7 @@ def eval_baseline(args):
             auxiliary_sents = json.load(fp)
 
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                low_cpu_mem_usage=True)
+                                                low_cpu_mem_usage=True).to(device)
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
                                                    use_fast=False)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -167,6 +167,7 @@ def eval_baseline(args):
         scores = {}
         for trial in range(3):
             for k in range(1, 7):
+                print("k = {}".format(k))
                 outputs = []
                 for ex in subselection['train']:
                     try:
