@@ -119,6 +119,7 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
         new_tok_indices = [v for k,v in tokenizer.get_added_vocab().items()]
         zero_grad_indices = torch.arange(0, len(tokenizer)) != any(new_tok_indices)
         inputs = [tokenizer(sample, truncation=True, padding='longest', return_tensors='pt') for sample in samples]
+        print(inputs[0]['input_ids'])
         for step in range(max_steps):
             for inp in inputs:
                 model.train()
@@ -133,24 +134,26 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_defin
 
                 model.get_input_embeddings().weight.grad[zero_grad_indices] = 0.
                 model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
-
-                probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
-                # print(probs)
-                if ex["ANSWER_TYPE"] == "top_1":
-                    outputs.append(evaluate_type_1(probs, labels))
-                elif ex["ANSWER_TYPE"] == "top_2":
-                    outputs.append(evaluate_type_2(probs, labels))
+                with torch.no_grad():
+                    model.eval()
+                    probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
+                    # print(probs)
+                    if ex["ANSWER_TYPE"] == "top_1":
+                        outputs.append(evaluate_type_1(probs, labels))
+                    elif ex["ANSWER_TYPE"] == "top_2":
+                        outputs.append(evaluate_type_2(probs, labels))
 
         model.get_input_embeddings().weight = orig_input_embeds
         model.get_output_embeddings().weight = orig_output_embeds
         return outputs
     else:
-        probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
-        # print(probs)
-        if ex["ANSWER_TYPE"] == "top_1":
-            return evaluate_type_1(probs, labels)
-        elif ex["ANSWER_TYPE"] == "top_2":
-            return evaluate_type_2(probs, labels)
+        with torch.no_grad():
+            probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
+            # print(probs)
+            if ex["ANSWER_TYPE"] == "top_1":
+                return evaluate_type_1(probs, labels)
+            elif ex["ANSWER_TYPE"] == "top_2":
+                return evaluate_type_2(probs, labels)
 
 
 def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
