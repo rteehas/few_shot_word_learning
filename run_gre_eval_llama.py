@@ -51,7 +51,7 @@ def extract_arguments_from_path(path):
 
     # Adjusting the regex pattern to include num_feature_layers
     if "last" in path:
-        regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/(\d+)_layers/last_(\d+)/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
+        regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/interleaved/layernorm/(\d+)_layers/last_(\d+)/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
         match = re.search(regex, path)
 
         if match:
@@ -132,8 +132,8 @@ def main():
     # tokenizerTask.add_tokens(nonces)
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
-    firstLM.resize_token_embeddings(len(tokenizerMLM))
-    secondLM.resize_token_embeddings(len(tokenizerTask))
+    #firstLM.resize_token_embeddings(len(tokenizerMLM))
+    #secondLM.resize_token_embeddings(len(tokenizerTask))
 
     config_args = extract_arguments_from_path(args.path)
     print(config_args)
@@ -173,17 +173,17 @@ def main():
             for k in range(1, 7):
                 outputs = []
                 for ex in subselection['train']:
-                    try:
-                        if args.sent_version == "question":
-                            sent_dict = sents[ex['QUESTION']]
-                        elif args.sent_version == "answer":
-                            sent_dict = sents
-                            for key in sent_dict:
-                                if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
-                                    sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k))
-                    except:
-                        continue
+                    
+                    if args.sent_version == "question":
+                        sent_dict = sents[ex['QUESTION']]
+                    elif args.sent_version == "answer":
+                        sent_dict = sents
+                        for key in sent_dict:
+                            if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                                sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+                    outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k))
+                    #except:
+                     #   continue
                 acc = sum(outputs) / len(outputs)
                 print("Accuracy for k = {} is {}".format(k, acc))
                 if k in scores:
