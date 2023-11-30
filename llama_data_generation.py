@@ -60,3 +60,7 @@ def main():
         train_set = Dataset.from_dict(data_dict)
 
         train_set.save_to_disk("{}_llama_generations_{}".format(orig_dset_name, distributed_state.process_index))
+
+
+if __name__ == "__main__":
+    main()
