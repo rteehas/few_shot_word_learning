@@ -259,7 +259,7 @@ def main():
                 auxiliary_sents = json.load(fp)
 
         if args.defs != '':
-            with open(args.defs, 'w') as fp:
+            with open(args.defs, 'r') as fp:
                 defs = json.load(fp)
                 with_def = True
         else:
