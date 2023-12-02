@@ -16,7 +16,7 @@ def generate_data(pipe, prefixes, num_beams, max_new_tokens):
 
     results = pipe(prefixes, use_cache=True, num_beams=num_beams, max_new_tokens=max_new_tokens)
 
-    return zip(prefixes, results)
+    return list(zip(prefixes, results))
 
 def get_word(w):
     matches = re.findall(r"<(\w+)_new>",w)
@@ -54,7 +54,7 @@ def main():
 
         outputs = generate_data(pipe, partial_prefixes, 3, 128)
 
-        data_dict = {'prefix': [o[0] for o in outputs], 'text': [o[1] for o in outputs]}
+        data_dict = {'prefix': [o[0] for o in outputs], 'text': [o[1][0]['generated_text'] for o in outputs]}
 
         train_set = Dataset.from_dict(data_dict)
 
