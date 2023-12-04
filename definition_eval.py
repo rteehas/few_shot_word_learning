@@ -10,13 +10,14 @@ from run_gre_eval_llama import extract_arguments_from_path
 
 device = "cuda"
 
-definition_prompt = "Given the following examples: {}, give the definition of a new word \"{}\".\n Definition:"
+definition_prompt = "Given the following examples: {}, give the word \"{}\" means"
 
 @torch.no_grad
 def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt):
     examples = np.random.choice(ex['replaced_examples'], size=k, replace=False)
     context = tokenizerMLM(examples.tolist(), truncation=True, padding='longest', return_tensors='pt')
-    nonce = "<{}_new>".format(ex['word'].lower())
+    # nonce = "<{}_new>".format(ex['word'].lower())
+    nonce = "<nonce>"
     if with_prompt:
         prompt = definition_prompt.format("\n".join(examples), nonce)
     else:
