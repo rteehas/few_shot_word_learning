@@ -26,7 +26,7 @@ def get_prefixes(ex):
     nonce = ex['word']
     word = get_word(nonce)
 
-    prefix = ex['text'].split()[0]
+    prefix = ex['text'].split("<nonce>")[0]
     prefix = prefix + word
     ex['prefix'] = prefix
     return ex
