@@ -1097,7 +1097,7 @@ def main():
     # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
-
+    device = accelerator.device
     accelerator.wait_for_everyone()
     if args.resume_from_checkpoint is not None:
         current_checkpoint_path = args.resume_from_checkpoint
@@ -1502,7 +1502,7 @@ def main():
                 # train_new_token_losses.append(out.new_token_loss.detach().item())
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
-                    accelerator.clip_grad_norm_(model.parameters(), 1.0)
+                    accelerator.clip_grad_norm_(model.emb_gen.parameters(), 1.0)
                     for name, param in model.named_parameters():
                         if param.grad is not None and param.requires_grad:
                             log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
@@ -1585,7 +1585,11 @@ def main():
                 # buffer.cleanup()
 
             if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
+<<<<<<< 1744fe9be5f5bfd9166c27f705ded84f759e79a2
                     or (i % len(active_train_dl) == 0 and i != 0):
+=======
+                    or (i % len(active_train_dl) ==0 and i !=0):
+>>>>>>> wip
                 opt.zero_grad(set_to_none=True)
                 model.eval()
                 with torch.no_grad():
