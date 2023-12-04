@@ -14,7 +14,7 @@ def get_arguments():
 
 def generate_data(pipe, prefixes, num_beams, max_new_tokens):
 
-    results = pipe(prefixes, use_cache=True, num_beams=num_beams, max_new_tokens=max_new_tokens)
+    results = pipe(prefixes, use_cache=True, num_beams=num_beams, max_new_tokens=max_new_tokens, do_sample=False)
 
     return list(zip(prefixes, results))
 
