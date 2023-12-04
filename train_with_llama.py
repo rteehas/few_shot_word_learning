@@ -1082,7 +1082,7 @@ def main():
     # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
-
+    device = accelerator.device
     accelerator.wait_for_everyone()
     if args.resume_from_checkpoint is not None:
         current_checkpoint_path = args.resume_from_checkpoint
@@ -1122,9 +1122,9 @@ def main():
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     #accelerator.wait_for_everyone()
-    #with accelerator.main_process_first():
-    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base")
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf")
+    with accelerator.main_process_first():
+        firstLM = RobertaForMaskedLM.from_pretrained("roberta-base")
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True).to(device)
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     print("CPU Percent", psutil.cpu_percent())
     # with init_empty_weights():
@@ -1480,7 +1480,7 @@ def main():
                 # train_new_token_losses.append(out.new_token_loss.detach().item())
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
-                    accelerator.clip_grad_norm_(model.parameters(), 1.0)
+                    accelerator.clip_grad_norm_(model.emb_gen.parameters(), 1.0)
                     for name, param in model.named_parameters():
                         if param.grad is not None and param.requires_grad:
                             log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
@@ -1563,7 +1563,7 @@ def main():
                 # buffer.cleanup()
 
             if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
-                    or i % len(active_train_dl) ==0:
+                    or (i % len(active_train_dl) ==0 and i !=0):
                 opt.zero_grad(set_to_none=True)
                 model.eval()
                 with torch.no_grad():
