@@ -883,6 +883,8 @@ def create_checkpoint_directories(args):
 
     if "interleaved" in args.data_path:
         dataset_name = "interleaved"
+    elif "generated" in args.data_path:
+        dataset_name = "generated"
     else:
         dataset_name= "pile"
 
@@ -1623,6 +1625,8 @@ def main():
                     if args.regression_objective:
                         test_log['average regression test loss without alpha'] = accelerator.gather(
                             total_test_regression_loss).sum().item() / args.num_eval_steps
+                        test_log['average distillation test loss'] = accelerator.gather(
+                            total_test_distillation_loss).sum().item() / args.num_eval_steps
 
                     accelerator.log(test_log)
 
