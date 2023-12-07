@@ -160,9 +160,10 @@ def eval_baseline(args):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # tokenizerTask.add_tokens(["<nonce>"])
-    nonces = list(map(lambda w: "<{}_new>".format(w), answers))
-    nonces = list(set(nonces))
+    # nonces = list(map(lambda w: "<{}_new>".format(w), answers))
+    # nonces = list(set(nonces))
     # secondLM.resize_token_embeddings(len(tokenizerTask))
+    nonces = ["<nonce>"]
     if args.init_method == "random":
         secondLM, tokenizerTask = default_init(secondLM, tokenizerTask, nonces)
     elif args.init_method == "mean":
@@ -364,6 +365,13 @@ def main():
 
         for value in scores:
             print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
+
+        print("Per Trial Results")
+        for trial in range(3):
+            if not args.tuning:
+                trial_vals = [scores[value][trial] for value in scores]
+                print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
+
 
 if __name__ == "__main__":
     main()
