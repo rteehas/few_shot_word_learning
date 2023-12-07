@@ -174,20 +174,37 @@ def eval_baseline(args):
 
     secondLM.eval()
     scores = {}
+    max_k = 6
+    selected_sent_dict = {}
+    for ex in subselection['train']:
+        if args.sent_version == "question":
+            sent_dict = sents[ex['QUESTION']]
+            for key in sent_dict:
+                samples = np.random.choice(
+                    [s for s in sent_dict[key] if re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                    replace=False)
+                sent_dict[key] = samples
+
+            selected_sent_dict[ex["QUESTION"]] = sent_dict
+
+        elif args.sent_version == "answer":
+            raise NotImplementedError
+            # sent_dict = sents
+            # for key in sent_dict:
+            #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+            #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
     for trial in range(3):
         for k in range(1, 7):
             print("k = {}".format(k))
             outputs = []
             for ex in subselection['train']:
                 # try:
-                if args.sent_version == "question":
-                    sent_dict = sents[ex['QUESTION']]
-                elif args.sent_version == "answer":
-                    sent_dict = sents
-                    for key in sent_dict:
-                        if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
-                            sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, sent_dict,k, with_def, defs, args.tuning))
+                curr_sent_dict = {}
+                base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+
+                for key in base_sent_dict:
+                    curr_sent_dict[key] = base_sent_dict[key][:k]
+                outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, curr_sent_dict, with_def, defs, args.tuning))
                 # except:
                 #
                 #     continue
