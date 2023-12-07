@@ -236,6 +236,7 @@ def eval_baseline(args):
 
     print("Across Trials Results")
     for value in scores:
+        print("Accuracy for {}".format(value))
         print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
     print("Per Trial Results")
@@ -247,8 +248,8 @@ def eval_baseline(args):
 
         else:
             for step in range(2):
-                print("Accuracy for step {} of GD".format(step))
-                trial_vals = [scores[value][trial] for value in scores if "step = {}".format(step) in value]
+                print("Accuracy for step {} of GD".format(step + 1))
+                trial_vals = [scores[value][trial] for value in scores if "step = {}".format(step + 1) in value]
                 print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
 
 
