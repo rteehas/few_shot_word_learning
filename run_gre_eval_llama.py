@@ -121,7 +121,7 @@ def eval_baseline(args):
     gre = load_from_disk("processed_kaplan_v0")
     subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
     if args.defs != '':
-        with open(args.defs, 'w') as fp:
+        with open(args.defs, 'r') as fp:
             defs = json.load(fp)
             with_def = True
             subselection = subselection.filter(partial(filter_gre(defs)))
