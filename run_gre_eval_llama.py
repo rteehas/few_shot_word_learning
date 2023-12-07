@@ -259,6 +259,7 @@ def eval_baseline(args):
 
 def main():
     args = get_arguments().parse_args()
+    print(args)
     if args.setting == "baseline":
         eval_baseline(args)
     elif args.setting == "emb_gen":
