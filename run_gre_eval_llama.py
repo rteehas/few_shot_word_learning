@@ -124,7 +124,7 @@ def eval_baseline(args):
         with open(args.defs, 'r') as fp:
             defs = json.load(fp)
             with_def = True
-            subselection = subselection.filter(partial(filter_gre(defs)))
+            subselection = subselection.filter(partial(filter_gre, defs))
     else:
         defs = None
         with_def = True
