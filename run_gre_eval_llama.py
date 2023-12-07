@@ -19,6 +19,7 @@ def get_arguments():
     parser.add_argument("--init_method", type=str, default="random")
     parser.add_argument("--setting", type=str, default="emb_gen")
     parser.add_argument("--tuning", action="store_true")
+    parser.add_argument("--trials", type=int, default=3)
     return parser
 
 def create_checkpoint_directories(args):
@@ -194,7 +195,7 @@ def eval_baseline(args):
             # for key in sent_dict:
             #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-    for trial in range(3):
+    for trial in range(args.trials):
         for k in range(1, 7):
             print("k = {}".format(k))
             outputs = []
@@ -240,7 +241,7 @@ def eval_baseline(args):
         print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
     print("Per Trial Results")
-    for trial in range(3):
+    for trial in range(args.trials):
         if not args.tuning:
             trial_vals = [scores[value][trial] for value in scores]
             print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
@@ -341,7 +342,7 @@ def main():
         model.eval()
         with torch.no_grad():
             scores = {}
-            for trial in range(3):
+            for trial in range(args.trials):
                 for k in range(1, 7):
                     outputs = []
                     for ex in subselection['train']:
@@ -368,7 +369,7 @@ def main():
             print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
         print("Per Trial Results")
-        for trial in range(3):
+        for trial in range(args.trials):
             if not args.tuning:
                 trial_vals = [scores[value][trial] for value in scores]
                 print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
