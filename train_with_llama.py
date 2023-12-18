@@ -883,6 +883,7 @@ def get_arguments():
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
     parser.add_argument("--single_sentence", action="store_true")
     parser.add_argument("--num_feature_layers", type=int, default=1)
+    parser.add_argument("--first_lm", type=str, default="roberta")
     return parser
 
 
@@ -1101,7 +1102,15 @@ def main():
         tokenizerMLM = AutoTokenizer.from_pretrained(current_checkpoint_path + "/tokenizerMLM", use_fast=False)
         tokenizerTask = LlamaTokenizer.from_pretrained(current_checkpoint_path + "tokenizerTask",
                                                        legacy=True, use_fast=False)
-    tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
+
+    if args.first_lm == "roberta":
+        tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
+    else:
+        tokenizerMLM = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
+                                                   use_fast=False)
+        tokenizerMLM.add_bos_token = True
+        tokenizerMLM.pad_token = tokenizerMLM.unk_token
+
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
                                                    use_fast=False)
     tokenizerTask.add_bos_token = True
@@ -1135,9 +1144,13 @@ def main():
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     #accelerator.wait_for_everyone()
     with accelerator.main_process_first():
-        firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True).to(accelerator.device)
         secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                low_cpu_mem_usage=True).to(accelerator.device)
+                                                    low_cpu_mem_usage=True).to(accelerator.device)
+        if args.first_lm == "roberta":
+            firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True).to(accelerator.device)
+        else:
+            firstLM = secondLM
+
     print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
     print("CPU Percent", psutil.cpu_percent())
     # with init_empty_weights():
