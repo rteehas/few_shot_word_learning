@@ -1516,7 +1516,7 @@ def main():
 
                 opt.step()
                 scheduler.step()
-                opt.zero_grad()
+                opt.zero_grad(set_to_none=True)
                 model.zero_grad()
                 total_loss += loss.detach().float()
                 total_new_token_loss += out.new_token_loss.detach().float()
