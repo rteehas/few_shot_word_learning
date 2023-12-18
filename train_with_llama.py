@@ -475,13 +475,27 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             input_memory = Memory()
             output_memory = Memory()
-
-            mlm_ids = self.swap_with_mask(c['input_ids'])
+            if "roberta" in self.firstLM.config.name_or_path.lower():
+                mlm_ids = self.swap_with_mask(c['input_ids'])
             #             print('after', c['input_ids'])
             #             print("after mlm ids", mlm_ids)
-            with torch.no_grad():
-                first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
-                                         output_hidden_states=True)
+                with torch.no_grad():
+                    first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
+                                             output_hidden_states=True)
+            elif "llama" in self.firstLM.config.name_or_path.lower():
+                with torch.no_grad():
+                    # firstLM_mean_embed = torch.mean(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
+                    output_mean_embed = torch.mean(
+                        self.secondLM.get_output_embeddings().weight.norm(dim=1))
+                    # firstLM_std = torch.std(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
+                    input_mean_embed = torch.mean(
+                        self.secondLM.get_input_embeddings().weight.norm(dim=1))
+                    new_input_weight = self.get_new_weights("Task", input_mean_embed)
+                    input_embeds = F.embedding(c['input_ids'], new_input_weight)
+                    first_out = self.firstLM.model(inputs_embeds=input_embeds,
+                                                 attention_mask=c['attention_mask'],
+                                                 output_hidden_states=True)
+
 
             first_hidden = first_out.hidden_states
             combined = combine_layers(first_hidden, self.layers)
