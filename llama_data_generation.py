@@ -46,7 +46,7 @@ def main():
                                    use_fast=False)
 
 
-    prefixes = list(set(data['train']['prefix'] + data['test']['prefix']))
+    prefixes = list(set(data['prefix']))
 
     pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, device=distributed_state.device)
 
