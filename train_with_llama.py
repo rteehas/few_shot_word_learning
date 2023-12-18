@@ -1309,7 +1309,7 @@ def main():
     eval_ind = args.logging_step
 
     opt = AdamW(optimizer_grouped_parameters,
-                #betas=(0.9,0.95),
+                betas=(0.9,0.999),
                 eps=epsilon,
                 lr=lr,
                 weight_decay=args.weight_decay
