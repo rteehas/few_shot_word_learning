@@ -353,7 +353,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         return inp
 
     def get_new_output_weights(self, new_embed):
-        w = self.secondLM.lm_head.weight.clone()
+        w = self.secondLM.lm_head.weight
         # n, hidden = w.shape
         # w.requires_grad=True
         # msk = torch.zeros_like(w, device=w.device)
@@ -379,7 +379,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         else:
             raise NotImplementedError
 
-        w = ref_model.get_input_embeddings().weight.clone()
+        w = ref_model.get_input_embeddings().weight
         # n, hidden = w.shape
         # if not ref_model.get_input_embeddings().weight.requires_grad:
         #     w.requires_grad = True
