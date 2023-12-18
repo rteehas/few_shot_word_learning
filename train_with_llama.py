@@ -1585,11 +1585,7 @@ def main():
                 # buffer.cleanup()
 
             if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
-<<<<<<< 1744fe9be5f5bfd9166c27f705ded84f759e79a2
                     or (i % len(active_train_dl) == 0 and i != 0):
-=======
-                    or (i % len(active_train_dl) ==0 and i !=0):
->>>>>>> wip
                 opt.zero_grad(set_to_none=True)
                 model.eval()
                 with torch.no_grad():
