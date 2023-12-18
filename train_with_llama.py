@@ -1164,8 +1164,8 @@ def main():
 
     # firstLM.resize_token_embeddings(len(tokenizerMLM))
     # secondLM.resize_token_embeddings(len(tokenizerTask))  # pad for speed
-    firstLM.eval()
-    secondLM.eval()
+    #firstLM.eval()
+    #secondLM.eval()
     print("init memory")
     if args.memory == "mean":
         memory_config = AggregatorConfig()
@@ -1439,12 +1439,12 @@ def main():
                 log_dict = {}
 
                 model.train()
-                try:
-                    model.module.firstLM.eval()
-                    model.module.secondLM.eval()
-                except:
-                    model.firstLM.eval()
-                    model.secondLM.eval()
+                #try:
+                 #   model.module.firstLM.eval()
+                  #  model.module.secondLM.eval()
+                #except:
+                 #   model.firstLM.eval()
+                 #   model.secondLM.eval()
                 # model.zero_grad()
 
                 # contexts = []
