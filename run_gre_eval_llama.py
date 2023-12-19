@@ -51,26 +51,30 @@ def extract_arguments_from_path(path):
 
     # Adjusting the regex pattern to include num_feature_layers
     if "last" in path:
-        regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/interleaved/layernorm/(\d+)_layers/last_(\d+)/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
-        match = re.search(regex, path)
+        if "llama" not in path:
+            regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/interleaved/layernorm/(\d+)_layers/last_(\d+)/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
+            match = re.search(regex, path)
 
-        if match:
-            args['num_layers'] = int(match.group(1))
-            args['num_feature_layers'] = int(match.group(2))
-            args['batch_size'] = int(match.group(2))  # Adjust this if you need to divide by gradient_accumulation_steps
-            args['memory'] = match.group(4)
-            args['num_examples'] = int(match.group(5))
-            args['lr'] = float(match.group(6))
-            args['weight_decay'] = float(match.group(7))
-
-            # neg_string = match.group(8)
-            # if neg_string == "with_negatives":
-            #     args['negative_examples'] = True
-            #     args['regression_objective'] = False
-            # else:
-            #     # Assuming other cases are not relevant as they are not represented in the example path
-            #     args['negative_examples'] = False
-            #     args['regression_objective'] = False
+            if match:
+                args['num_layers'] = int(match.group(1))
+                args['num_feature_layers'] = int(match.group(2))
+                args['batch_size'] = int(match.group(2))  # Adjust this if you need to divide by gradient_accumulation_steps
+                args['memory'] = match.group(4)
+                args['num_examples'] = int(match.group(5))
+                args['lr'] = float(match.group(6))
+                args['weight_decay'] = float(match.group(7))
+                args['first_lm'] = "roberta"
+                # neg_string = match.group(8)
+                # if neg_string == "with_negatives":
+                #     args['negative_examples'] = True
+                #     args['regression_objective'] = False
+                # else:
+                #     # Assuming other cases are not relevant as they are not represented in the example path
+                #     args['negative_examples'] = False
+                #     args['regression_objective'] = False
+        else:
+            regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/llama/(\d+)_layers/last_(\d+)/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
+            args['first_lm'] = "llama"
     else:
         regex = r"model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/(\d+)_layers/(\d+)_batch_size/(\w+)_agg/(\d+)_examples/lr_([0-9.]+)/weight_decay_([0-9.]+)/(\w+)"
         match = re.search(regex, path)
@@ -107,6 +111,8 @@ def main():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    config_args = extract_arguments_from_path(args.path)
+
     with open(args.sents, 'r') as fp:
         sents = json.load(fp)
 
@@ -130,12 +136,17 @@ def main():
     nonces = list(tokenizerTask.get_added_vocab().keys())
     # tokenizerMLM.add_tokens(nonces)
     # tokenizerTask.add_tokens(nonces)
-    firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True)
+    if config_args['first_lm'] == "llama":
+        firstLM = secondLM
+    else:
+        firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
+
     #firstLM.resize_token_embeddings(len(tokenizerMLM))
     #secondLM.resize_token_embeddings(len(tokenizerTask))
 
-    config_args = extract_arguments_from_path(args.path)
+
     print(config_args)
     if config_args['memory'] == "mean":
         memory_config = AggregatorConfig()
