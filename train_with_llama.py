@@ -1365,11 +1365,14 @@ def main():
         active_train_dl = train_dl
         if args.negative_examples:
             active_negative_train_dl = negative_train_dl
-
+    torch.cuda.memory._record_memory_history(
+                   max_entries=100000
+                      )
+    
     best_test_loss = 10000000
     best_new_token_loss = 10000000
     print("training")
-    for epoch in range(epochs):
+    for epoch in range(1):
         print("epoch", epoch)
         train_new_token_losses = []
         train_losses = []
@@ -1382,6 +1385,13 @@ def main():
         for i, batch in enumerate(active_train_dl):
             #if global_step==3:
              #   break
+            if i == 8:
+                try:
+                    torch.cuda.memory._dump_snapshot("memsnap2.pickle")
+                except Exception as e:
+                    print(f"Failed to capture memory snapshot {e}")
+                torch.cuda.memory._record_memory_history(enabled=None)
+                break
             with accelerator.accumulate(model):
                 log_dict = {}
 
@@ -1534,7 +1544,7 @@ def main():
                 # buffer.cleanup()
 
             if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
-                    or i % len(active_train_dl) ==0:
+                    or (i % len(active_train_dl) ==0 and i != 0 and epoch != 0):
                 opt.zero_grad(set_to_none=True)
                 model.eval()
                 with torch.no_grad():
