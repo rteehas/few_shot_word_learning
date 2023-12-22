@@ -34,9 +34,25 @@ import psutil
 from modules.aggregators import TransformerSummarizer
 import numpy as np
 import random
+import socket
+from datetime import datetime, timedelta
+TIME_FORMAT_STR = "%b_%d_%H_%M_%S"
+
+from torch.autograd.profiler import record_function
 
 # os.environ["TORCH_CPP_LOG_LEVEL"]="INFO"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
+def trace_handler(prof: torch.profiler.profile):
+   # Prefix for file names.
+   host_name = socket.gethostname()
+   timestamp = datetime.now().strftime(TIME_FORMAT_STR)
+   file_prefix = f"{host_name}_{timestamp}"
+
+   # Construct the trace file.
+   prof.export_chrome_trace(f"{file_prefix}.json.gz")
+
+   # Construct the memory timeline file.
+   prof.export_memory_timeline(f"{file_prefix}.html", device="cuda:0")
 
 
 # def get_matching_indices(A, B):
@@ -1372,285 +1388,296 @@ def main():
     best_test_loss = 10000000
     best_new_token_loss = 10000000
     print("training")
-    for epoch in range(1):
-        print("epoch", epoch)
-        train_new_token_losses = []
-        train_losses = []
-        total_loss = 0
-        total_new_token_loss = 0
-        total_positive_loss = 0
-        total_negative_loss = 0
-        total_regression_loss = 0
-        total_distillation_loss = 0
-        for i, batch in enumerate(active_train_dl):
-            #if global_step==3:
-             #   break
-            if i == 8:
-                try:
-                    torch.cuda.memory._dump_snapshot("memsnap2.pickle")
-                except Exception as e:
-                    print(f"Failed to capture memory snapshot {e}")
-                torch.cuda.memory._record_memory_history(enabled=None)
-                break
-            with accelerator.accumulate(model):
-                log_dict = {}
+    with torch.profiler.profile(
+            activities=[
+                torch.profiler.ProfilerActivity.CPU,
+                torch.profiler.ProfilerActivity.CUDA,
+            ],
+            schedule=torch.profiler.schedule(wait=0, warmup=0, active=6, repeat=1),
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True,
+            on_trace_ready=trace_handler,
+    ) as prof:
+        for epoch in range(1):
+            print("epoch", epoch)
+            train_new_token_losses = []
+            train_losses = []
+            total_loss = 0
+            total_new_token_loss = 0
+            total_positive_loss = 0
+            total_negative_loss = 0
+            total_regression_loss = 0
+            total_distillation_loss = 0
+            for i, batch in enumerate(active_train_dl):
+                #if global_step==3:
+                 #   break
+                if i == 8:
+                    try:
+                        torch.cuda.memory._dump_snapshot("memsnap2.pickle")
+                    except Exception as e:
+                        print(f"Failed to capture memory snapshot {e}")
+                    torch.cuda.memory._record_memory_history(enabled=None)
+                    break
+                with accelerator.accumulate(model):
+                    log_dict = {}
 
-                model.train()
-                try:
-                    model.module.firstLM.eval()
-                    model.module.secondLM.eval()
-                except:
-                    model.firstLM.eval()
-                    model.secondLM.eval()
-                # model.zero_grad()
+                    model.train()
+                    try:
+                        model.module.firstLM.eval()
+                        model.module.secondLM.eval()
+                    except:
+                        model.firstLM.eval()
+                        model.secondLM.eval()
+                    # model.zero_grad()
 
-                # contexts = []
-                # for j in range(batch['input_ids'].shape[0]):
-                #     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                #     # print("base", tokenizerTask.decode(batch['base_input_ids'][j,:]))
-                #     # print(batch['input_ids'].shape[0], "shape")
-                #     assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample,
-                #                                                                                             tokenizerTask.decode(
-                #                                                                                                 batch[
-                #                                                                                                     'input_ids'][
-                #                                                                                                 j, :]))
-                #     n = to_sample[0]
-                #     if n in buffer.buffer:
-                #         sample = buffer.retrieve(n, batch)
-                #         if sample is not None:
-                #             contexts.append(sample)
-                #         else:
-                #             print("Null context for {}".format(n))
-                    # else:
-                    #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
-                    #                             clean_up_tokenization_spaces=True)
-                    #     sample = tokenizerMLM([seq],
-                    #                           max_length=tokenizerMLM.model_max_length,
-                    #                           truncation=True,
-                    #                           padding='longest',
-                    #                           return_tensors='pt')
-                    #     contexts.append(sample)
+                    # contexts = []
+                    # for j in range(batch['input_ids'].shape[0]):
+                    #     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
+                    #     # print("base", tokenizerTask.decode(batch['base_input_ids'][j,:]))
+                    #     # print(batch['input_ids'].shape[0], "shape")
+                    #     assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample,
+                    #                                                                                             tokenizerTask.decode(
+                    #                                                                                                 batch[
+                    #                                                                                                     'input_ids'][
+                    #                                                                                                 j, :]))
+                    #     n = to_sample[0]
+                    #     if n in buffer.buffer:
+                    #         sample = buffer.retrieve(n, batch)
+                    #         if sample is not None:
+                    #             contexts.append(sample)
+                    #         else:
+                    #             print("Null context for {}".format(n))
+                        # else:
+                        #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
+                        #                             clean_up_tokenization_spaces=True)
+                        #     sample = tokenizerMLM([seq],
+                        #                           max_length=tokenizerMLM.model_max_length,
+                        #                           truncation=True,
+                        #                           padding='longest',
+                        #                           return_tensors='pt')
+                        #     contexts.append(sample)
 
-                # assert len(contexts) == batch['input_ids'].shape[
-                #     0], "Context has {} elements when it should have {}".format(len(contexts),
-                #                                                                 batch['input_ids'].shape[0])
-                # batch['contexts'] = contexts
-                if args.negative_examples:
-                    neg_train_batch = next(iter(active_negative_train_dl))
-                    # print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
-                    batch['negative_input_ids'] = neg_train_batch['input_ids']
-                    batch['negative_attention_mask'] = neg_train_batch['attention_mask']
-                    batch['negative_labels'] = neg_train_batch['labels']
-
-                # print(batch['input_ids'].shape[0])
-                out = model(batch)
-                if args.regression_objective and args.negative_examples:
-                    # distillation_weight = 1.0 - ce_weight - args.regression_alpha
-                    loss = out.loss + out.regression_loss + out.distillation_loss
-
-                elif args.regression_objective:
-
-                    loss = out.regression_loss + out.distillation_loss
-
-                else:
-                    loss = out.loss
-                # print(loss)
-
-                # train_new_token = accelerator.gather(out.new_token_loss)
-                # train_losses.append(loss.item())
-                # train_new_token_losses.append(out.new_token_loss.detach().item())
-                accelerator.backward(loss)
-                if accelerator.sync_gradients:
-                    accelerator.clip_grad_norm_(model.parameters(), 1.0)
-                    for name, param in model.named_parameters():
-                        if param.grad is not None and param.requires_grad:
-                            log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
-                                param.grad.view(-1)).item()
-                            if torch.isnan(torch.norm(param.grad.view(-1))):
-                                raise Exception("Nan Gradient for {}".format(name))
-                        if param.requires_grad and param.grad is None:
-                            print(name)
-
-                opt.step()
-                scheduler.step()
-                opt.zero_grad()
-                model.zero_grad()
-                total_loss += loss.detach().float()
-                total_new_token_loss += out.new_token_loss.detach().float()
-                if args.negative_examples:
-                    total_positive_loss += out.positive_loss.detach().float()
-                    total_negative_loss += out.negative_loss.detach().float()
-                if args.regression_objective:
-                    total_regression_loss += out.regression_loss.detach().float()
-                    total_distillation_loss += out.distillation_loss.detach().float()
-
-            if accelerator.sync_gradients:
-                # accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
-
-                # for name, param in model.named_parameters():
-                #     if param.grad is not None and param.requires_grad:
-                #         log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
-                #         if torch.isnan(torch.norm(param.grad.view(-1))):
-                #             raise Exception("Nan Gradient for {}".format(name))
-                global_step += 1
-                log_dict['global step'] = global_step
-                log_dict['train loss'] = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps
-
-                log_dict['train new token loss'] = accelerator.gather(
-                    total_new_token_loss).mean().item() / args.gradient_accumulation_steps
-                # log_dict['num_words_seen'] = len(buffer.buffer)
-                total_loss = 0
-                total_new_token_loss = 0
-                if args.negative_examples:
-                    log_dict['train loss on positive examples'] = accelerator.gather(
-                        total_positive_loss).mean().item() / args.gradient_accumulation_steps
-                    log_dict['train loss on negative examples'] = accelerator.gather(
-                        total_negative_loss).mean().item() / args.gradient_accumulation_steps
-                    total_negative_loss = 0
-                    total_positive_loss = 0
-
-                if args.regression_objective:
-                    log_dict['regression loss without weight'] = accelerator.gather(
-                        total_regression_loss).mean().item() / args.gradient_accumulation_steps
-                    # log_dict['regression loss with alpha'] = (args.regression_alpha * accelerator.gather(total_regression_loss)).mean().item() / args.gradient_accumulation_steps
-                    log_dict['distillation loss without weight'] = accelerator.gather(
-                        total_distillation_loss).mean().item() / args.gradient_accumulation_steps
-                    total_regression_loss = 0
-                    total_distillation_loss = 0
-
-                with torch.no_grad():
-                    memory_norms = {
-                        'input_memory': [],
-                        'output_memory': []
-                    }
-
-                    for mem_dict in out.memories:
-                        for memory_type in ['input_memory', 'output_memory']:
-                            m = mem_dict[memory_type]
-                            new_ids = list(m.memory.keys())
-                            assert len(new_ids) == 1
-                            new_id = new_ids[0]
-                            memory_norms[memory_type].append(m.retrieve(new_id).norm().detach())
-
-                    for memory_type in ['input_memory', 'output_memory']:
-                        norms = memory_norms[memory_type]
-
-                        log_dict["embed_norms/{} token embedding norm".format(memory_type)] = torch.stack(
-                            norms).mean().detach().item()
-
-                accelerator.log(log_dict)
-
-                # buffer.store_task(batch)
-                # buffer.cleanup()
-
-            if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
-                    or (i % len(active_train_dl) ==0 and i != 0 and epoch != 0):
-                opt.zero_grad(set_to_none=True)
-                model.eval()
-                with torch.no_grad():
-                    total_test_loss = 0
-                    total_test_nonce_loss = 0
-                    total_test_negative_loss = 0
-                    total_test_positive_loss = 0
-                    total_test_regression_loss = 0
-                    total_test_distillation_loss = 0
-                    test_log = {}
-                    ct = 0
-                    for b in test_dl:
-                        ct += 1
-                        if ct >= args.num_eval_steps:
-                            break
-                        # contexts = []
-                        # for j in range(b['input_ids'].shape[0]):
-                        #     to_sample = list(
-                        #         set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
-                        #     assert (len(to_sample) == 1)
-                        #     n = to_sample[0]
-                        #     if n in test_buffer.buffer:
-                        #         sample = test_buffer.retrieve(n, b)
-                        #         if sample is not None:
-                        #             contexts.append(sample)
-                        #     # else:
-                        #     #     seq = tokenizerTask.decode(b['input_ids'][j,:])
-                        #     #     sample = tokenizerMLM([seq],
-                        #     #               max_length=tokenizerMLM.model_max_length,
-                        #     #               truncation=True,
-                        #     #               padding='longest',
-                        #     #               return_tensors='pt')
-                        #     #     contexts.append(sample)
-                        #
-                        # assert len(contexts) == b['input_ids'].shape[
-                        #     0], "Context has {} elements when it should have {}".format(len(contexts),
-                        #                                                                 b['input_ids'].shape[0])
-                        # b['contexts'] = contexts
-
-                        if args.negative_examples:
-                            neg_test_batch = next(iter(negative_test_dl))
-                            b['negative_input_ids'] = neg_test_batch['input_ids']
-                            b['negative_attention_mask'] = neg_test_batch['attention_mask']
-                            b['negative_labels'] = neg_test_batch['labels']
-
-                        t_out = model(b)
-                        # all_losses = accelerator.gather(t_out.loss)
-                        if args.regression_objective and args.negative_examples:
-                            # distillation_weight = 1.0 - ce_weight - args.regression_alpha
-                            total_test_loss += t_out.loss + t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
-                        elif args.regression_objective:
-                            total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
-                        else:
-                            total_test_loss += t_out.loss.detach().float()
-
-                        # all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                        total_test_nonce_loss += t_out.new_token_loss.detach()
-                        if args.negative_examples:
-                            total_test_positive_loss += t_out.positive_loss.detach().float()
-                            total_test_negative_loss += t_out.negative_loss.detach().float()
-
-                        if args.regression_objective:
-                            total_test_regression_loss += t_out.regression_loss.detach().float()
-                            total_test_distillation_loss += t_out.distillation_loss.detach().float()
-
-                        # test_buffer.store_task(b)
-                        # test_buffer.cleanup()
-
-                    avg_test = accelerator.gather(total_test_loss).sum().item() / args.num_eval_steps
-                    avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / args.num_eval_steps
-                    test_log['average test loss'] = avg_test
-                    test_log['average test loss on new tokens'] = avg_new_tok
-                    test_log['epoch'] = epoch
-                    test_log['eval step'] = i // eval_ind
-
+                    # assert len(contexts) == batch['input_ids'].shape[
+                    #     0], "Context has {} elements when it should have {}".format(len(contexts),
+                    #                                                                 batch['input_ids'].shape[0])
+                    # batch['contexts'] = contexts
                     if args.negative_examples:
-                        test_log['average test loss on positive examples'] = accelerator.gather(
-                            total_test_positive_loss).sum().item() / args.num_eval_steps
-                        test_log['average test loss on negative examples'] = accelerator.gather(
-                            total_test_negative_loss).sum().item() / args.num_eval_steps
+                        neg_train_batch = next(iter(active_negative_train_dl))
+                        # print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
+                        batch['negative_input_ids'] = neg_train_batch['input_ids']
+                        batch['negative_attention_mask'] = neg_train_batch['attention_mask']
+                        batch['negative_labels'] = neg_train_batch['labels']
+
+                    # print(batch['input_ids'].shape[0])
+                    out = model(batch)
+                    if args.regression_objective and args.negative_examples:
+                        # distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                        loss = out.loss + out.regression_loss + out.distillation_loss
+
+                    elif args.regression_objective:
+
+                        loss = out.regression_loss + out.distillation_loss
+
+                    else:
+                        loss = out.loss
+                    # print(loss)
+
+                    # train_new_token = accelerator.gather(out.new_token_loss)
+                    # train_losses.append(loss.item())
+                    # train_new_token_losses.append(out.new_token_loss.detach().item())
+                    accelerator.backward(loss)
+                    if accelerator.sync_gradients:
+                        accelerator.clip_grad_norm_(model.parameters(), 1.0)
+                        for name, param in model.named_parameters():
+                            if param.grad is not None and param.requires_grad:
+                                log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
+                                    param.grad.view(-1)).item()
+                                if torch.isnan(torch.norm(param.grad.view(-1))):
+                                    raise Exception("Nan Gradient for {}".format(name))
+                            if param.requires_grad and param.grad is None:
+                                print(name)
+
+                    opt.step()
+                    scheduler.step()
+                    opt.zero_grad()
+                    model.zero_grad()
+                    total_loss += loss.detach().float()
+                    total_new_token_loss += out.new_token_loss.detach().float()
+                    if args.negative_examples:
+                        total_positive_loss += out.positive_loss.detach().float()
+                        total_negative_loss += out.negative_loss.detach().float()
+                    if args.regression_objective:
+                        total_regression_loss += out.regression_loss.detach().float()
+                        total_distillation_loss += out.distillation_loss.detach().float()
+
+                if accelerator.sync_gradients:
+                    # accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
+
+                    # for name, param in model.named_parameters():
+                    #     if param.grad is not None and param.requires_grad:
+                    #         log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
+                    #         if torch.isnan(torch.norm(param.grad.view(-1))):
+                    #             raise Exception("Nan Gradient for {}".format(name))
+                    global_step += 1
+                    log_dict['global step'] = global_step
+                    log_dict['train loss'] = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps
+
+                    log_dict['train new token loss'] = accelerator.gather(
+                        total_new_token_loss).mean().item() / args.gradient_accumulation_steps
+                    # log_dict['num_words_seen'] = len(buffer.buffer)
+                    total_loss = 0
+                    total_new_token_loss = 0
+                    if args.negative_examples:
+                        log_dict['train loss on positive examples'] = accelerator.gather(
+                            total_positive_loss).mean().item() / args.gradient_accumulation_steps
+                        log_dict['train loss on negative examples'] = accelerator.gather(
+                            total_negative_loss).mean().item() / args.gradient_accumulation_steps
+                        total_negative_loss = 0
+                        total_positive_loss = 0
 
                     if args.regression_objective:
-                        test_log['average regression test loss without alpha'] = accelerator.gather(
-                            total_test_regression_loss).sum().item() / args.num_eval_steps
+                        log_dict['regression loss without weight'] = accelerator.gather(
+                            total_regression_loss).mean().item() / args.gradient_accumulation_steps
+                        # log_dict['regression loss with alpha'] = (args.regression_alpha * accelerator.gather(total_regression_loss)).mean().item() / args.gradient_accumulation_steps
+                        log_dict['distillation loss without weight'] = accelerator.gather(
+                            total_distillation_loss).mean().item() / args.gradient_accumulation_steps
+                        total_regression_loss = 0
+                        total_distillation_loss = 0
 
-                    accelerator.log(test_log)
+                    with torch.no_grad():
+                        memory_norms = {
+                            'input_memory': [],
+                            'output_memory': []
+                        }
 
-                    if avg_test < best_test_loss or avg_new_tok < best_new_token_loss:
-                        best_test_loss = avg_test
-                        best_new_token_loss = avg_new_tok
-                        save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
-                        num_copies = 0
-                        tmp_save_dir = save_dir
-                        while os.path.isdir(tmp_save_dir):
-                            num_copies += 1
-                            tmp_save_dir = save_dir + "_v{}".format(num_copies)
+                        for mem_dict in out.memories:
+                            for memory_type in ['input_memory', 'output_memory']:
+                                m = mem_dict[memory_type]
+                                new_ids = list(m.memory.keys())
+                                assert len(new_ids) == 1
+                                new_id = new_ids[0]
+                                memory_norms[memory_type].append(m.retrieve(new_id).norm().detach())
 
-                        save_dir = tmp_save_dir
-                        os.makedirs(save_dir, exist_ok=True)
-                        accelerator.wait_for_everyone()
-                        accelerator.save_state(save_dir)
-                        tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                        tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
-                        checkpoint_id += 1
+                        for memory_type in ['input_memory', 'output_memory']:
+                            norms = memory_norms[memory_type]
 
-    accelerator.end_training()
+                            log_dict["embed_norms/{} token embedding norm".format(memory_type)] = torch.stack(
+                                norms).mean().detach().item()
+
+                    accelerator.log(log_dict)
+
+                    # buffer.store_task(batch)
+                    # buffer.cleanup()
+
+                if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
+                        or (i % len(active_train_dl) ==0 and i != 0 and epoch != 0):
+                    opt.zero_grad(set_to_none=True)
+                    model.eval()
+                    with torch.no_grad():
+                        total_test_loss = 0
+                        total_test_nonce_loss = 0
+                        total_test_negative_loss = 0
+                        total_test_positive_loss = 0
+                        total_test_regression_loss = 0
+                        total_test_distillation_loss = 0
+                        test_log = {}
+                        ct = 0
+                        for b in test_dl:
+                            ct += 1
+                            if ct >= args.num_eval_steps:
+                                break
+                            # contexts = []
+                            # for j in range(b['input_ids'].shape[0]):
+                            #     to_sample = list(
+                            #         set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
+                            #     assert (len(to_sample) == 1)
+                            #     n = to_sample[0]
+                            #     if n in test_buffer.buffer:
+                            #         sample = test_buffer.retrieve(n, b)
+                            #         if sample is not None:
+                            #             contexts.append(sample)
+                            #     # else:
+                            #     #     seq = tokenizerTask.decode(b['input_ids'][j,:])
+                            #     #     sample = tokenizerMLM([seq],
+                            #     #               max_length=tokenizerMLM.model_max_length,
+                            #     #               truncation=True,
+                            #     #               padding='longest',
+                            #     #               return_tensors='pt')
+                            #     #     contexts.append(sample)
+                            #
+                            # assert len(contexts) == b['input_ids'].shape[
+                            #     0], "Context has {} elements when it should have {}".format(len(contexts),
+                            #                                                                 b['input_ids'].shape[0])
+                            # b['contexts'] = contexts
+
+                            if args.negative_examples:
+                                neg_test_batch = next(iter(negative_test_dl))
+                                b['negative_input_ids'] = neg_test_batch['input_ids']
+                                b['negative_attention_mask'] = neg_test_batch['attention_mask']
+                                b['negative_labels'] = neg_test_batch['labels']
+
+                            t_out = model(b)
+                            # all_losses = accelerator.gather(t_out.loss)
+                            if args.regression_objective and args.negative_examples:
+                                # distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                                total_test_loss += t_out.loss + t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
+                            elif args.regression_objective:
+                                total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
+                            else:
+                                total_test_loss += t_out.loss.detach().float()
+
+                            # all_new_tokens = accelerator.gather(t_out.new_token_loss)
+                            total_test_nonce_loss += t_out.new_token_loss.detach()
+                            if args.negative_examples:
+                                total_test_positive_loss += t_out.positive_loss.detach().float()
+                                total_test_negative_loss += t_out.negative_loss.detach().float()
+
+                            if args.regression_objective:
+                                total_test_regression_loss += t_out.regression_loss.detach().float()
+                                total_test_distillation_loss += t_out.distillation_loss.detach().float()
+
+                            # test_buffer.store_task(b)
+                            # test_buffer.cleanup()
+
+                        avg_test = accelerator.gather(total_test_loss).sum().item() / args.num_eval_steps
+                        avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / args.num_eval_steps
+                        test_log['average test loss'] = avg_test
+                        test_log['average test loss on new tokens'] = avg_new_tok
+                        test_log['epoch'] = epoch
+                        test_log['eval step'] = i // eval_ind
+
+                        if args.negative_examples:
+                            test_log['average test loss on positive examples'] = accelerator.gather(
+                                total_test_positive_loss).sum().item() / args.num_eval_steps
+                            test_log['average test loss on negative examples'] = accelerator.gather(
+                                total_test_negative_loss).sum().item() / args.num_eval_steps
+
+                        if args.regression_objective:
+                            test_log['average regression test loss without alpha'] = accelerator.gather(
+                                total_test_regression_loss).sum().item() / args.num_eval_steps
+
+                        accelerator.log(test_log)
+
+                        if avg_test < best_test_loss or avg_new_tok < best_new_token_loss:
+                            best_test_loss = avg_test
+                            best_new_token_loss = avg_new_tok
+                            save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
+                            num_copies = 0
+                            tmp_save_dir = save_dir
+                            while os.path.isdir(tmp_save_dir):
+                                num_copies += 1
+                                tmp_save_dir = save_dir + "_v{}".format(num_copies)
+
+                            save_dir = tmp_save_dir
+                            os.makedirs(save_dir, exist_ok=True)
+                            accelerator.wait_for_everyone()
+                            accelerator.save_state(save_dir)
+                            tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                            tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                            checkpoint_id += 1
+
+        accelerator.end_training()
 
 
 if __name__ == "__main__":
