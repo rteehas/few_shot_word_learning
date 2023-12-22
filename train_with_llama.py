@@ -1414,7 +1414,7 @@ def main():
                  #   break
                 if i == 8:
                     try:
-                        torch.cuda.memory._dump_snapshot("memsnap2.pickle")
+                        torch.cuda.memory._dump_snapshot("memsnap3.pickle")
                     except Exception as e:
                         print(f"Failed to capture memory snapshot {e}")
                     torch.cuda.memory._record_memory_history(enabled=None)
