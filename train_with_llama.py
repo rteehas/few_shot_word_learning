@@ -1412,7 +1412,7 @@ def main():
             for i, batch in enumerate(active_train_dl):
                 #if global_step==3:
                  #   break
-                if i == 8:
+                if i == 3:
                     try:
                         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
                     except Exception as e:
