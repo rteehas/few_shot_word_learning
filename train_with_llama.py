@@ -1420,6 +1420,7 @@ def main():
             for i, batch in enumerate(active_train_dl):
                 #if global_step==3:
                  #   break
+                prof.step()
                 if i == 3:
                     try:
                         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
@@ -1480,7 +1481,10 @@ def main():
                         batch['negative_labels'] = neg_train_batch['labels']
 
                     # print(batch['input_ids'].shape[0])
-                    out = model(batch)
+                    with record_function("forward + loss"):
+
+                        out = model(batch)
+
                     if args.regression_objective and args.negative_examples:
                         # distillation_weight = 1.0 - ce_weight - args.regression_alpha
                         loss = out.loss + out.regression_loss + out.distillation_loss
@@ -1496,22 +1500,23 @@ def main():
                     # train_new_token = accelerator.gather(out.new_token_loss)
                     # train_losses.append(loss.item())
                     # train_new_token_losses.append(out.new_token_loss.detach().item())
-                    accelerator.backward(loss)
-                    if accelerator.sync_gradients:
-                        accelerator.clip_grad_norm_(model.parameters(), 1.0)
-                        for name, param in model.named_parameters():
-                            if param.grad is not None and param.requires_grad:
-                                log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
-                                    param.grad.view(-1)).item()
-                                if torch.isnan(torch.norm(param.grad.view(-1))):
-                                    raise Exception("Nan Gradient for {}".format(name))
-                            if param.requires_grad and param.grad is None:
-                                print(name)
-
-                    opt.step()
-                    scheduler.step()
-                    opt.zero_grad()
-                    model.zero_grad()
+                    with record_function("backward"):
+                        accelerator.backward(loss)
+                        if accelerator.sync_gradients:
+                            accelerator.clip_grad_norm_(model.parameters(), 1.0)
+                            for name, param in model.named_parameters():
+                                if param.grad is not None and param.requires_grad:
+                                    log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
+                                        param.grad.view(-1)).item()
+                                    if torch.isnan(torch.norm(param.grad.view(-1))):
+                                        raise Exception("Nan Gradient for {}".format(name))
+                                if param.requires_grad and param.grad is None:
+                                    print(name)
+                    with record_function("opt"):
+                        opt.step()
+                        scheduler.step()
+                        opt.zero_grad()
+                        model.zero_grad()
                     total_loss += loss.detach().float()
                     total_new_token_loss += out.new_token_loss.detach().float()
                     if args.negative_examples:
