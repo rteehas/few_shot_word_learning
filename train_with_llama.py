@@ -452,6 +452,23 @@ class MorphMemoryModelLLAMA(nn.Module):
                 else:
                     new_token_loss = None
 
+                return CausalLMOutputWithPast(
+                    loss=loss,
+                    logits=logits,
+                    past_key_values=outputs.past_key_values,
+                    hidden_states=outputs.hidden_states,
+                    attentions=outputs.attentions,
+                ), new_token_loss
+            else:
+                return CausalLMOutputWithPast(
+                    loss=loss,
+                    logits=logits,
+                    past_key_values=outputs.past_key_values,
+                    hidden_states=outputs.hidden_states,
+                    attentions=outputs.attentions,
+                )
+
+
         return CausalLMOutputWithPast(
             loss=loss,
             logits=logits,
@@ -538,12 +555,12 @@ class MorphMemoryModelLLAMA(nn.Module):
                 # print(task_labels[i].shape, "label_shape")
                 # print(outputs[0].shape)
 
-                llama_outputs = self.llama_forward(task_labels[i], outputs, output_weights)
+                llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights, new_token_loss=True)
             #             with torch.no_grad():
-                new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
-                                                               self.secondLM.lm_head.weight.shape[0] + self.num_new_tokens,
-                                                               torch.tensor(self.second_list,
-                                                                            device=llama_outputs.logits.device).unique())
+            #     new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
+            #                                                    self.secondLM.lm_head.weight.shape[0] + self.num_new_tokens,
+            #                                                    torch.tensor(self.second_list,
+            #                                                                 device=llama_outputs.logits.device).unique())
             with record_function("## NEGATIVES ##"):
                 if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
                     # print("negative id shape in model", negative_ids[i].shape)
