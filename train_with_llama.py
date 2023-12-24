@@ -564,10 +564,11 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             if (base_ids, base_attn_mask, base_labels) != (None, None, None):
                 with torch.no_grad():
-                    base_outputs = self.secondLM(input_ids=base_ids[i].unsqueeze(0),
-                                             attention_mask=base_attn_mask[i].unsqueeze(0),
-                                             labels=base_labels[i],
-                                             output_hidden_states=True)
+                    base_embeds = F.embedding(base_ids[i], self.secondLM.get_input_embeddings().weight)
+                    base_outputs = self.secondLM.model(inputs_embeds=base_embeds.unsqueeze(0),
+                                             attention_mask=base_attn_mask[i].unsqueeze(0))
+
+                    base_final_outs = self.llama_forward(base_labels[i], base_outputs, self.secondLM.get_input_embeddings().weight)
 
                 indices_in_base, indices_in_replaced = get_matching_indices(
                     base_ids[i][base_attn_mask[i] == 1].tolist(),
@@ -580,16 +581,16 @@ class MorphMemoryModelLLAMA(nn.Module):
                 #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
                 cosine_loss = nn.CosineEmbeddingLoss()
                 regression_loss = cosine_loss(outputs[0][:, indices_in_replaced].squeeze(0),
-                                              base_outputs.hidden_states[-1][:, indices_in_base].squeeze(0),
+                                              base_outputs[0][:, indices_in_base].squeeze(0),
                                               target=torch.ones(
                                                   outputs[0][:, indices_in_replaced].shape[1],
-                                                  device=base_outputs.hidden_states[-1].device)).mean()
+                                                  device=base_outputs[0].device)).mean()
 
                 # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
                 #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
                 mse_loss = MSELoss()
                 distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
-                                             base_outputs.logits[:, indices_in_base, :self.initial_second_ind])
+                                             base_final_outs.logits[:, indices_in_base, :self.initial_second_ind])
                 # soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
                 # logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
                 # distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
