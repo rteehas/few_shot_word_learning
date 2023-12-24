@@ -484,137 +484,142 @@ class MorphMemoryModelLLAMA(nn.Module):
         memories = []
         mem_embeds = []
         for i in range(b_task):
-            c = contexts[i].to(self.firstLM.device)
-            #             print('before', c['input_ids'])
-            new_token = c['input_ids'][
-                torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
-                0].item()
+            with record_function("## MLM STEP ##"):
+                c = contexts[i].to(self.firstLM.device)
+                #             print('before', c['input_ids'])
+                new_token = c['input_ids'][
+                    torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
+                    0].item()
 
-            input_memory = Memory()
-            output_memory = Memory()
+                input_memory = Memory()
+                output_memory = Memory()
 
-            mlm_ids = self.swap_with_mask(c['input_ids'])
-            #             print('after', c['input_ids'])
-            #             print("after mlm ids", mlm_ids)
-            with torch.no_grad():
-                first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
-                                         output_hidden_states=True)
+                mlm_ids = self.swap_with_mask(c['input_ids'])
+                #             print('after', c['input_ids'])
+                #             print("after mlm ids", mlm_ids)
+                with torch.no_grad():
+                    first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
+                                             output_hidden_states=True)
 
-            first_hidden = first_out.hidden_states
-            combined = combine_layers(first_hidden, self.layers)
+            with record_function("## COMBINED ##"):
+                first_hidden = first_out.hidden_states
+                combined = combine_layers(first_hidden, self.layers)
 
-            if len(combined.shape) == 2:
-                combined = combined.unsqueeze(0)
+                if len(combined.shape) == 2:
+                    combined = combined.unsqueeze(0)
 
-            attn = c['attention_mask']
-            embed_inputs = combined
-            inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
+                attn = c['attention_mask']
+                embed_inputs = combined
 
-            input_memory.store(new_token, inp_embs)
-            output_memory.store(new_token, out_embs)
-            new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
-            output_weights = self.get_new_output_weights(new_embed=out_embs)
+            with record_function("## EMBED GEN FORWARD ##"):
+                inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
 
-            input_embeds = F.embedding(task_ids[i], new_w)
-            outputs = self.secondLM.model(
-                inputs_embeds=input_embeds.unsqueeze(0),
-                attention_mask=task_attn[i].unsqueeze(0),
-                # output_hidden_states=True
-            )
-            # print(task_labels[i].shape, "label_shape")
-            # print(outputs[0].shape)
+                input_memory.store(new_token, inp_embs)
+                output_memory.store(new_token, out_embs)
+                new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
+                output_weights = self.get_new_output_weights(new_embed=out_embs)
 
-            llama_outputs = self.llama_forward(task_labels[i], outputs, output_weights)
-            #             with torch.no_grad():
-            new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
-                                                           self.secondLM.lm_head.weight.shape[0] + self.num_new_tokens,
-                                                           torch.tensor(self.second_list,
-                                                                        device=llama_outputs.logits.device).unique())
-
-            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-                # print("negative id shape in model", negative_ids[i].shape)
-                negative_embeds = F.embedding(negative_ids[i], new_w)
-                if len(negative_embeds.shape) == 2:
-                    negative_embeds = negative_embeds.unsqueeze(0)
-                    n_attn_mask = negative_attn_mask[i].unsqueeze(0)
-                else:
-                    n_attn_mask = negative_attn_mask[i]
-                # print("embed shape in model", negative_embeds.shape)
-                # print("attention mask shape in model", negative_attn_mask[i].shape)
-                # print("embed shape after unsqueeze", negative_embeds.unsqueeze(0).shape)
-                negative_outputs = self.secondLM.model(
-                    inputs_embeds=negative_embeds,
-                    attention_mask=n_attn_mask,
+            with record_function("## LLAMA MODEL NONCE ##"):
+                input_embeds = F.embedding(task_ids[i], new_w)
+                outputs = self.secondLM.model(
+                    inputs_embeds=input_embeds.unsqueeze(0),
+                    attention_mask=task_attn[i].unsqueeze(0),
                     # output_hidden_states=True
                 )
+                # print(task_labels[i].shape, "label_shape")
+                # print(outputs[0].shape)
 
-                negative_llama_outputs = self.llama_forward(negative_labels[i], negative_outputs, output_weights)
+                llama_outputs = self.llama_forward(task_labels[i], outputs, output_weights)
+            #             with torch.no_grad():
+                new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
+                                                               self.secondLM.lm_head.weight.shape[0] + self.num_new_tokens,
+                                                               torch.tensor(self.second_list,
+                                                                            device=llama_outputs.logits.device).unique())
+            with record_function("## NEGATIVES ##"):
+                if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+                    # print("negative id shape in model", negative_ids[i].shape)
+                    negative_embeds = F.embedding(negative_ids[i], new_w)
+                    if len(negative_embeds.shape) == 2:
+                        negative_embeds = negative_embeds.unsqueeze(0)
+                        n_attn_mask = negative_attn_mask[i].unsqueeze(0)
+                    else:
+                        n_attn_mask = negative_attn_mask[i]
+                    # print("embed shape in model", negative_embeds.shape)
+                    # print("attention mask shape in model", negative_attn_mask[i].shape)
+                    # print("embed shape after unsqueeze", negative_embeds.unsqueeze(0).shape)
+                    negative_outputs = self.secondLM.model(
+                        inputs_embeds=negative_embeds,
+                        attention_mask=n_attn_mask,
+                        # output_hidden_states=True
+                    )
 
-                negative_out_vals = CausalLMOutputWithNewTokenNegatives(
-                    loss=llama_outputs.loss + negative_llama_outputs.loss,
-                    positive_loss=llama_outputs.loss,
-                    negative_loss=negative_llama_outputs.loss,
-                    positive_logits=llama_outputs.logits,
-                    negative_logits=negative_llama_outputs.logits,
-                    past_key_values=llama_outputs.past_key_values,
-                    hidden_states=llama_outputs.hidden_states,
-                    attentions=llama_outputs.attentions,
-                    new_token_loss=new_tok_loss,
-                    memories=[dict(input_memory=input_memory, output_memory=output_memory)]
-                )
+                    negative_llama_outputs = self.llama_forward(negative_labels[i], negative_outputs, output_weights)
 
-            if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                with torch.no_grad():
-                    base_embeds = F.embedding(base_ids[i], self.secondLM.get_input_embeddings().weight)
-                    base_outputs = self.secondLM.model(inputs_embeds=base_embeds.unsqueeze(0),
-                                             attention_mask=base_attn_mask[i].unsqueeze(0))
+                    negative_out_vals = CausalLMOutputWithNewTokenNegatives(
+                        loss=llama_outputs.loss + negative_llama_outputs.loss,
+                        positive_loss=llama_outputs.loss,
+                        negative_loss=negative_llama_outputs.loss,
+                        positive_logits=llama_outputs.logits,
+                        negative_logits=negative_llama_outputs.logits,
+                        past_key_values=llama_outputs.past_key_values,
+                        hidden_states=llama_outputs.hidden_states,
+                        attentions=llama_outputs.attentions,
+                        new_token_loss=new_tok_loss,
+                        memories=[dict(input_memory=input_memory, output_memory=output_memory)]
+                    )
+            with record_function("## DISTILLATION ##"):
+                if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                    with torch.no_grad():
+                        base_embeds = F.embedding(base_ids[i], self.secondLM.get_input_embeddings().weight)
+                        base_outputs = self.secondLM.model(inputs_embeds=base_embeds.unsqueeze(0),
+                                                 attention_mask=base_attn_mask[i].unsqueeze(0))
 
-                    base_final_outs = self.llama_forward(base_labels[i], base_outputs, self.secondLM.get_input_embeddings().weight)
+                        base_final_outs = self.llama_forward(base_labels[i], base_outputs, self.secondLM.get_input_embeddings().weight)
 
-                indices_in_base, indices_in_replaced = get_matching_indices(
-                    base_ids[i][base_attn_mask[i] == 1].tolist(),
-                    task_ids[i][task_attn[i] == 1].tolist())
-                # print(indices_in_base, "base")
-                # print(indices_in_replaced, "replaced")
-                # if self.num_regression_hiddens is None:
-                #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
-                # else:
-                #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
-                cosine_loss = nn.CosineEmbeddingLoss()
-                regression_loss = cosine_loss(outputs[0][:, indices_in_replaced].squeeze(0),
-                                              base_outputs[0][:, indices_in_base].squeeze(0),
-                                              target=torch.ones(
-                                                  outputs[0][:, indices_in_replaced].shape[1],
-                                                  device=base_outputs[0].device)).mean()
+                    indices_in_base, indices_in_replaced = get_matching_indices(
+                        base_ids[i][base_attn_mask[i] == 1].tolist(),
+                        task_ids[i][task_attn[i] == 1].tolist())
+                    # print(indices_in_base, "base")
+                    # print(indices_in_replaced, "replaced")
+                    # if self.num_regression_hiddens is None:
+                    #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
+                    # else:
+                    #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
+                    cosine_loss = nn.CosineEmbeddingLoss()
+                    regression_loss = cosine_loss(outputs[0][:, indices_in_replaced].squeeze(0),
+                                                  base_outputs[0][:, indices_in_base].squeeze(0),
+                                                  target=torch.ones(
+                                                      outputs[0][:, indices_in_replaced].shape[1],
+                                                      device=base_outputs[0].device)).mean()
 
-                # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
-                #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
-                mse_loss = MSELoss()
-                distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
-                                             base_final_outs.logits[:, indices_in_base, :self.initial_second_ind])
-                # soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
-                # logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
-                # distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
-                # distillation_loss = distillation_loss * (self.distillation_temp **2)
-                # regression_loss = regression_loss
+                    # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
+                    #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
+                    mse_loss = MSELoss()
+                    distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
+                                                 base_final_outs.logits[:, indices_in_base, :self.initial_second_ind])
+                    # soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
+                    # logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
+                    # distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
+                    # distillation_loss = distillation_loss * (self.distillation_temp **2)
+                    # regression_loss = regression_loss
 
-                # cosines.append(cosine_soft)
-                # print(cosines)
-                # regression_loss = torch.stack(cosines).mean()
+                    # cosines.append(cosine_soft)
+                    # print(cosines)
+                    # regression_loss = torch.stack(cosines).mean()
 
-                regression_out_vals = CausalLMOutputWithRegressionLoss(
-                    loss=llama_outputs.loss,
-                    logits=llama_outputs.logits,
-                    base_logits=base_final_outs.logits,
-                    past_key_values=llama_outputs.past_key_values,
-                    hidden_states=llama_outputs.hidden_states,
-                    base_hidden_states=base_outputs.hidden_states,
-                    attentions=llama_outputs.attentions,
-                    new_token_loss=new_tok_loss,
-                    memories=[dict(input_memory=input_memory, output_memory=output_memory)],
-                    regression_loss=regression_loss,
-                    distillation_loss=distillation_loss
-                )
+                    regression_out_vals = CausalLMOutputWithRegressionLoss(
+                        loss=llama_outputs.loss,
+                        logits=llama_outputs.logits,
+                        base_logits=base_final_outs.logits,
+                        past_key_values=llama_outputs.past_key_values,
+                        hidden_states=llama_outputs.hidden_states,
+                        base_hidden_states=base_outputs.hidden_states,
+                        attentions=llama_outputs.attentions,
+                        new_token_loss=new_tok_loss,
+                        memories=[dict(input_memory=input_memory, output_memory=output_memory)],
+                        regression_loss=regression_loss,
+                        distillation_loss=distillation_loss
+                    )
 
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
                 if (base_ids, base_attn_mask, base_labels) != (None, None, None):
@@ -664,88 +669,89 @@ class MorphMemoryModelLLAMA(nn.Module):
             # memories.append(memory)
 
         #         print(outs, "output list")
-        final_loss = torch.stack([o.loss for o in outs]).mean()
-        final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
-        final_hiddens = [o.hidden_states for o in outs]
-        final_past_key_values = [o.past_key_values for o in outs]
-        final_attentions = [o.attentions for o in outs]
-        if len(final_new_token_loss) > 0:
-            final_new_token_loss = torch.stack(final_new_token_loss).mean()
-        else:
-            final_new_token_loss = None
-        #         print([o.new_token_loss for o in outs])
-        final_memories = [o.memories[0] for o in outs]  # list of the dictionaries
+        with record_function("## POST PROCESSING ##"):
+            final_loss = torch.stack([o.loss for o in outs]).mean()
+            final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
+            final_hiddens = [o.hidden_states for o in outs]
+            final_past_key_values = [o.past_key_values for o in outs]
+            final_attentions = [o.attentions for o in outs]
+            if len(final_new_token_loss) > 0:
+                final_new_token_loss = torch.stack(final_new_token_loss).mean()
+            else:
+                final_new_token_loss = None
+            #         print([o.new_token_loss for o in outs])
+            final_memories = [o.memories[0] for o in outs]  # list of the dictionaries
 
-        if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-            #print("positive losses", torch.stack([o.positive_loss for o in outs]))
-            #print("negative losses", torch.stack([o.negative_loss for o in outs]))
-            final_positive_loss = torch.stack([o.positive_loss for o in outs]).mean()
-            final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
-            final_positive_logits = torch.stack([o.positive_logits for o in outs])
-            final_negative_logits = torch.stack([o.negative_logits for o in outs])
+            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+                #print("positive losses", torch.stack([o.positive_loss for o in outs]))
+                #print("negative losses", torch.stack([o.negative_loss for o in outs]))
+                final_positive_loss = torch.stack([o.positive_loss for o in outs]).mean()
+                final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
+                final_positive_logits = torch.stack([o.positive_logits for o in outs])
+                final_negative_logits = torch.stack([o.negative_logits for o in outs])
 
-        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
-            final_base_logits = torch.stack([o.base_logits for o in outs])
-            final_base_hiddens = [o.base_hidden_states for o in outs]
-            final_distillation_loss = torch.stack([o.distillation_loss for o in outs]).mean()
+            if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
+                final_base_logits = torch.stack([o.base_logits for o in outs])
+                final_base_hiddens = [o.base_hidden_states for o in outs]
+                final_distillation_loss = torch.stack([o.distillation_loss for o in outs]).mean()
 
-        if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None) and (
-        base_ids, base_attn_mask, base_labels) != (None, None, None):
+            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None) and (
+            base_ids, base_attn_mask, base_labels) != (None, None, None):
 
-            return CausalLMOutputWithRegressionAndNegativeLoss(
-                loss=final_loss,
-                hidden_states=final_hiddens,
-                positive_loss=final_positive_loss.detach(),
-                negative_loss=final_negative_loss.detach(),
-                positive_logits=final_positive_logits,
-                negative_logits=final_negative_logits,
-                base_logits=final_base_logits,
-                base_hidden_states=final_base_hiddens,
-                new_token_loss=final_new_token_loss,
-                memories=final_memories,
-                regression_loss=final_regression_loss,
-                distillation_loss=final_distillation_loss
-            )
-        elif (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-            return CausalLMOutputWithNewTokenNegatives(
-                loss=final_loss,
-                positive_loss=final_positive_loss.detach(),
-                negative_loss=final_negative_loss.detach(),
-                positive_logits=final_positive_logits,
-                negative_logits=final_negative_logits,
-                hidden_states=final_hiddens,
-                attentions=final_attentions,
-                new_token_loss=final_new_token_loss,
-                memories=final_memories
-            )
-        elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            # final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
-            # final_base_logits = torch.stack([o.base_logits for o in outs])
-            final_logits = torch.stack([o.logits for o in outs])
-            # final_base_hiddens = [o.base_hidden_states for o in outs]
-            return CausalLMOutputWithRegressionLoss(
-                loss=final_loss,
-                logits=final_logits,
-                base_logits=final_base_logits,
-                hidden_states=final_hiddens,
-                base_hidden_states=final_base_hiddens,
-                new_token_loss=final_new_token_loss,
-                memories=final_memories,
-                regression_loss=final_regression_loss,
-                distillation_loss=final_distillation_loss
-            )
-        else:
-            final_logits = torch.cat([o.logits for o in outs], dim=0)
-            return CausalLMOutputWithNewToken(
-                loss=final_loss,
-                logits=final_logits,
-                hidden_states=final_hiddens,
-                attentions=final_attentions,
-                past_key_values=final_past_key_values,
-                new_token_loss=final_new_token_loss,
-                memories=final_memories
-            )
+                return CausalLMOutputWithRegressionAndNegativeLoss(
+                    loss=final_loss,
+                    hidden_states=final_hiddens,
+                    positive_loss=final_positive_loss.detach(),
+                    negative_loss=final_negative_loss.detach(),
+                    positive_logits=final_positive_logits,
+                    negative_logits=final_negative_logits,
+                    base_logits=final_base_logits,
+                    base_hidden_states=final_base_hiddens,
+                    new_token_loss=final_new_token_loss,
+                    memories=final_memories,
+                    regression_loss=final_regression_loss,
+                    distillation_loss=final_distillation_loss
+                )
+            elif (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+                return CausalLMOutputWithNewTokenNegatives(
+                    loss=final_loss,
+                    positive_loss=final_positive_loss.detach(),
+                    negative_loss=final_negative_loss.detach(),
+                    positive_logits=final_positive_logits,
+                    negative_logits=final_negative_logits,
+                    hidden_states=final_hiddens,
+                    attentions=final_attentions,
+                    new_token_loss=final_new_token_loss,
+                    memories=final_memories
+                )
+            elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                # final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
+                # final_base_logits = torch.stack([o.base_logits for o in outs])
+                final_logits = torch.stack([o.logits for o in outs])
+                # final_base_hiddens = [o.base_hidden_states for o in outs]
+                return CausalLMOutputWithRegressionLoss(
+                    loss=final_loss,
+                    logits=final_logits,
+                    base_logits=final_base_logits,
+                    hidden_states=final_hiddens,
+                    base_hidden_states=final_base_hiddens,
+                    new_token_loss=final_new_token_loss,
+                    memories=final_memories,
+                    regression_loss=final_regression_loss,
+                    distillation_loss=final_distillation_loss
+                )
+            else:
+                final_logits = torch.cat([o.logits for o in outs], dim=0)
+                return CausalLMOutputWithNewToken(
+                    loss=final_loss,
+                    logits=final_logits,
+                    hidden_states=final_hiddens,
+                    attentions=final_attentions,
+                    past_key_values=final_past_key_values,
+                    new_token_loss=final_new_token_loss,
+                    memories=final_memories
+                )
 
         # print("before return")
 
@@ -1481,9 +1487,9 @@ def main():
                         batch['negative_labels'] = neg_train_batch['labels']
 
                     # print(batch['input_ids'].shape[0])
-                    with record_function("forward + loss"):
+                    # with record_function("forward + loss"):
 
-                        out = model(batch)
+                    out = model(batch)
 
                     if args.regression_objective and args.negative_examples:
                         # distillation_weight = 1.0 - ce_weight - args.regression_alpha
@@ -1500,23 +1506,23 @@ def main():
                     # train_new_token = accelerator.gather(out.new_token_loss)
                     # train_losses.append(loss.item())
                     # train_new_token_losses.append(out.new_token_loss.detach().item())
-                    with record_function("backward"):
-                        accelerator.backward(loss)
-                        if accelerator.sync_gradients:
-                            accelerator.clip_grad_norm_(model.parameters(), 1.0)
-                            for name, param in model.named_parameters():
-                                if param.grad is not None and param.requires_grad:
-                                    log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
-                                        param.grad.view(-1)).item()
-                                    if torch.isnan(torch.norm(param.grad.view(-1))):
-                                        raise Exception("Nan Gradient for {}".format(name))
-                                if param.requires_grad and param.grad is None:
-                                    print(name)
-                    with record_function("opt"):
-                        opt.step()
-                        scheduler.step()
-                        opt.zero_grad()
-                        model.zero_grad()
+                    # with record_function("## backward ##"):
+                    accelerator.backward(loss)
+                    if accelerator.sync_gradients:
+                        accelerator.clip_grad_norm_(model.parameters(), 1.0)
+                        for name, param in model.named_parameters():
+                            if param.grad is not None and param.requires_grad:
+                                log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
+                                    param.grad.view(-1)).item()
+                                if torch.isnan(torch.norm(param.grad.view(-1))):
+                                    raise Exception("Nan Gradient for {}".format(name))
+                            if param.requires_grad and param.grad is None:
+                                print(name)
+                    # with record_function("## opt ##"):
+                    opt.step()
+                    scheduler.step()
+                    opt.zero_grad()
+                    model.zero_grad()
                     total_loss += loss.detach().float()
                     total_new_token_loss += out.new_token_loss.detach().float()
                     if args.negative_examples:
