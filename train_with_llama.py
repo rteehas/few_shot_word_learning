@@ -559,11 +559,11 @@ class MorphMemoryModelLLAMA(nn.Module):
                         loss=llama_outputs.loss + negative_llama_outputs.loss,
                         positive_loss=llama_outputs.loss,
                         negative_loss=negative_llama_outputs.loss,
-                        positive_logits=llama_outputs.logits,
-                        negative_logits=negative_llama_outputs.logits,
-                        past_key_values=llama_outputs.past_key_values,
-                        hidden_states=llama_outputs.hidden_states,
-                        attentions=llama_outputs.attentions,
+                        positive_logits=None,
+                        negative_logits=None,
+                        past_key_values=None,
+                        hidden_states=None,
+                        attentions=None,
                         new_token_loss=new_tok_loss,
                         memories=[dict(input_memory=input_memory, output_memory=output_memory)]
                     )
@@ -609,12 +609,12 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                     regression_out_vals = CausalLMOutputWithRegressionLoss(
                         loss=llama_outputs.loss,
-                        logits=llama_outputs.logits,
-                        base_logits=base_final_outs.logits,
-                        past_key_values=llama_outputs.past_key_values,
-                        hidden_states=llama_outputs.hidden_states,
-                        base_hidden_states=base_outputs.hidden_states,
-                        attentions=llama_outputs.attentions,
+                        logits=None,
+                        base_logits=None,
+                        past_key_values=None,
+                        hidden_states=None,
+                        base_hidden_states=None,
+                        attentions=None,
                         new_token_loss=new_tok_loss,
                         memories=[dict(input_memory=input_memory, output_memory=output_memory)],
                         regression_loss=regression_loss,
@@ -626,15 +626,15 @@ class MorphMemoryModelLLAMA(nn.Module):
                     # a bit hacky way to combine outputs
                     out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
                         loss=negative_out_vals.loss,
-                        hidden_states=llama_outputs.hidden_states,
+                        hidden_states=None,
                         positive_loss=negative_out_vals.positive_loss,
                         negative_loss=negative_out_vals.negative_loss,
-                        positive_logits=negative_out_vals.positive_logits,
-                        negative_logits=negative_out_vals.negative_logits,
-                        base_logits=regression_out_vals.base_logits,
-                        base_hidden_states=regression_out_vals.base_hidden_states,
-                        past_key_values=llama_outputs.past_key_values,
-                        attentions=llama_outputs.attentions,
+                        positive_logits=None,
+                        negative_logits=None,
+                        base_logits=None,
+                        base_hidden_states=None,
+                        past_key_values=None,
+                        attentions=None,
                         new_token_loss=new_tok_loss,
                         memories=[dict(input_memory=input_memory, output_memory=output_memory)],
                         regression_loss=regression_out_vals.regression_loss,
@@ -687,12 +687,12 @@ class MorphMemoryModelLLAMA(nn.Module):
                 #print("negative losses", torch.stack([o.negative_loss for o in outs]))
                 final_positive_loss = torch.stack([o.positive_loss for o in outs]).mean()
                 final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
-                final_positive_logits = torch.stack([o.positive_logits for o in outs])
-                final_negative_logits = torch.stack([o.negative_logits for o in outs])
+                # final_positive_logits = torch.stack([o.positive_logits for o in outs])
+                # final_negative_logits = torch.stack([o.negative_logits for o in outs])
 
             if (base_ids, base_attn_mask, base_labels) != (None, None, None):
                 final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
-                final_base_logits = torch.stack([o.base_logits for o in outs])
+                # final_base_logits = torch.stack([o.base_logits for o in outs])
                 final_base_hiddens = [o.base_hidden_states for o in outs]
                 final_distillation_loss = torch.stack([o.distillation_loss for o in outs]).mean()
 
@@ -704,9 +704,9 @@ class MorphMemoryModelLLAMA(nn.Module):
                     hidden_states=final_hiddens,
                     positive_loss=final_positive_loss.detach(),
                     negative_loss=final_negative_loss.detach(),
-                    positive_logits=final_positive_logits,
-                    negative_logits=final_negative_logits,
-                    base_logits=final_base_logits,
+                    positive_logits=None,
+                    negative_logits=None,
+                    base_logits=None,
                     base_hidden_states=final_base_hiddens,
                     new_token_loss=final_new_token_loss,
                     memories=final_memories,
@@ -718,8 +718,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                     loss=final_loss,
                     positive_loss=final_positive_loss.detach(),
                     negative_loss=final_negative_loss.detach(),
-                    positive_logits=final_positive_logits,
-                    negative_logits=final_negative_logits,
+                    positive_logits=None,
+                    negative_logits=None,
                     hidden_states=final_hiddens,
                     attentions=final_attentions,
                     new_token_loss=final_new_token_loss,
@@ -733,7 +733,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 return CausalLMOutputWithRegressionLoss(
                     loss=final_loss,
                     logits=final_logits,
-                    base_logits=final_base_logits,
+                    base_logits=None,
                     hidden_states=final_hiddens,
                     base_hidden_states=final_base_hiddens,
                     new_token_loss=final_new_token_loss,
