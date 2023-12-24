@@ -1407,7 +1407,7 @@ def main():
             on_trace_ready=trace_handler,
     ) as prof:
 
-        for epoch in range(epochs):
+        for epoch in range(1):
             print("epoch", epoch)
             train_new_token_losses = []
             train_losses = []
@@ -1426,7 +1426,7 @@ def main():
                     except Exception as e:
                         print(f"Failed to capture memory snapshot {e}")
                     torch.cuda.memory._record_memory_history(enabled=None)
-                    prof.export_memory_timeline(f"memsnap3.html", device="cuda:0")
+                    #prof.export_memory_timeline(f"memsnap3.html", device="cuda:0")
                     break
 
                 with accelerator.accumulate(model):
