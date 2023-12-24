@@ -518,7 +518,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             outputs = self.secondLM.model(
                 inputs_embeds=input_embeds.unsqueeze(0),
                 attention_mask=task_attn[i].unsqueeze(0),
-                output_hidden_states=True
+                # output_hidden_states=True
             )
             # print(task_labels[i].shape, "label_shape")
             # print(outputs[0].shape)
@@ -544,7 +544,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 negative_outputs = self.secondLM.model(
                     inputs_embeds=negative_embeds,
                     attention_mask=n_attn_mask,
-                    output_hidden_states=True
+                    # output_hidden_states=True
                 )
 
                 negative_llama_outputs = self.llama_forward(negative_labels[i], negative_outputs, output_weights)
