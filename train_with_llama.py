@@ -604,7 +604,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 regression_out_vals = CausalLMOutputWithRegressionLoss(
                     loss=llama_outputs.loss,
                     logits=llama_outputs.logits,
-                    base_logits=base_outputs.logits,
+                    base_logits=base_final_outs.logits,
                     past_key_values=llama_outputs.past_key_values,
                     hidden_states=llama_outputs.hidden_states,
                     base_hidden_states=base_outputs.hidden_states,
