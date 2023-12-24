@@ -412,7 +412,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         # return w + msk
         return torch.cat([w, new_embed])
 
-    def llama_forward(self, labels, outputs, new_w):
+    def llama_forward(self, labels, outputs, new_w, new_token_loss=False):
         '''
         Copied from https://github.com/huggingface/transformers/blob/18ee1fe76295239335bf1528c744fe1cfba21cc8/src/transformers/models/llama/modeling_llama.py#L742C7-L742C7
         Note: Output layer weights are not tied to word embedding weights https://github.com/facebookresearch/llama/issues/138
@@ -442,6 +442,15 @@ class MorphMemoryModelLLAMA(nn.Module):
             # Enable model parallelism
             shift_labels = shift_labels.to(shift_logits.device)
             loss = loss_fct(shift_logits, shift_labels)
+            if new_token_loss:
+                nt_loss_fct = CrossEntropyLoss(reduction='none')
+                non_reduced_loss = nt_loss_fct(shift_logits, shift_labels)
+                selected = non_reduced_loss[torch.where(torch.isin(torch.flatten(shift_labels), torch.tensor(self.second_list,
+                                                                            device=shift_logits.device).unique()))]
+                if selected.numel() > 0:
+                    new_token_loss = selected.mean()
+                else:
+                    new_token_loss = None
 
         return CausalLMOutputWithPast(
             loss=loss,
@@ -657,10 +666,10 @@ class MorphMemoryModelLLAMA(nn.Module):
             else:
                 out_vals = CausalLMOutputWithNewToken(
                     loss=llama_outputs.loss,
-                    logits=llama_outputs.logits,
-                    past_key_values=llama_outputs.past_key_values,
-                    hidden_states=llama_outputs.hidden_states,
-                    attentions=llama_outputs.attentions,
+                    logits=None,
+                    past_key_values=None,
+                    hidden_states=None,
+                    attentions=None,
                     new_token_loss=new_tok_loss,
                     memories=[dict(input_memory=input_memory, output_memory=output_memory)]
                 )
