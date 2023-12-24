@@ -751,13 +751,13 @@ class MorphMemoryModelLLAMA(nn.Module):
                     distillation_loss=final_distillation_loss
                 )
             else:
-                final_logits = torch.cat([o.logits for o in outs], dim=0)
+                # final_logits = torch.cat([o.logits for o in outs], dim=0)
                 return CausalLMOutputWithNewToken(
                     loss=final_loss,
-                    logits=final_logits,
-                    hidden_states=final_hiddens,
-                    attentions=final_attentions,
-                    past_key_values=final_past_key_values,
+                    logits=None,
+                    hidden_states=None,
+                    attentions=None,
+                    past_key_values=None,
                     new_token_loss=final_new_token_loss,
                     memories=final_memories
                 )
