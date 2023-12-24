@@ -579,10 +579,10 @@ class MorphMemoryModelLLAMA(nn.Module):
                 # else:
                 #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
                 cosine_loss = nn.CosineEmbeddingLoss()
-                regression_loss = cosine_loss(outputs.hidden_states[-1][:, indices_in_replaced].squeeze(0),
+                regression_loss = cosine_loss(outputs[0][:, indices_in_replaced].squeeze(0),
                                               base_outputs.hidden_states[-1][:, indices_in_base].squeeze(0),
                                               target=torch.ones(
-                                                  outputs.hidden_states[-1][:, indices_in_replaced].shape[1],
+                                                  outputs[0][:, indices_in_replaced].shape[1],
                                                   device=base_outputs.hidden_states[-1].device)).mean()
 
                 # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
