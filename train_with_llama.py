@@ -48,7 +48,7 @@ def trace_handler(prof: torch.profiler.profile):
    host_name = socket.gethostname()
    timestamp = datetime.now().strftime(TIME_FORMAT_STR)
    file_prefix = f"{host_name}_{timestamp}"
-   print(prof.key_averages().table(sort_by="self_cuda_memory_usage", row_limit=10))
+   print(prof.key_averages(group_by_stack_n=5).table(sort_by="self_cuda_memory_usage", row_limit=10))
 
    # Construct the trace file.
    prof.export_chrome_trace(f"{file_prefix}.json.gz")
