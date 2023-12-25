@@ -510,6 +510,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         memories = []
         mem_embeds = []
         for i in range(b_task):
+            print("Context {}".format(i))
             with record_function("## MLM STEP ##"):
                 c = contexts[i].to(self.firstLM.device)
                 #             print('before', c['input_ids'])
