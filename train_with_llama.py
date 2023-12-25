@@ -1170,6 +1170,9 @@ def main():
     # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
     # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     #accelerator.wait_for_everyone()
+    torch.cuda.memory._record_memory_history(
+        max_entries=200000
+    )
     with accelerator.main_process_first():
         firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True).to(accelerator.device)
         secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -1427,9 +1430,7 @@ def main():
     best_test_loss = 10000000
     best_new_token_loss = 10000000
     print("training")
-    torch.cuda.memory._record_memory_history(
-        max_entries=100000
-    )
+
 
     with torch.profiler.profile(
             activities=[
@@ -1457,7 +1458,7 @@ def main():
                 #if global_step==3:
                  #   break
                 prof.step()
-                if i == 3:
+                if i == 1:
                     try:
                         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
                     except Exception as e:
