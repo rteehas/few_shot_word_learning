@@ -1427,6 +1427,10 @@ def main():
     best_test_loss = 10000000
     best_new_token_loss = 10000000
     print("training")
+    torch.cuda.memory._record_memory_history(
+        max_entries=100000
+    )
+
     with torch.profiler.profile(
             activities=[
                 torch.profiler.ProfilerActivity.CPU,
