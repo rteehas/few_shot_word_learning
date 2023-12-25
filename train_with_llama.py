@@ -1458,6 +1458,7 @@ def main():
                 #if global_step==3:
                  #   break
                 prof.step()
+                print("Context is {} sentences".format(batch['contexts'][0]['input_ids'].shape))
                 if i == 1:
                     try:
                         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
