@@ -705,7 +705,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 negative_llama_outputs = self.llama_forward(negative_labels[i], outputs, output_weights,
                                                                  i + b_task)
 
-                negative_out_vals = CausalLMOutputWithNewTokenNegatives(
+                out_vals = CausalLMOutputWithNewTokenNegatives(
                     loss=llama_outputs.loss + negative_llama_outputs.loss,
                     positive_loss=llama_outputs.loss,
                     negative_loss=negative_llama_outputs.loss,
