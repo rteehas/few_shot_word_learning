@@ -741,10 +741,11 @@ class MorphMemoryModelLLAMA(nn.Module):
                     task_ids[i][task_attn[i] == 1].tolist())
 
                 distill_index = i + (2 * b_task)
-                base_final_outs = self.llama_forward(base_labels[i],
-                                                     outputs,
-                                                     self.secondLM.get_output_embeddings().weight,
-                                                     index=distill_index, new_token_loss=False)
+                with torch.no_grad():
+                    base_final_outs = self.llama_forward(base_labels[i],
+                                                         outputs,
+                                                         self.secondLM.get_output_embeddings().weight,
+                                                         index=distill_index, new_token_loss=False)
 
                 cosine_loss = nn.CosineEmbeddingLoss()
                 # print("shape for cosine")
