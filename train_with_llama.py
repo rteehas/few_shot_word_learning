@@ -512,7 +512,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         memories = []
         mem_embeds = []
         embeds = []
-
+        neg_embeds = []
         for i in range(b_task):
             print("Context {}".format(i))
             with record_function("## MLM STEP ##"):
@@ -577,29 +577,30 @@ class MorphMemoryModelLLAMA(nn.Module):
                         n_attn_mask = negative_attn_mask[i].unsqueeze(0)
                     else:
                         n_attn_mask = negative_attn_mask[i]
+                    neg_embeds.append(negative_embeds)
                     # print("embed shape in model", negative_embeds.shape)
                     # print("attention mask shape in model", negative_attn_mask[i].shape)
                     # print("embed shape after unsqueeze", negative_embeds.unsqueeze(0).shape)
-                    negative_outputs = self.secondLM.model(
-                        inputs_embeds=negative_embeds,
-                        attention_mask=n_attn_mask,
-                        # output_hidden_states=True
-                    )
-
-                    negative_llama_outputs = self.llama_forward(negative_labels[i], negative_outputs, output_weights)
-
-                    negative_out_vals = CausalLMOutputWithNewTokenNegatives(
-                        loss=llama_outputs.loss + negative_llama_outputs.loss,
-                        positive_loss=llama_outputs.loss,
-                        negative_loss=negative_llama_outputs.loss,
-                        positive_logits=None,
-                        negative_logits=None,
-                        past_key_values=None,
-                        hidden_states=None,
-                        attentions=None,
-                        new_token_loss=new_tok_loss,
-                        memories=[dict(input_memory=input_memory, output_memory=output_memory)]
-                    )
+                    # negative_outputs = self.secondLM.model(
+                    #     inputs_embeds=negative_embeds,
+                    #     attention_mask=n_attn_mask,
+                    #     # output_hidden_states=True
+                    # )
+                    #
+                    # negative_llama_outputs = self.llama_forward(negative_labels[i], negative_outputs, output_weights)
+                    #
+                    # negative_out_vals = CausalLMOutputWithNewTokenNegatives(
+                    #     loss=llama_outputs.loss + negative_llama_outputs.loss,
+                    #     positive_loss=llama_outputs.loss,
+                    #     negative_loss=negative_llama_outputs.loss,
+                    #     positive_logits=None,
+                    #     negative_logits=None,
+                    #     past_key_values=None,
+                    #     hidden_states=None,
+                    #     attentions=None,
+                    #     new_token_loss=new_tok_loss,
+                    #     memories=[dict(input_memory=input_memory, output_memory=output_memory)]
+                    # )
             with record_function("## DISTILLATION ##"):
                 if (base_ids, base_attn_mask, base_labels) != (None, None, None):
                     with torch.no_grad():
@@ -679,11 +680,15 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
                 out_vals = regression_out_vals
+        if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+            input_embeds = torch.stack(embeds + neg_embeds)
+            attn = torch.cat([task_attn, negative_attn_mask], dim=0)
+        else:
 
-        input_embeds = torch.stack(embeds)
+            input_embeds = torch.stack(embeds)
         outputs = self.secondLM.model(
             inputs_embeds=input_embeds,
-            attention_mask=task_attn,
+            attention_mask=attn,
             # output_hidden_states=True
         )
         loss = []
@@ -696,15 +701,33 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                              i, new_token_loss=True)
             # loss.append(llama_outputs.loss)
             # new_token_loss.append(new_tok_loss)
-            out_vals = CausalLMOutputWithNewToken(
-                loss=llama_outputs.loss,
-                logits=None,
-                past_key_values=None,
-                hidden_states=None,
-                attentions=None,
-                new_token_loss=new_tok_loss,
-                memories=[mem]
-            )
+            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+                negative_llama_outputs = self.llama_forward(negative_labels[i], outputs, output_weights,
+                                                                 i + b_task)
+
+                negative_out_vals = CausalLMOutputWithNewTokenNegatives(
+                    loss=llama_outputs.loss + negative_llama_outputs.loss,
+                    positive_loss=llama_outputs.loss,
+                    negative_loss=negative_llama_outputs.loss,
+                    positive_logits=None,
+                    negative_logits=None,
+                    past_key_values=None,
+                    hidden_states=None,
+                    attentions=None,
+                    new_token_loss=new_tok_loss,
+                    memories=[dict(input_memory=input_memory, output_memory=output_memory)]
+                )
+
+            else:
+                out_vals = CausalLMOutputWithNewToken(
+                    loss=llama_outputs.loss,
+                    logits=None,
+                    past_key_values=None,
+                    hidden_states=None,
+                    attentions=None,
+                    new_token_loss=new_tok_loss,
+                    memories=[mem]
+                )
             outs.append(out_vals)
         # print("before mem forward")
             #             print(new_token, new_tok_loss)
