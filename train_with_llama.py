@@ -694,8 +694,8 @@ class MorphMemoryModelLLAMA(nn.Module):
             output_weights = self.get_new_output_weights(new_embed=out_embs)
             llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights,
                                                              i, new_token_loss=True)
-            loss.append(llama_outputs.loss)
-            new_token_loss.append(new_tok_loss)
+            # loss.append(llama_outputs.loss)
+            # new_token_loss.append(new_tok_loss)
             out_vals = CausalLMOutputWithNewToken(
                 loss=llama_outputs.loss,
                 logits=None,
