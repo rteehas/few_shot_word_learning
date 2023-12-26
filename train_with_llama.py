@@ -736,6 +736,9 @@ class MorphMemoryModelLLAMA(nn.Module):
                     task_ids[i][task_attn[i] == 1].tolist())
 
                 cosine_loss = nn.CosineEmbeddingLoss()
+                print("shape for cosine")
+                print(outputs[0].shape)
+                print(base_outputs[0].shape)
                 regression_loss = cosine_loss(outputs[0][i, :, indices_in_replaced].squeeze(0),
                                               base_outputs[0][i, :, indices_in_base].squeeze(0),
                                               target=torch.ones(
