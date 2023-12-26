@@ -516,7 +516,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         mem_embeds = []
         embeds = []
         neg_embeds = []
-        distillation_outputs = []
+        distillation_embeds = []
         for i in range(b_task):
             print("Context {}".format(i))
             with record_function("## MLM STEP ##"):
@@ -605,14 +605,15 @@ class MorphMemoryModelLLAMA(nn.Module):
                     #     new_token_loss=new_tok_loss,
                     #     memories=[dict(input_memory=input_memory, output_memory=output_memory)]
                     # )
-            # with record_function("## DISTILLATION ##"):
-            #     if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            #         with torch.no_grad():
-            #             base_embeds = F.embedding(base_ids[i], self.secondLM.get_input_embeddings().weight)
-            #             base_outputs = self.secondLM.model(inputs_embeds=base_embeds.unsqueeze(0),
-            #                                      attention_mask=base_attn_mask[i].unsqueeze(0))
-            #
-            #             base_final_outs = self.llama_forward(base_labels[i], base_outputs, self.secondLM.get_input_embeddings().weight)
+            with record_function("## DISTILLATION ##"):
+                if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                    with torch.no_grad():
+                        base_embeds = F.embedding(base_ids[i], self.secondLM.get_input_embeddings().weight)
+                        distillation_embeds.append(base_embeds)
+                        # base_outputs = self.secondLM.model(inputs_embeds=base_embeds.unsqueeze(0),
+                        #                          attention_mask=base_attn_mask[i].unsqueeze(0))
+                        #
+                        # base_final_outs = self.llama_forward(base_labels[i], base_outputs, self.secondLM.get_input_embeddings().weight)
             #
             #         indices_in_base, indices_in_replaced = get_matching_indices(
             #             base_ids[i][base_attn_mask[i] == 1].tolist(),
@@ -684,18 +685,22 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             # elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
             #     out_vals = regression_out_vals
-        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            with torch.no_grad():
-                base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
-                base_final_outs = self.llama_forward(base_labels,
-                                                     base_outputs,
-                                                     self.secondLM.get_input_embeddings().weight,
-                                                     index=None, new_token_loss=False)
+        # if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+        #     with torch.no_grad():
+        #         base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
+        #         base_final_outs = self.llama_forward(base_labels,
+        #                                              base_outputs,
+        #                                              self.secondLM.get_output_embeddings().weight,
+        #                                              index=None, new_token_loss=False)
 
 
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-            input_embeds = torch.stack(embeds + neg_embeds)
-            attn = torch.cat([task_attn, negative_attn_mask], dim=0)
+            if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                input_embeds = torch.stack(embeds + neg_embeds + distillation_embeds)
+                attn = torch.cat([task_attn, negative_attn_mask, base_attn_mask], dim=0)
+            else:
+                input_embeds = torch.stack(embeds + neg_embeds)
+                attn = torch.cat([task_attn, negative_attn_mask], dim=0)
         else:
             input_embeds = torch.stack(embeds)
         outputs = self.secondLM.model(
@@ -735,6 +740,12 @@ class MorphMemoryModelLLAMA(nn.Module):
                     base_ids[i][base_attn_mask[i] == 1].tolist(),
                     task_ids[i][task_attn[i] == 1].tolist())
 
+                distill_index = i + (2 * b_task)
+                base_final_outs = self.llama_forward(base_labels[i],
+                                                     outputs,
+                                                     self.secondLM.get_output_embeddings().weight,
+                                                     index=distill_index, new_token_loss=False)
+
                 cosine_loss = nn.CosineEmbeddingLoss()
                 # print("shape for cosine")
                 # print(outputs[0].shape)
@@ -749,10 +760,10 @@ class MorphMemoryModelLLAMA(nn.Module):
                 print(llama_outputs.logits.shape)
 
                 regression_loss = cosine_loss(outputs[0][i, indices_in_replaced],
-                                              base_outputs[0][i, indices_in_base],
+                                              outputs[0][distill_index, indices_in_base],
                                               target=torch.ones(
                                                   outputs[0][i, indices_in_replaced].shape[0],
-                                                  device=base_outputs[0].device)).mean()
+                                                  device=outputs[0].device)).mean()
 
                 mse_loss = MSELoss()
                 distillation_loss = mse_loss(llama_outputs.logits[indices_in_replaced, :self.initial_second_ind],
