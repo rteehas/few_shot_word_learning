@@ -1551,7 +1551,7 @@ def main():
                 torch.profiler.ProfilerActivity.CPU,
                 torch.profiler.ProfilerActivity.CUDA,
             ],
-            schedule=torch.profiler.schedule(wait=0, warmup=0, active=10, repeat=1),
+            schedule=torch.profiler.schedule(wait=0, warmup=0, active=0, repeat=0),
             record_shapes=True,
             profile_memory=True,
             with_stack=True,
@@ -1571,16 +1571,16 @@ def main():
             for i, batch in enumerate(active_train_dl):
                 #if global_step==3:
                  #   break
-                prof.step()
-                print("Context is {} sentences".format(batch['contexts'][0]['input_ids'].shape))
-                if i == 3:
-                    try:
-                        torch.cuda.memory._dump_snapshot("memsnap3.pickle")
-                    except Exception as e:
-                        print(f"Failed to capture memory snapshot {e}")
-                    torch.cuda.memory._record_memory_history(enabled=None)
-                    #prof.export_memory_timeline(f"memsnap3.html", device="cuda:0")
-                    break
+                # prof.step()
+                # print("Context is {} sentences".format(batch['contexts'][0]['input_ids'].shape))
+                # if i == 3:
+                #     try:
+                #         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
+                #     except Exception as e:
+                #         print(f"Failed to capture memory snapshot {e}")
+                #     torch.cuda.memory._record_memory_history(enabled=None)
+                #     #prof.export_memory_timeline(f"memsnap3.html", device="cuda:0")
+                #     break
 
                 with accelerator.accumulate(model):
                     log_dict = {}
