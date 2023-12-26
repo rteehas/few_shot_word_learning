@@ -512,6 +512,14 @@ class MorphMemoryModelLLAMA(nn.Module):
         task_labels = batch['labels']
         outs = []
         assert len(contexts) == b_task
+        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            with torch.no_grad():
+                base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
+                base_final_outs = self.llama_forward(base_labels,
+                                                     base_outputs,
+                                                     self.secondLM.get_output_embeddings().weight,
+                                                     index=None, new_token_loss=False)
+
         memories = []
         mem_embeds = []
         embeds = []
@@ -684,13 +692,6 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             # elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
             #     out_vals = regression_out_vals
-        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            with torch.no_grad():
-                base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
-                base_final_outs = self.llama_forward(base_labels,
-                                                     base_outputs,
-                                                     self.secondLM.get_output_embeddings().weight,
-                                                     index=None, new_token_loss=False)
 
 
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
