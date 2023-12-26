@@ -545,7 +545,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
 
                 input_memory.store(new_token, inp_embs)
-                # output_memory.store(new_token, out_embs)
+                output_memory.store(new_token, out_embs)
                 new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
                 # output_weights = self.get_new_output_weights(new_embed=out_embs)
 
