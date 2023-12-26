@@ -675,8 +675,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                         distillation_loss=distillation_loss
                     )
 
-                else:
-                    out_vals = negative_out_vals
+                # else:
+                #     out_vals = negative_out_vals
 
             elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
                 out_vals = regression_out_vals
