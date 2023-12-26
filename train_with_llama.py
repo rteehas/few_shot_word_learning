@@ -715,7 +715,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                     hidden_states=None,
                     attentions=None,
                     new_token_loss=new_tok_loss,
-                    memories=[dict(input_memory=input_memory, output_memory=output_memory)]
+                    memories=[mem]
                 )
 
             else:
