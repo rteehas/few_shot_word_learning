@@ -681,7 +681,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         input_embeds = torch.stack(embeds)
         outputs = self.secondLM.model(
-            inputs_embeds=input_embeds.unsqueeze(0),
+            inputs_embeds=input_embeds,
             attention_mask=task_attn,
             # output_hidden_states=True
         )
