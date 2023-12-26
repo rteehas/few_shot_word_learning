@@ -512,13 +512,6 @@ class MorphMemoryModelLLAMA(nn.Module):
         task_labels = batch['labels']
         outs = []
         assert len(contexts) == b_task
-        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            with torch.no_grad():
-                base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
-                base_final_outs = self.llama_forward(base_labels,
-                                                     base_outputs,
-                                                     self.secondLM.get_output_embeddings().weight,
-                                                     index=None, new_token_loss=False)
 
         memories = []
         mem_embeds = []
@@ -692,7 +685,13 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             # elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
             #     out_vals = regression_out_vals
-
+        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            with torch.no_grad():
+                base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
+                base_final_outs = self.llama_forward(base_labels,
+                                                     base_outputs,
+                                                     self.secondLM.get_output_embeddings().weight,
+                                                     index=None, new_token_loss=False)
 
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
             input_embeds = torch.stack(embeds + neg_embeds)
@@ -714,23 +713,6 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                              i, new_token_loss=True)
             # loss.append(llama_outputs.loss)
             # new_token_loss.append(new_tok_loss)
-            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-                negative_llama_outputs = self.llama_forward(negative_labels[i], outputs, output_weights,
-                                                                 i + b_task)
-
-                out_vals = CausalLMOutputWithNewTokenNegatives(
-                    loss=llama_outputs.loss + negative_llama_outputs.loss,
-                    positive_loss=llama_outputs.loss,
-                    negative_loss=negative_llama_outputs.loss,
-                    positive_logits=None,
-                    negative_logits=None,
-                    past_key_values=None,
-                    hidden_states=None,
-                    attentions=None,
-                    new_token_loss=new_tok_loss,
-                    memories=[mem]
-                )
-
             if (base_ids, base_attn_mask, base_labels) != (None, None, None):
                 indices_in_base, indices_in_replaced = get_matching_indices(
                     base_ids[i][base_attn_mask[i] == 1].tolist(),
@@ -758,6 +740,24 @@ class MorphMemoryModelLLAMA(nn.Module):
                 mse_loss = MSELoss()
                 distillation_loss = mse_loss(llama_outputs.logits[indices_in_replaced, :self.initial_second_ind],
                                              base_final_outs.logits[i, indices_in_base, :self.initial_second_ind])
+
+            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+                negative_llama_outputs = self.llama_forward(negative_labels[i], outputs, output_weights,
+                                                                 i + b_task)
+
+                out_vals = CausalLMOutputWithNewTokenNegatives(
+                    loss=llama_outputs.loss + negative_llama_outputs.loss,
+                    positive_loss=llama_outputs.loss,
+                    negative_loss=negative_llama_outputs.loss,
+                    positive_logits=None,
+                    negative_logits=None,
+                    past_key_values=None,
+                    hidden_states=None,
+                    attentions=None,
+                    new_token_loss=new_tok_loss,
+                    memories=[mem]
+                )
+
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
                 if (base_ids, base_attn_mask, base_labels) != (None, None, None):
                     out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
