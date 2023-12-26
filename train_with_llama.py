@@ -681,6 +681,12 @@ class MorphMemoryModelLLAMA(nn.Module):
             elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
                 out_vals = regression_out_vals
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+            print("embed shape")
+            for e in embeds:
+                print(e.shape)
+            print("neg shape")
+            for e in neg_embeds:
+                print(e.shape)
             input_embeds = torch.stack(embeds + neg_embeds)
             attn = torch.cat([task_attn, negative_attn_mask], dim=0)
         else:
