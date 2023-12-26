@@ -413,7 +413,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         # return w + msk
         return torch.cat([w, new_embed])
 
-    def llama_forward(self, labels, outputs, new_w, new_token_loss=False):
+    def llama_forward(self, labels, outputs, new_w, index, new_token_loss=False):
         '''
         Copied from https://github.com/huggingface/transformers/blob/18ee1fe76295239335bf1528c744fe1cfba21cc8/src/transformers/models/llama/modeling_llama.py#L742C7-L742C7
         Note: Output layer weights are not tied to word embedding weights https://github.com/facebookresearch/llama/issues/138
@@ -421,7 +421,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         :param outputs:
         :return:
         '''
-        hidden_states = outputs[0]
+        hidden_states = outputs[0][index, :, :]
         if self.secondLM.config.pretraining_tp > 1:
             lm_head_slices = new_w.split(self.secondLM.vocab_size // self.secondLM.config.pretraining_tp, dim=0)
             logits = [F.linear(hidden_states, lm_head_slices[i]) for i in range(self.secondLM.config.pretraining_tp)]
@@ -510,6 +510,8 @@ class MorphMemoryModelLLAMA(nn.Module):
         assert len(contexts) == b_task
         memories = []
         mem_embeds = []
+        embeds = []
+
         for i in range(b_task):
             print("Context {}".format(i))
             with record_function("## MLM STEP ##"):
@@ -543,21 +545,23 @@ class MorphMemoryModelLLAMA(nn.Module):
                 inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
 
                 input_memory.store(new_token, inp_embs)
-                output_memory.store(new_token, out_embs)
+                # output_memory.store(new_token, out_embs)
                 new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
-                output_weights = self.get_new_output_weights(new_embed=out_embs)
+                # output_weights = self.get_new_output_weights(new_embed=out_embs)
 
             with record_function("## LLAMA MODEL NONCE ##"):
                 input_embeds = F.embedding(task_ids[i], new_w)
-                outputs = self.secondLM.model(
-                    inputs_embeds=input_embeds.unsqueeze(0),
-                    attention_mask=task_attn[i].unsqueeze(0),
-                    # output_hidden_states=True
-                )
-                # print(task_labels[i].shape, "label_shape")
-                # print(outputs[0].shape)
-
-                llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights, new_token_loss=True)
+                embeds.append(input_embeds)
+                mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
+                # outputs = self.secondLM.model(
+                #     inputs_embeds=input_embeds.unsqueeze(0),
+                #     attention_mask=task_attn[i].unsqueeze(0),
+                #     # output_hidden_states=True
+                # )
+                # # print(task_labels[i].shape, "label_shape")
+                # # print(outputs[0].shape)
+                #
+                # llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights, new_token_loss=True)
             #             with torch.no_grad():
             #     new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
             #                                                    self.secondLM.lm_head.weight.shape[0] + self.num_new_tokens,
@@ -675,25 +679,49 @@ class MorphMemoryModelLLAMA(nn.Module):
             elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
                 out_vals = regression_out_vals
 
-
-
-            # print("before mem forward")
+        input_embeds = torch.stack(embeds)
+        outputs = self.secondLM.model(
+            inputs_embeds=input_embeds.unsqueeze(0),
+            attention_mask=task_attn,
+            # output_hidden_states=True
+        )
+        loss = []
+        new_token_loss = []
+        outs = []
+        for i, mem in enumerate(mem_embeds):
+            out_embs = mem['output_memory'].retrieve(self.firstLM.config.vocab_size + self.num_new_tokens - 1)
+            output_weights = self.get_new_output_weights(new_embed=out_embs)
+            llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights,
+                                                             i, new_token_loss=True)
+            loss.append(llama_outputs.loss)
+            new_token_loss.append(new_tok_loss)
+            out_vals = CausalLMOutputWithNewToken(
+                loss=llama_outputs.loss,
+                logits=None,
+                past_key_values=None,
+                hidden_states=None,
+                attentions=None,
+                new_token_loss=new_tok_loss,
+                memories=[mem]
+            )
+            outs.append(out_vals)
+        # print("before mem forward")
             #             print(new_token, new_tok_loss)
             # token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
             #             print("output", output_weights[token_mapping[new_token], :])
             #             print("input", new_w[token_mapping[new_token], :])
-            else:
-                out_vals = CausalLMOutputWithNewToken(
-                    loss=llama_outputs.loss,
-                    logits=None,
-                    past_key_values=None,
-                    hidden_states=None,
-                    attentions=None,
-                    new_token_loss=new_tok_loss,
-                    memories=[dict(input_memory=input_memory, output_memory=output_memory)]
-                )
-            # print("after mem forward")
-            outs.append(out_vals)
+            # else:
+            #     out_vals = CausalLMOutputWithNewToken(
+            #         loss=llama_outputs.loss,
+            #         logits=None,
+            #         past_key_values=None,
+            #         hidden_states=None,
+            #         attentions=None,
+            #         new_token_loss=new_tok_loss,
+            #         memories=[dict(input_memory=input_memory, output_memory=output_memory)]
+            #     )
+            # # print("after mem forward")
+            # outs.append(out_vals)
             # memories.append(memory)
 
         #         print(outs, "output list")
@@ -780,6 +808,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                     new_token_loss=final_new_token_loss,
                     memories=final_memories
                 )
+
+
 
         # print("before return")
 
