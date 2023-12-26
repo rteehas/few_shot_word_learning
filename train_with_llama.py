@@ -747,7 +747,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 regression_loss = cosine_loss(outputs[0][i, indices_in_replaced],
                                               base_outputs[0][i, indices_in_base],
                                               target=torch.ones(
-                                                  outputs[0][i, indices_in_replaced].shape[1],
+                                                  outputs[0][i, indices_in_replaced].shape[0],
                                                   device=base_outputs[0].device)).mean()
 
                 mse_loss = MSELoss()
