@@ -746,6 +746,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 print("shape for distill")
                 print(base_final_outs.logits.shape)
+                print(llama_outputs.logits.shape)
 
                 regression_loss = cosine_loss(outputs[0][i, indices_in_replaced],
                                               base_outputs[0][i, indices_in_base],
@@ -755,7 +756,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 mse_loss = MSELoss()
                 distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
-                                             base_final_outs.logits[i, :, indices_in_base, :self.initial_second_ind])
+                                             base_final_outs.logits[i, indices_in_base, :self.initial_second_ind])
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
                 if (base_ids, base_attn_mask, base_labels) != (None, None, None):
                     out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
