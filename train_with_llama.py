@@ -1515,7 +1515,7 @@ def main():
                  #   break
                 prof.step()
                 print("Context is {} sentences".format(batch['contexts'][0]['input_ids'].shape))
-                if i == 3:
+                if i == 10:
                     try:
                         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
                     except Exception as e:
