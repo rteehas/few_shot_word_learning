@@ -1675,7 +1675,7 @@ def main():
                                 norms).mean().detach().item()
 
                     accelerator.log(log_dict)
-
+                    print(log_dict)
                     # buffer.store_task(batch)
                     # buffer.cleanup()
 
