@@ -739,6 +739,11 @@ class MorphMemoryModelLLAMA(nn.Module):
                 print("shape for cosine")
                 print(outputs[0].shape)
                 print(base_outputs[0].shape)
+                print(outputs[0][i].shape)
+                print(base_outputs[0][i].shape)
+                print(outputs[0][i, indices_in_replaced].shape)
+                print(base_outputs[0][i, indices_in_base].shape)
+
                 regression_loss = cosine_loss(outputs[0][i, indices_in_replaced],
                                               base_outputs[0][i, indices_in_base],
                                               target=torch.ones(
