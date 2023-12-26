@@ -422,7 +422,10 @@ class MorphMemoryModelLLAMA(nn.Module):
         :param outputs:
         :return:
         '''
-        hidden_states = outputs[0][index, :, :]
+        if index is not None:
+            hidden_states = outputs[0][index, :, :]
+        else:
+            hidden_states = outputs[0]
         if self.secondLM.config.pretraining_tp > 1:
             lm_head_slices = new_w.split(self.secondLM.vocab_size // self.secondLM.config.pretraining_tp, dim=0)
             logits = [F.linear(hidden_states, lm_head_slices[i]) for i in range(self.secondLM.config.pretraining_tp)]
@@ -513,6 +516,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         mem_embeds = []
         embeds = []
         neg_embeds = []
+        distillation_outputs = []
         for i in range(b_task):
             print("Context {}".format(i))
             with record_function("## MLM STEP ##"):
@@ -601,90 +605,95 @@ class MorphMemoryModelLLAMA(nn.Module):
                     #     new_token_loss=new_tok_loss,
                     #     memories=[dict(input_memory=input_memory, output_memory=output_memory)]
                     # )
-            with record_function("## DISTILLATION ##"):
-                if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                    with torch.no_grad():
-                        base_embeds = F.embedding(base_ids[i], self.secondLM.get_input_embeddings().weight)
-                        base_outputs = self.secondLM.model(inputs_embeds=base_embeds.unsqueeze(0),
-                                                 attention_mask=base_attn_mask[i].unsqueeze(0))
-
-                        base_final_outs = self.llama_forward(base_labels[i], base_outputs, self.secondLM.get_input_embeddings().weight)
-
-                    indices_in_base, indices_in_replaced = get_matching_indices(
-                        base_ids[i][base_attn_mask[i] == 1].tolist(),
-                        task_ids[i][task_attn[i] == 1].tolist())
-                    # print(indices_in_base, "base")
-                    # print(indices_in_replaced, "replaced")
-                    # if self.num_regression_hiddens is None:
-                    #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
-                    # else:
-                    #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
-                    cosine_loss = nn.CosineEmbeddingLoss()
-                    regression_loss = cosine_loss(outputs[0][:, indices_in_replaced].squeeze(0),
-                                                  base_outputs[0][:, indices_in_base].squeeze(0),
-                                                  target=torch.ones(
-                                                      outputs[0][:, indices_in_replaced].shape[1],
-                                                      device=base_outputs[0].device)).mean()
-
-                    # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
-                    #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
-                    mse_loss = MSELoss()
-                    distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
-                                                 base_final_outs.logits[:, indices_in_base, :self.initial_second_ind])
-                    # soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
-                    # logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
-                    # distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
-                    # distillation_loss = distillation_loss * (self.distillation_temp **2)
-                    # regression_loss = regression_loss
-
-                    # cosines.append(cosine_soft)
-                    # print(cosines)
-                    # regression_loss = torch.stack(cosines).mean()
-
-                    regression_out_vals = CausalLMOutputWithRegressionLoss(
-                        loss=llama_outputs.loss,
-                        logits=None,
-                        base_logits=None,
-                        past_key_values=None,
-                        hidden_states=None,
-                        base_hidden_states=None,
-                        attentions=None,
-                        new_token_loss=new_tok_loss,
-                        memories=[dict(input_memory=input_memory, output_memory=output_memory)],
-                        regression_loss=regression_loss,
-                        distillation_loss=distillation_loss
-                    )
-
-            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-                if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                    # a bit hacky way to combine outputs
-                    out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
-                        loss=negative_out_vals.loss,
-                        hidden_states=None,
-                        positive_loss=negative_out_vals.positive_loss,
-                        negative_loss=negative_out_vals.negative_loss,
-                        positive_logits=None,
-                        negative_logits=None,
-                        base_logits=None,
-                        base_hidden_states=None,
-                        past_key_values=None,
-                        attentions=None,
-                        new_token_loss=new_tok_loss,
-                        memories=[dict(input_memory=input_memory, output_memory=output_memory)],
-                        regression_loss=regression_out_vals.regression_loss,
-                        distillation_loss=distillation_loss
-                    )
+            # with record_function("## DISTILLATION ##"):
+            #     if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            #         with torch.no_grad():
+            #             base_embeds = F.embedding(base_ids[i], self.secondLM.get_input_embeddings().weight)
+            #             base_outputs = self.secondLM.model(inputs_embeds=base_embeds.unsqueeze(0),
+            #                                      attention_mask=base_attn_mask[i].unsqueeze(0))
+            #
+            #             base_final_outs = self.llama_forward(base_labels[i], base_outputs, self.secondLM.get_input_embeddings().weight)
+            #
+            #         indices_in_base, indices_in_replaced = get_matching_indices(
+            #             base_ids[i][base_attn_mask[i] == 1].tolist(),
+            #             task_ids[i][task_attn[i] == 1].tolist())
+            #         # print(indices_in_base, "base")
+            #         # print(indices_in_replaced, "replaced")
+            #         # if self.num_regression_hiddens is None:
+            #         #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
+            #         # else:
+            #         #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
+            #         cosine_loss = nn.CosineEmbeddingLoss()
+            #         regression_loss = cosine_loss(outputs[0][:, indices_in_replaced].squeeze(0),
+            #                                       base_outputs[0][:, indices_in_base].squeeze(0),
+            #                                       target=torch.ones(
+            #                                           outputs[0][:, indices_in_replaced].shape[1],
+            #                                           device=base_outputs[0].device)).mean()
+            #
+            #         # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
+            #         #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
+            #         mse_loss = MSELoss()
+            #         distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
+            #                                      base_final_outs.logits[:, indices_in_base, :self.initial_second_ind])
+            #         # soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
+            #         # logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
+            #         # distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
+            #         # distillation_loss = distillation_loss * (self.distillation_temp **2)
+            #         # regression_loss = regression_loss
+            #
+            #         # cosines.append(cosine_soft)
+            #         # print(cosines)
+            #         # regression_loss = torch.stack(cosines).mean()
+            #
+            #         regression_out_vals = CausalLMOutputWithRegressionLoss(
+            #             loss=llama_outputs.loss,
+            #             logits=None,
+            #             base_logits=None,
+            #             past_key_values=None,
+            #             hidden_states=None,
+            #             base_hidden_states=None,
+            #             attentions=None,
+            #             new_token_loss=new_tok_loss,
+            #             memories=[dict(input_memory=input_memory, output_memory=output_memory)],
+            #             regression_loss=regression_loss,
+            #             distillation_loss=distillation_loss
+            #         )
+            #
+            # if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+            #     if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            #         # a bit hacky way to combine outputs
+            #         out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
+            #             loss=negative_out_vals.loss,
+            #             hidden_states=None,
+            #             positive_loss=negative_out_vals.positive_loss,
+            #             negative_loss=negative_out_vals.negative_loss,
+            #             positive_logits=None,
+            #             negative_logits=None,
+            #             base_logits=None,
+            #             base_hidden_states=None,
+            #             past_key_values=None,
+            #             attentions=None,
+            #             new_token_loss=new_tok_loss,
+            #             memories=[dict(input_memory=input_memory, output_memory=output_memory)],
+            #             regression_loss=regression_out_vals.regression_loss,
+            #             distillation_loss=distillation_loss
+            #         )
 
                 # else:
                 #     out_vals = negative_out_vals
 
-            elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                out_vals = regression_out_vals
+            # elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            #     out_vals = regression_out_vals
+        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            with torch.no_grad():
+                base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
+                base_final_outs = self.llama_forward(base_labels, base_outputs, None, self.secondLM.get_input_embeddings().weight)
+
+
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
             input_embeds = torch.stack(embeds + neg_embeds)
             attn = torch.cat([task_attn, negative_attn_mask], dim=0)
         else:
-
             input_embeds = torch.stack(embeds)
         outputs = self.secondLM.model(
             inputs_embeds=input_embeds,
@@ -718,6 +727,39 @@ class MorphMemoryModelLLAMA(nn.Module):
                     memories=[mem]
                 )
 
+            if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                indices_in_base, indices_in_replaced = get_matching_indices(
+                    base_ids[i][base_attn_mask[i] == 1].tolist(),
+                    task_ids[i][task_attn[i] == 1].tolist())
+
+                cosine_loss = nn.CosineEmbeddingLoss()
+                regression_loss = cosine_loss(outputs[0][i, :, indices_in_replaced].squeeze(0),
+                                              base_outputs[0][i, :, indices_in_base].squeeze(0),
+                                              target=torch.ones(
+                                                  outputs[0][i, :, indices_in_replaced].shape[1],
+                                                  device=base_outputs[0].device)).mean()
+
+                mse_loss = MSELoss()
+                distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
+                                             base_final_outs.logits[i, :, indices_in_base, :self.initial_second_ind])
+            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+                if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                    out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
+                        loss=out_vals.loss,
+                        hidden_states=None,
+                        positive_loss=out_vals.positive_loss,
+                        negative_loss=out_vals.negative_loss,
+                        positive_logits=None,
+                        negative_logits=None,
+                        base_logits=None,
+                        base_hidden_states=None,
+                        past_key_values=None,
+                        attentions=None,
+                        new_token_loss=new_tok_loss,
+                        memories=[mem],
+                        regression_loss=regression_loss,
+                        distillation_loss=distillation_loss
+                    )
             else:
                 out_vals = CausalLMOutputWithNewToken(
                     loss=llama_outputs.loss,
