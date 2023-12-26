@@ -713,33 +713,6 @@ class MorphMemoryModelLLAMA(nn.Module):
                                                              i, new_token_loss=True)
             # loss.append(llama_outputs.loss)
             # new_token_loss.append(new_tok_loss)
-            if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                indices_in_base, indices_in_replaced = get_matching_indices(
-                    base_ids[i][base_attn_mask[i] == 1].tolist(),
-                    task_ids[i][task_attn[i] == 1].tolist())
-
-                cosine_loss = nn.CosineEmbeddingLoss()
-                # print("shape for cosine")
-                # print(outputs[0].shape)
-                # print(base_outputs[0].shape)
-                # print(outputs[0][i].shape)
-                # print(base_outputs[0][i].shape)
-                # print(outputs[0][i, indices_in_replaced].shape)
-                # print(base_outputs[0][i, indices_in_base].shape)
-
-                print("shape for distill")
-                print(base_final_outs.logits.shape)
-                print(llama_outputs.logits.shape)
-
-                regression_loss = cosine_loss(outputs[0][i, indices_in_replaced],
-                                              base_outputs[0][i, indices_in_base],
-                                              target=torch.ones(
-                                                  outputs[0][i, indices_in_replaced].shape[0],
-                                                  device=base_outputs[0].device)).mean()
-
-                mse_loss = MSELoss()
-                distillation_loss = mse_loss(llama_outputs.logits[indices_in_replaced, :self.initial_second_ind],
-                                             base_final_outs.logits[i, indices_in_base, :self.initial_second_ind])
 
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
                 negative_llama_outputs = self.llama_forward(negative_labels[i], outputs, output_weights,
@@ -757,6 +730,33 @@ class MorphMemoryModelLLAMA(nn.Module):
                     new_token_loss=new_tok_loss,
                     memories=[mem]
                 )
+            if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                indices_in_base, indices_in_replaced = get_matching_indices(
+                    base_ids[i][base_attn_mask[i] == 1].tolist(),
+                    task_ids[i][task_attn[i] == 1].tolist())
+
+                cosine_loss = nn.CosineEmbeddingLoss()
+                # print("shape for cosine")
+                # print(outputs[0].shape)
+                # print(base_outputs[0].shape)
+                # print(outputs[0][i].shape)
+                # print(base_outputs[0][i].shape)
+                # print(outputs[0][i, indices_in_replaced].shape)
+                # print(base_outputs[0][i, indices_in_base].shape)
+
+                # print("shape for distill")
+                # print(base_final_outs.logits.shape)
+                # print(llama_outputs.logits.shape)
+
+                regression_loss = cosine_loss(outputs[0][i, indices_in_replaced],
+                                              base_outputs[0][i, indices_in_base],
+                                              target=torch.ones(
+                                                  outputs[0][i, indices_in_replaced].shape[0],
+                                                  device=base_outputs[0].device)).mean()
+
+                mse_loss = MSELoss()
+                distillation_loss = mse_loss(llama_outputs.logits[indices_in_replaced, :self.initial_second_ind],
+                                             base_final_outs.logits[i, indices_in_base, :self.initial_second_ind])
 
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
                 if (base_ids, base_attn_mask, base_labels) != (None, None, None):
