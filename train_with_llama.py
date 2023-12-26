@@ -687,7 +687,10 @@ class MorphMemoryModelLLAMA(nn.Module):
         if (base_ids, base_attn_mask, base_labels) != (None, None, None):
             with torch.no_grad():
                 base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
-                base_final_outs = self.llama_forward(base_labels, base_outputs, None, self.secondLM.get_input_embeddings().weight)
+                base_final_outs = self.llama_forward(base_labels,
+                                                     base_outputs,
+                                                     self.secondLM.get_input_embeddings().weight,
+                                                     index=None, new_token_loss=False)
 
 
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
