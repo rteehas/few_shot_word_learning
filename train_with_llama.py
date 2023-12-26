@@ -43,6 +43,7 @@ from torch.autograd.profiler import record_function
 # os.environ["TORCH_CPP_LOG_LEVEL"]="INFO"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
 os.environ['WANDB_DISABLED'] = 'true'
+os.environ['WANDB_MODE']='disabled'
 
 def trace_handler(prof: torch.profiler.profile):
    # Prefix for file names.
