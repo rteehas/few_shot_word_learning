@@ -2,10 +2,10 @@ import torch
 from transformers.file_utils import ModelOutput
 from transformers.modeling_outputs import MaskedLMOutput, CausalLMOutputWithPast
 from dataclasses import dataclass
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List, Dict, Any
 
 from modules.memory import OnlineProtoNet
-from train_with_llama import Memory
+# import train_with_llama as train
 
 
 class MaskLMOutputWithNewToken(MaskedLMOutput):
@@ -24,7 +24,7 @@ class CausalLMOutputWithNewToken(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-    memories: Optional[List[Dict[str, Memory]]] = None
+    memories: Optional[List[Dict[str, Any]]] = None
 
 @dataclass
 class CausalLMOutputWithNewTokenNegatives(ModelOutput):
@@ -37,7 +37,7 @@ class CausalLMOutputWithNewTokenNegatives(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-    memories: Optional[List[Dict[str, Memory]]] = None
+    memories: Optional[List[Dict[str, Any]]] = None
 
 @dataclass
 class CausalLMOutputWithRegressionLoss(ModelOutput):
@@ -49,7 +49,7 @@ class CausalLMOutputWithRegressionLoss(ModelOutput):
     base_hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-    memories: Optional[List[Dict[str, Memory]]] = None
+    memories: Optional[List[Dict[str, Any]]] = None
     regression_loss: Optional[torch.FloatTensor] = None
     distillation_loss: Optional[torch.FloatTensor] = None
 
@@ -64,7 +64,7 @@ class CausalLMOutputWithRegressionAndNegativeLoss(ModelOutput):
     base_hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-    memories: Optional[List[Dict[str, Memory]]] = None
+    memories: Optional[List[Dict[str, Any]]] = None
     regression_loss: Optional[torch.FloatTensor] = None
     distillation_loss: Optional[torch.FloatTensor] = None
     positive_loss: Optional[torch.FloatTensor] = None
