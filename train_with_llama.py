@@ -955,8 +955,8 @@ def create_checkpoint_directories(args):
     else:
         dataset_name= "pile"
 
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}/layernorm/{}_layers/last_{}/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
-    path = path.format(dataset_name, args.num_layers, args.num_feature_layers, args.batch_size * args.gradient_accumulation_steps, args.memory,
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}/layernorm/{}{}_layers/last_{}/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
+    path = path.format(dataset_name, args.first_lm, args.num_layers, args.num_feature_layers, args.batch_size * args.gradient_accumulation_steps, args.memory,
                        args.num_examples, args.lr, args.weight_decay, neg_string)
 
     if args.regression_objective:
