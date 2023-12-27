@@ -13,7 +13,7 @@ from torch.utils.data import Dataset, DataLoader, TensorDataset, IterableDataset
 from torch.utils.data.dataloader import default_collate
 
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
-    get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig
+    get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig, T5EncoderModel
 import accelerate
 from accelerate import init_empty_weights, Accelerator
 from accelerate import load_checkpoint_and_dispatch
@@ -1150,6 +1150,8 @@ def main():
     args = get_arguments().parse_args()
     checkpoint_path = create_checkpoint_directories(args)
 
+    t5_flag = "t5" in args.first_lm
+
     # assert not (args.negative_examples and args.regression_objective), "Regression for Negative Examples is not supported"
     if args.negative_examples:
         assert args.negative_data_path != "", "There must be a negative data set for negative examples"
@@ -1164,6 +1166,7 @@ def main():
         tokenizerMLM = AutoTokenizer.from_pretrained(current_checkpoint_path + "/tokenizerMLM", use_fast=False)
         tokenizerTask = LlamaTokenizer.from_pretrained(current_checkpoint_path + "tokenizerTask",
                                                        legacy=True, use_fast=False)
+
     tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
                                                    use_fast=False)
@@ -1190,7 +1193,14 @@ def main():
         max_entries=200000
     )
     with accelerator.main_process_first():
-        firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True).to(accelerator.device)
+        if "t5" in args.first_lm:
+            T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
+            firstLM = T5EncoderModel.from_pretrained(args.first_lm, low_cpu_mem_usage=True).to(accelerator.device)
+        elif "roberta" in args.first_lm:
+            firstLM = RobertaForMaskedLM.from_pretrained(args.first_lm, low_cpu_mem_usage=True).to(accelerator.device)
+        else:
+            raise NotImplementedError("LM {} is not supported".format(args.first_lm))
+
         secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                 low_cpu_mem_usage=True).to(accelerator.device)
 
@@ -1253,7 +1263,7 @@ def main():
                                                num_proc=2).with_format("torch")
         # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
         train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=partial(regression_collate, args.num_examples), drop_last=True,
+                              collate_fn=partial(regression_collate, args.num_examples, t5=t5_flag), drop_last=True,
                               shuffle=True, worker_init_fn=seed_worker, pin_memory=True)
 
         tokenized_test = dataset['test'].map(tokenize_regression,
@@ -1261,7 +1271,7 @@ def main():
                                              num_proc=2).with_format("torch")
         # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
         test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                             collate_fn=partial(regression_collate, args.num_examples), shuffle=True, drop_last=True,
+                             collate_fn=partial(regression_collate, args.num_examples, t5=t5_flag), shuffle=True, drop_last=True,
                              worker_init_fn=seed_worker, pin_memory=True)
 
     else:
@@ -1271,7 +1281,7 @@ def main():
         # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
 
         train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=partial(regular_collate, args.num_examples),
+                              collate_fn=partial(regular_collate, args.num_examples, t5=t5_flag),
                               shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                               pin_memory=True)
 
@@ -1281,7 +1291,7 @@ def main():
 
         # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
         test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                             collate_fn=partial(regular_collate, args.num_examples),
+                             collate_fn=partial(regular_collate, args.num_examples, t5=t5_flag),
                              shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                              pin_memory=True)
 
