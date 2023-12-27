@@ -1198,9 +1198,9 @@ def main():
         mask_token_id = None
     #accelerator.wait_for_everyone()
 
-    torch.cuda.memory._record_memory_history(
-        max_entries=200000
-    )
+    # torch.cuda.memory._record_memory_history(
+    #     max_entries=200000
+    # )
     with accelerator.main_process_first():
         if "t5" in args.first_lm:
             T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
