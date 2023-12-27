@@ -1131,15 +1131,10 @@ def main():
     # assert not (args.negative_examples and args.regression_objective), "Regression for Negative Examples is not supported"
     assert args.negative_examples == (
                 args.negative_data_path != ""), "There must be a negative data set for negative examples"
-    # print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
-    # print("CPU Percent", psutil.cpu_percent())
-    # print("Arguments: ", args)
+
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=False)
     accelerator = Accelerator(log_with="wandb", gradient_accumulation_steps=args.gradient_accumulation_steps,
                               kwargs_handlers=[ddp_kwargs])
-    # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
 
     accelerator.wait_for_everyone()
     if args.resume_from_checkpoint is not None:
@@ -1167,19 +1162,8 @@ def main():
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
     mask_token_id = tokenizerMLM.mask_token_id
-    print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
-    print("CPU Percent", psutil.cpu_percent())
-    # token_mapping = {v: k for k, v in
-    #                  zip(tokenizerTask.convert_tokens_to_ids(nonces), tokenizerMLM.convert_tokens_to_ids(nonces))}
-    # print(token_mapping)
-    # data_collator = DataCollatorForSeq2Seq(tokenizer=tokenizerTask, return_tensors="pt", padding=True)
-
-    # ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
-
-    # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
     #accelerator.wait_for_everyone()
+
     torch.cuda.memory._record_memory_history(
         max_entries=200000
     )
@@ -1187,16 +1171,7 @@ def main():
         firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True).to(accelerator.device)
         secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                 low_cpu_mem_usage=True).to(accelerator.device)
-    print("Total Virtual memory usage", dict(psutil.virtual_memory()._asdict()))
-    print("CPU Percent", psutil.cpu_percent())
-    # with init_empty_weights():
-    #     secondLM = LlamaForCausalLM.from_config(llama_config)
 
-    # firstLM = load_checkpoint_and_dispatch(firstLM, "roberta-large", device_map="auto")
-    # secondLM = load_checkpoint_and_dispatch(secondLM, "/vast/work/public/ml-datasets/llama/hf/llama-7b", device_map="auto")
-
-    # firstLM.resize_token_embeddings(len(tokenizerMLM))
-    # secondLM.resize_token_embeddings(len(tokenizerTask))  # pad for speed
     firstLM.eval()
     secondLM.eval()
     print("init memory")
@@ -1206,7 +1181,7 @@ def main():
     elif args.memory == "cls":
         memory_config = TransformerCLSConfig(
             input_size=firstLM.config.hidden_size,
-            nhead=firstLM.config.num_attention_heads,
+            nhead=2,
             num_layers=1
         )
 
@@ -1217,9 +1192,6 @@ def main():
     #     memory_config = TransformerCLSConfig()
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
-    # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-    # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-    # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
 
     print("init model")
     accelerator.wait_for_everyone()
