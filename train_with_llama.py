@@ -1005,9 +1005,9 @@ def main():
                    base_attention_mask=base_inps['attention_mask'])
         return row
 
-    def regression_collate(max_num_examples, batch):
+    def regression_collate(max_num_examples, batch, t5=False):
         num_examples = np.random.choice(max_num_examples) + 1
-        contexts = [sample_context(num_examples, b) for b in batch]
+        contexts = [sample_context(num_examples, b, t5=t5) for b in batch]
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
         base_batch = [dict(input_ids=b['base_input_ids'], attention_mask=b['base_attention_mask']) for b in batch]
 
@@ -1024,9 +1024,9 @@ def main():
 
         return final_collate
 
-    def regular_collate(max_num_examples, batch):
+    def regular_collate(max_num_examples, batch, t5=False):
         num_examples = np.random.choice(max_num_examples) + 1
-        contexts = [sample_context(num_examples, b) for b in batch]
+        contexts = [sample_context(num_examples, b, t5=t5) for b in batch]
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
         #for b  in batch:
           #  print("sequence", tokenizerTask.decode(b['input_ids']))
