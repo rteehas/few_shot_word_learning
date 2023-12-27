@@ -1513,17 +1513,22 @@ def main():
                     loss = out.loss
 
                 if args.l2 is not None:
-                    l2_losses = []
+                    input_l2_losses = []
+                    output_l2_losses = []
                     for mem_dict in out.memories:
                         for memory_type in ['input_memory', 'output_memory']:
                             m = mem_dict[memory_type]
                             new_ids = list(m.memory.keys())
                             assert len(new_ids) == 1
                             new_id = new_ids[0]
-                            l2_losses.append(m.retrieve(new_id).norm())
+                            if memory_type == "input_memory":
+                                input_l2_losses.append(m.retrieve(new_id).norm())
+                            else:
+                                output_l2_losses.append(m.retrieve(new_id).norm())
 
-                    l2_loss = torch.stack(l2_losses).mean()
-                    l2_loss = args.l2 * l2_loss
+                    input_l2_loss = torch.stack(input_l2_losses).mean()
+                    output_l2_loss = torch.stack(output_l2_losses).mean()
+                    l2_loss = args.l2 * (input_l2_loss + output_l2_loss)
 
                     loss = loss + l2_loss
 
