@@ -523,16 +523,18 @@ class MorphMemoryModelLLAMA(nn.Module):
             # with record_function("## MLM STEP ##"):
             c = contexts[i].to(self.firstLM.device)
             #             print('before', c['input_ids'])
-            new_token = c['input_ids'][
-                torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
-                0].item()
+
 
             input_memory = Memory()
             output_memory = Memory()
 
             if self.mask_token_id is not None:
+                new_token = c['input_ids'][
+                    torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
+                    0].item()
                 mlm_ids = self.swap_with_mask(c['input_ids'])
             else:
+                new_token = torch.tensor(self.first_list, device=c['input_ids'].device).unique()[0].item()
                 mlm_ids = c['input_ids']
             #             print('after', c['input_ids'])
             #             print("after mlm ids", mlm_ids)
