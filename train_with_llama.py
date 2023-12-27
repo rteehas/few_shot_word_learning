@@ -1178,7 +1178,7 @@ def main():
         tokenizerTask = LlamaTokenizer.from_pretrained(current_checkpoint_path + "tokenizerTask",
                                                        legacy=True, use_fast=False)
     if t5_flag:
-        tokenizerMLM = AutoTokenizer.from_pretrained(args.first_lm, use_fast=False, legacy=False)
+        tokenizerMLM = AutoTokenizer.from_pretrained(args.first_lm, use_fast=False, legacy=True)
     else:
         tokenizerMLM = AutoTokenizer.from_pretrained(args.first_lm, use_fast=False)
 
