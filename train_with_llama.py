@@ -963,8 +963,8 @@ def create_checkpoint_directories(args):
         path = path + alpha_str + hidden_str
 
     suffix = "checkpoints/"
-    if os.path.isdir(path + suffix):
-        suffix = "checkpoints2/"
+    # if os.path.isdir(path + suffix):
+    #     suffix = "checkpoints2/"
     path = path + suffix
     os.makedirs(path, exist_ok=True)
 
@@ -1351,7 +1351,7 @@ def main():
     eval_ind = args.logging_step
 
     opt = AdamW(optimizer_grouped_parameters,
-                betas=(0.85,0.95),
+                # betas=(0.85,0.95),
                 eps=epsilon,
                 lr=lr,
                 weight_decay=args.weight_decay
@@ -1733,6 +1733,7 @@ def main():
                         save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
                         num_copies = 0
                         tmp_save_dir = save_dir
+
                         while os.path.isdir(tmp_save_dir):
                             num_copies += 1
                             tmp_save_dir = save_dir + "_v{}".format(num_copies)
