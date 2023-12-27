@@ -674,6 +674,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                         regression_loss=regression_loss,
                         distillation_loss=distillation_loss
                     )
+            elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
+                out_vals = regression_out_vals
             else:
                 out_vals = CausalLMOutputWithNewToken(
                     loss=llama_outputs.loss,
