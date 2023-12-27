@@ -1048,12 +1048,18 @@ def main():
         sentences = np.random.choice(ex['sentences'], size=k, replace=False).tolist()
         #print(sentences)
         if t5:
+            print("original sentences")
+            print(sentences)
             sentences = [prepare_for_t5(s, "<nonce>") for s in sentences]
+            print("Replaced sentences")
+            print(sentences)
 
+        print("Decoded")
         ctx = tokenizerMLM(sentences, max_length=256,
                                         truncation=True,
                                         padding='longest',
                                         return_tensors='pt')
+        print(tokenizerMLM.decode(ctx['input_ids'][0,:]))
 
         return ctx
 
