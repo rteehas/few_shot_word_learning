@@ -1133,8 +1133,8 @@ def main():
     checkpoint_path = create_checkpoint_directories(args)
 
     # assert not (args.negative_examples and args.regression_objective), "Regression for Negative Examples is not supported"
-    assert args.negative_examples == (
-                args.negative_data_path != ""), "There must be a negative data set for negative examples"
+    if args.negative_examples:
+        assert args.negative_data_path != "", "There must be a negative data set for negative examples"
 
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=False)
     accelerator = Accelerator(log_with="wandb", gradient_accumulation_steps=args.gradient_accumulation_steps,
