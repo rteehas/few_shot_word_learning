@@ -929,6 +929,7 @@ def get_arguments():
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
     parser.add_argument("--single_sentence", action="store_true")
     parser.add_argument("--num_feature_layers", type=int, default=1)
+    parser.add_argument("--l2", type=float, default=None)
     return parser
 
 
@@ -1508,9 +1509,24 @@ def main():
                 if args.regression_objective:
                     # distillation_weight = 1.0 - ce_weight - args.regression_alpha
                     loss = out.loss + out.regression_loss + out.distillation_loss
-
                 else:
                     loss = out.loss
+
+                if args.l2 is not None:
+                    l2_losses = []
+                    for mem_dict in out.memories:
+                        for memory_type in ['input_memory', 'output_memory']:
+                            m = mem_dict[memory_type]
+                            new_ids = list(m.memory.keys())
+                            assert len(new_ids) == 1
+                            new_id = new_ids[0]
+                            l2_loss.append(m.retrieve(new_id).norm())
+
+                    l2_loss = torch.stack(l2_losses).mean()
+                    l2_loss = args.l2 * l2_loss
+
+                    loss = loss + l2_loss
+
                 # print(loss)
 
                 # train_new_token = accelerator.gather(out.new_token_loss)
