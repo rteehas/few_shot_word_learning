@@ -1060,6 +1060,8 @@ def main():
                                         padding='longest',
                                         return_tensors='pt')
         print(tokenizerMLM.decode(ctx['input_ids'][0,:]))
+        if "<unk>" in tokenizerMLM.decode(ctx['input_ids'][0,:]):
+            print("UNK HERE !!!!!!!!!!!!!")
 
         return ctx
 
