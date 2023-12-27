@@ -597,6 +597,8 @@ class MorphMemoryModelLLAMA(nn.Module):
             attn = torch.cat([task_attn, negative_attn_mask], dim=0)
         else:
             input_embeds = torch.stack(embeds)
+            attn = task_attn
+
         outputs = self.secondLM.model(
             inputs_embeds=input_embeds,
             attention_mask=attn,
