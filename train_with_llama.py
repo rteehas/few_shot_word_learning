@@ -934,6 +934,7 @@ def get_arguments():
     parser.add_argument("--single_sentence", action="store_true")
     parser.add_argument("--num_feature_layers", type=int, default=1)
     parser.add_argument("--l2", type=float, default=None)
+    parser.add_argument("--first_lm", type=str, default="roberta-base")
     return parser
 
 
@@ -1206,16 +1207,9 @@ def main():
     layers = [-1 * (x + 1) for x in range(args.num_feature_layers)]
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, args.num_layers,
                                   args.distillation_temp).to(accelerator.device)
-    # model = torch.compile(model, dynamic=True)
+
     model.emb_gen = accelerator.prepare(model.emb_gen)
-    # model.module.firstLM = torch.compile(model.module.firstLM)
-    # model.module.secondLM = torch.compile(model.module.secondLM)
     print("initialized")
-    ##pad to multiple of 64
-    # for param in firstLM:
-    #   param.requires_grad=False
-    # for param in secondLM:
-    #   param.requires_grad = False
 
     epochs = args.epochs
     lr = args.lr
@@ -1278,12 +1272,6 @@ def main():
                              shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                              pin_memory=True)
 
-    # buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(train_nonces), tokenizerMLM,
-    #                          tokenizerTask,
-    #                          args.random_ex, args.cat)
-    # test_buffer = RetrievalBuffer(20, args.num_examples, tokenizerMLM.convert_tokens_to_ids(test_nonces),
-    #                               tokenizerMLM, tokenizerTask,
-    #                               args.random_ex, args.cat)
 
     if args.negative_examples:
         negative_dataset = load_from_disk(args.negative_data_path)
@@ -1314,16 +1302,6 @@ def main():
         negative_test_dl = DataLoader(negative_test_tokenized, batch_size=args.batch_size,
                                       collate_fn=data_collator, shuffle=True, drop_last=True,
                                       worker_init_fn=seed_worker, pin_memory=True)
-    # if args.single_sentence:
-    #     train_examples = dataset['train'].map(partial(get_examples_single_sentence, train_nonces), num_proc=30)
-    #     test_examples = dataset['test'].map(partial(get_examples_single_sentence, test_nonces), num_proc=30)
-    # else:
-    #     train_examples = dataset['train'].map(partial(get_examples, train_nonces), num_proc=30)
-    #     test_examples = dataset['test'].map(partial(get_examples, test_nonces), num_proc=30)
-    #
-    #
-    # train_examples.map(partial(fill_buffer, buffer))
-    # test_examples.map(partial(fill_buffer, test_buffer))
 
     eval_ind = args.logging_step
 
@@ -1336,23 +1314,6 @@ def main():
 
     warmup_steps = int(args.epochs * (len(train_dl) / args.gradient_accumulation_steps) * 0.03)
     scheduler = get_linear_schedule_with_warmup(opt, warmup_steps, args.epochs * len(train_dl))
-    # print("Buffer Nonces = {}".format(buffer.nonces))
-    # print("Token Mapping = {}".format(token_mapping))
-
-    # print("loading buffer")
-    # tokenized_for_buffer = dataset['train'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
-    # buffer_dl = DataLoader(tokenized_for_buffer.with_format('torch'), num_workers=30)
-    # for inp in buffer_dl:
-    #     buffer.store_mlm(inp)
-
-    # print("Buffer has {} elements".format(len(buffer.buffer)))
-    #
-    # # test_for_buffer = dataset['test'].map(tokenize_for_buffer, remove_columns=dataset['train'].column_names, num_proc=30)
-    # # buffer_test_dl = DataLoader(test_for_buffer.with_format('torch'), num_workers=30)
-    # # for inp in buffer_test_dl:
-    # #     test_buffer.store_mlm(inp)
-    #
-    # print("Test buffer has {} elements".format(len(test_buffer.buffer)))
 
     print("Total nonces = {}".format(len(nonces)))
     if args.negative_examples:
