@@ -766,11 +766,11 @@ class MorphMemoryModelLLAMA(nn.Module):
         elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
             # final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
             # final_base_logits = torch.stack([o.base_logits for o in outs])
-            final_logits = torch.stack([o.logits for o in outs])
+            # final_logits = torch.stack([o.logits for o in outs])
             # final_base_hiddens = [o.base_hidden_states for o in outs]
             return CausalLMOutputWithRegressionLoss(
                 loss=final_loss,
-                logits=final_logits,
+                logits=None,
                 base_logits=None,
                 hidden_states=final_hiddens,
                 base_hidden_states=final_base_hiddens,
