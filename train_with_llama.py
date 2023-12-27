@@ -519,7 +519,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         neg_embeds = []
         distillation_outputs = []
         for i in range(b_task):
-            print("Context {}".format(i))
+            # print("Context {}".format(i))
             # with record_function("## MLM STEP ##"):
             c = contexts[i].to(self.firstLM.device)
             #             print('before', c['input_ids'])
@@ -1632,7 +1632,7 @@ def main():
                             norms).mean().detach().item()
 
                 accelerator.log(log_dict)
-                print(log_dict)
+                # print(log_dict)
                 # buffer.store_task(batch)
                 # buffer.cleanup()
 
