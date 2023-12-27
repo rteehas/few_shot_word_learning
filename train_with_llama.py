@@ -635,17 +635,6 @@ class MorphMemoryModelLLAMA(nn.Module):
                     task_ids[i][task_attn[i] == 1].tolist())
 
                 cosine_loss = nn.CosineEmbeddingLoss()
-                # print("shape for cosine")
-                # print(outputs[0].shape)
-                # print(base_outputs[0].shape)
-                # print(outputs[0][i].shape)
-                # print(base_outputs[0][i].shape)
-                # print(outputs[0][i, indices_in_replaced].shape)
-                # print(base_outputs[0][i, indices_in_base].shape)
-
-                # print("shape for distill")
-                # print(base_final_outs.logits.shape)
-                # print(llama_outputs.logits.shape)
 
                 regression_loss = cosine_loss(outputs[0][i, indices_in_replaced],
                                               base_outputs[0][i, indices_in_base],
@@ -656,6 +645,14 @@ class MorphMemoryModelLLAMA(nn.Module):
                 mse_loss = MSELoss()
                 distillation_loss = mse_loss(llama_outputs.logits[indices_in_replaced, :self.initial_second_ind],
                                              base_final_outs.logits[i, indices_in_base, :self.initial_second_ind])
+
+                regression_out_vals = CausalLMOutputWithRegressionLoss(
+                    loss=llama_outputs.loss,
+                    regression_loss=regression_loss,
+                    distillation_loss=distillation_loss,
+                    new_token_loss=new_tok_loss,
+                    memories=[mem]
+                )
 
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
                 if (base_ids, base_attn_mask, base_labels) != (None, None, None):
@@ -1536,13 +1533,9 @@ def main():
 
                 out = model(batch)
 
-                if args.regression_objective and args.negative_examples:
+                if args.regression_objective:
                     # distillation_weight = 1.0 - ce_weight - args.regression_alpha
                     loss = out.loss + out.regression_loss + out.distillation_loss
-
-                elif args.regression_objective:
-
-                    loss = out.regression_loss + out.distillation_loss
 
                 else:
                     loss = out.loss
@@ -1685,11 +1678,9 @@ def main():
 
                         t_out = model(b)
                         # all_losses = accelerator.gather(t_out.loss)
-                        if args.regression_objective and args.negative_examples:
+                        if args.regression_objective:
                             # distillation_weight = 1.0 - ce_weight - args.regression_alpha
                             total_test_loss += t_out.loss + t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
-                        elif args.regression_objective:
-                            total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
                         else:
                             total_test_loss += t_out.loss.detach().float()
 
@@ -1720,7 +1711,7 @@ def main():
                             total_test_negative_loss).sum().item() / args.num_eval_steps
 
                     if args.regression_objective:
-                        test_log['average regression test loss without alpha'] = accelerator.gather(
+                        test_log['average regression test loss'] = accelerator.gather(
                             total_test_regression_loss).sum().item() / args.num_eval_steps
                         test_log['average distillation test loss'] = accelerator.gather(
                             total_test_distillation_loss).sum().item() / args.num_eval_steps
