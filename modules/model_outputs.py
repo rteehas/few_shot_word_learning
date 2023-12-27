@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple, List, Dict
 
 from modules.memory import OnlineProtoNet
+from train_with_llama import Memory
 
 
 class MaskLMOutputWithNewToken(MaskedLMOutput):
@@ -23,7 +24,7 @@ class CausalLMOutputWithNewToken(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-    memories: Optional[List[Dict[str, OnlineProtoNet]]] = None
+    memories: Optional[List[Dict[str, Memory]]] = None
 
 @dataclass
 class CausalLMOutputWithNewTokenNegatives(ModelOutput):
@@ -36,7 +37,7 @@ class CausalLMOutputWithNewTokenNegatives(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-    memories: Optional[List[Dict[str, OnlineProtoNet]]] = None
+    memories: Optional[List[Dict[str, Memory]]] = None
 
 @dataclass
 class CausalLMOutputWithRegressionLoss(ModelOutput):
@@ -48,7 +49,7 @@ class CausalLMOutputWithRegressionLoss(ModelOutput):
     base_hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-    memories: Optional[List[Dict[str, OnlineProtoNet]]] = None
+    memories: Optional[List[Dict[str, Memory]]] = None
     regression_loss: Optional[torch.FloatTensor] = None
     distillation_loss: Optional[torch.FloatTensor] = None
 
@@ -63,7 +64,7 @@ class CausalLMOutputWithRegressionAndNegativeLoss(ModelOutput):
     base_hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     new_token_loss: Optional[torch.FloatTensor] = None
-    memories: Optional[List[Dict[str, OnlineProtoNet]]] = None
+    memories: Optional[List[Dict[str, Memory]]] = None
     regression_loss: Optional[torch.FloatTensor] = None
     distillation_loss: Optional[torch.FloatTensor] = None
     positive_loss: Optional[torch.FloatTensor] = None
