@@ -960,6 +960,9 @@ def create_checkpoint_directories(args):
 
         path = path + alpha_str + hidden_str
 
+    if args.l2 is not None:
+        path = path + "l2/"
+
     suffix = "checkpoints/"
     # if os.path.isdir(path + suffix):
     #     suffix = "checkpoints2/"
