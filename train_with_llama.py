@@ -953,7 +953,7 @@ def create_checkpoint_directories(args):
     path = path.format(dataset_name, args.num_layers, args.num_feature_layers, args.batch_size * args.gradient_accumulation_steps, args.memory,
                        args.num_examples, args.lr, args.weight_decay, neg_string)
 
-    if args.negative_examples and args.regression_objective:
+    if args.regression_objective:
         alpha_str = "distillation_weight_{}_temp_{}/".format(args.regression_alpha, args.distillation_temp)
         hidden_str = "output_embedding_cosine/"
 
