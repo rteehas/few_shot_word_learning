@@ -978,6 +978,16 @@ def create_checkpoint_directories(args):
 
 
 def main():
+    def prepare_for_t5(seq, nonce):
+        t5_format = "<extra_id_{}>"
+        ct = 0
+        tmp_seq = seq
+        while nonce in tmp_seq:
+            tmp_seq = tmp_seq.replace(nonce, t5_format.format(ct), 1)
+            ct += 1
+
+        return tmp_seq
+
     def tokenize(ex):
         return tokenizerTask(ex['text'], truncation=True, max_length=256, padding='max_length', return_tensors=None)
 
@@ -1028,10 +1038,13 @@ def main():
         final_collate['contexts'] = contexts
         return final_collate
 
-    def sample_context(k, ex):
+    def sample_context(k, ex, t5=False):
         assert len(ex['sentences']) >= k
         sentences = np.random.choice(ex['sentences'], size=k, replace=False).tolist()
         #print(sentences)
+        if t5:
+            sentences = [prepare_for_t5(s, "<nonce>") for s in sentences]
+
         ctx = tokenizerMLM(sentences, max_length=256,
                                         truncation=True,
                                         padding='longest',
