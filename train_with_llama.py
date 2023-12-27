@@ -1527,7 +1527,7 @@ def main():
                             new_ids = list(m.memory.keys())
                             assert len(new_ids) == 1
                             new_id = new_ids[0]
-                            l2_loss.append(m.retrieve(new_id).norm())
+                            l2_losses.append(m.retrieve(new_id).norm())
 
                     l2_loss = torch.stack(l2_losses).mean()
                     l2_loss = args.l2 * l2_loss
