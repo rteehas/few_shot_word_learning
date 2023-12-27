@@ -943,7 +943,7 @@ def create_checkpoint_directories(args):
     elif args.regression_objective:
         neg_string = "with_regression"
     else:
-        neg_string = "without_negatives_or_regression"
+        neg_string = "vanilla"
 
     if "interleaved" in args.data_path:
         dataset_name = "interleaved"
