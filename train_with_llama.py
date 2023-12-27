@@ -520,171 +520,70 @@ class MorphMemoryModelLLAMA(nn.Module):
         distillation_outputs = []
         for i in range(b_task):
             print("Context {}".format(i))
-            with record_function("## MLM STEP ##"):
-                c = contexts[i].to(self.firstLM.device)
-                #             print('before', c['input_ids'])
-                new_token = c['input_ids'][
-                    torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
-                    0].item()
+            # with record_function("## MLM STEP ##"):
+            c = contexts[i].to(self.firstLM.device)
+            #             print('before', c['input_ids'])
+            new_token = c['input_ids'][
+                torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
+                0].item()
 
-                input_memory = Memory()
-                output_memory = Memory()
+            input_memory = Memory()
+            output_memory = Memory()
 
-                mlm_ids = self.swap_with_mask(c['input_ids'])
-                #             print('after', c['input_ids'])
-                #             print("after mlm ids", mlm_ids)
-                with torch.no_grad():
-                    first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
-                                             output_hidden_states=True)
+            mlm_ids = self.swap_with_mask(c['input_ids'])
+            #             print('after', c['input_ids'])
+            #             print("after mlm ids", mlm_ids)
+            with torch.no_grad():
+                first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
+                                         output_hidden_states=True)
 
-            with record_function("## COMBINED ##"):
-                first_hidden = first_out.hidden_states
-                combined = combine_layers(first_hidden, self.layers)
+        # with record_function("## COMBINED ##"):
+            first_hidden = first_out.hidden_states
+            combined = combine_layers(first_hidden, self.layers)
 
-                if len(combined.shape) == 2:
-                    combined = combined.unsqueeze(0)
+            if len(combined.shape) == 2:
+                combined = combined.unsqueeze(0)
 
-                attn = c['attention_mask']
-                embed_inputs = combined
+            attn = c['attention_mask']
+            embed_inputs = combined
 
-            with record_function("## EMBED GEN FORWARD ##"):
-                inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
+        # with record_function("## EMBED GEN FORWARD ##"):
+            inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
 
-                input_memory.store(new_token, inp_embs)
-                output_memory.store(new_token, out_embs)
-                new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
-                # output_weights = self.get_new_output_weights(new_embed=out_embs)
+            input_memory.store(new_token, inp_embs)
+            output_memory.store(new_token, out_embs)
+            new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
+            # output_weights = self.get_new_output_weights(new_embed=out_embs)
 
-            with record_function("## LLAMA MODEL NONCE ##"):
-                input_embeds = F.embedding(task_ids[i], new_w)
-                embeds.append(input_embeds)
-                mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
-                # outputs = self.secondLM.model(
-                #     inputs_embeds=input_embeds.unsqueeze(0),
-                #     attention_mask=task_attn[i].unsqueeze(0),
-                #     # output_hidden_states=True
-                # )
-                # # print(task_labels[i].shape, "label_shape")
-                # # print(outputs[0].shape)
-                #
-                # llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights, new_token_loss=True)
-            #             with torch.no_grad():
-            #     new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
-            #                                                    self.secondLM.lm_head.weight.shape[0] + self.num_new_tokens,
-            #                                                    torch.tensor(self.second_list,
-            #                                                                 device=llama_outputs.logits.device).unique())
-            with record_function("## NEGATIVES ##"):
-                if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-                    # print("negative id shape in model", negative_ids[i].shape)
-                    negative_embeds = F.embedding(negative_ids[i], new_w)
+        # with record_function("## LLAMA MODEL NONCE ##"):
+            input_embeds = F.embedding(task_ids[i], new_w)
+            embeds.append(input_embeds)
+            mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
+            # outputs = self.secondLM.model(
+            #     inputs_embeds=input_embeds.unsqueeze(0),
+            #     attention_mask=task_attn[i].unsqueeze(0),
+            #     # output_hidden_states=True
+            # )
+            # # print(task_labels[i].shape, "label_shape")
+            # # print(outputs[0].shape)
+            #
+            # llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights, new_token_loss=True)
+        #             with torch.no_grad():
+        #     new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
+        #                                                    self.secondLM.lm_head.weight.shape[0] + self.num_new_tokens,
+        #                                                    torch.tensor(self.second_list,
+        #                                                                 device=llama_outputs.logits.device).unique())
+        # with record_function("## NEGATIVES ##"):
+            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+                # print("negative id shape in model", negative_ids[i].shape)
+                negative_embeds = F.embedding(negative_ids[i], new_w)
                     # if len(negative_embeds.shape) == 2:
                     #     negative_embeds = negative_embeds.unsqueeze(0)
                     #     n_attn_mask = negative_attn_mask[i].unsqueeze(0)
                     # else:
                     #     n_attn_mask = negative_attn_mask[i]
-                    neg_embeds.append(negative_embeds)
-                    # print("embed shape in model", negative_embeds.shape)
-                    # print("attention mask shape in model", negative_attn_mask[i].shape)
-                    # print("embed shape after unsqueeze", negative_embeds.unsqueeze(0).shape)
-                    # negative_outputs = self.secondLM.model(
-                    #     inputs_embeds=negative_embeds,
-                    #     attention_mask=n_attn_mask,
-                    #     # output_hidden_states=True
-                    # )
-                    #
-                    # negative_llama_outputs = self.llama_forward(negative_labels[i], negative_outputs, output_weights)
-                    #
-                    # negative_out_vals = CausalLMOutputWithNewTokenNegatives(
-                    #     loss=llama_outputs.loss + negative_llama_outputs.loss,
-                    #     positive_loss=llama_outputs.loss,
-                    #     negative_loss=negative_llama_outputs.loss,
-                    #     positive_logits=None,
-                    #     negative_logits=None,
-                    #     past_key_values=None,
-                    #     hidden_states=None,
-                    #     attentions=None,
-                    #     new_token_loss=new_tok_loss,
-                    #     memories=[dict(input_memory=input_memory, output_memory=output_memory)]
-                    # )
-            # with record_function("## DISTILLATION ##"):
-            #     if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            #         with torch.no_grad():
-            #             base_embeds = F.embedding(base_ids[i], self.secondLM.get_input_embeddings().weight)
-            #             base_outputs = self.secondLM.model(inputs_embeds=base_embeds.unsqueeze(0),
-            #                                      attention_mask=base_attn_mask[i].unsqueeze(0))
-            #
-            #             base_final_outs = self.llama_forward(base_labels[i], base_outputs, self.secondLM.get_input_embeddings().weight)
-            #
-            #         indices_in_base, indices_in_replaced = get_matching_indices(
-            #             base_ids[i][base_attn_mask[i] == 1].tolist(),
-            #             task_ids[i][task_attn[i] == 1].tolist())
-            #         # print(indices_in_base, "base")
-            #         # print(indices_in_replaced, "replaced")
-            #         # if self.num_regression_hiddens is None:
-            #         #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states, base_outputs.hidden_states)]
-            #         # else:
-            #         #     cosines = [(1.0-torch.abs(F.cosine_similarity(h1[:, indices_in_replaced], h2[:, indices_in_base], dim=-1))).mean() for h1, h2 in zip(outputs.hidden_states[-self.num_regression_hiddens:], base_outputs.hidden_states[-self.num_regression_hiddens:])]
-            #         cosine_loss = nn.CosineEmbeddingLoss()
-            #         regression_loss = cosine_loss(outputs[0][:, indices_in_replaced].squeeze(0),
-            #                                       base_outputs[0][:, indices_in_base].squeeze(0),
-            #                                       target=torch.ones(
-            #                                           outputs[0][:, indices_in_replaced].shape[1],
-            #                                           device=base_outputs[0].device)).mean()
-            #
-            #         # cosine_soft = (1.0 - torch.abs(F.cosine_similarity(logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind],
-            #         #                                   logsoft_base[:, indices_in_base, :self.initial_second_ind], dim=-1))).mean()
-            #         mse_loss = MSELoss()
-            #         distillation_loss = mse_loss(llama_outputs.logits[:, indices_in_replaced, :self.initial_second_ind],
-            #                                      base_final_outs.logits[:, indices_in_base, :self.initial_second_ind])
-            #         # soft_base = F.softmax(base_outputs.logits / self.distillation_temp, dim=-1)
-            #         # logsoft_nonce = F.log_softmax(llama_outputs.logits / self.distillation_temp, dim=-1)
-            #         # distillation_loss = -(soft_base[:, indices_in_base, :self.initial_second_ind] * logsoft_nonce[:, indices_in_replaced, :self.initial_second_ind]).mean()
-            #         # distillation_loss = distillation_loss * (self.distillation_temp **2)
-            #         # regression_loss = regression_loss
-            #
-            #         # cosines.append(cosine_soft)
-            #         # print(cosines)
-            #         # regression_loss = torch.stack(cosines).mean()
-            #
-            #         regression_out_vals = CausalLMOutputWithRegressionLoss(
-            #             loss=llama_outputs.loss,
-            #             logits=None,
-            #             base_logits=None,
-            #             past_key_values=None,
-            #             hidden_states=None,
-            #             base_hidden_states=None,
-            #             attentions=None,
-            #             new_token_loss=new_tok_loss,
-            #             memories=[dict(input_memory=input_memory, output_memory=output_memory)],
-            #             regression_loss=regression_loss,
-            #             distillation_loss=distillation_loss
-            #         )
-            #
-            # if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-            #     if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            #         # a bit hacky way to combine outputs
-            #         out_vals = CausalLMOutputWithRegressionAndNegativeLoss(
-            #             loss=negative_out_vals.loss,
-            #             hidden_states=None,
-            #             positive_loss=negative_out_vals.positive_loss,
-            #             negative_loss=negative_out_vals.negative_loss,
-            #             positive_logits=None,
-            #             negative_logits=None,
-            #             base_logits=None,
-            #             base_hidden_states=None,
-            #             past_key_values=None,
-            #             attentions=None,
-            #             new_token_loss=new_tok_loss,
-            #             memories=[dict(input_memory=input_memory, output_memory=output_memory)],
-            #             regression_loss=regression_out_vals.regression_loss,
-            #             distillation_loss=distillation_loss
-            #         )
+                neg_embeds.append(negative_embeds)
 
-                # else:
-                #     out_vals = negative_out_vals
-
-            # elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            #     out_vals = regression_out_vals
         if (base_ids, base_attn_mask, base_labels) != (None, None, None):
             with torch.no_grad():
                 base_outputs = self.secondLM.model(input_ids=base_ids, attention_mask=base_attn_mask)
@@ -807,89 +706,89 @@ class MorphMemoryModelLLAMA(nn.Module):
             # memories.append(memory)
 
         #         print(outs, "output list")
-        with record_function("## POST PROCESSING ##"):
-            final_loss = torch.stack([o.loss for o in outs]).mean()
-            final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
-            final_hiddens = [o.hidden_states for o in outs]
-            final_past_key_values = [o.past_key_values for o in outs]
-            final_attentions = [o.attentions for o in outs]
-            if len(final_new_token_loss) > 0:
-                final_new_token_loss = torch.stack(final_new_token_loss).mean()
-            else:
-                final_new_token_loss = None
-            #         print([o.new_token_loss for o in outs])
-            final_memories = [o.memories[0] for o in outs]  # list of the dictionaries
+        # with record_function("## POST PROCESSING ##"):
+        final_loss = torch.stack([o.loss for o in outs]).mean()
+        final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
+        final_hiddens = [o.hidden_states for o in outs]
+        final_past_key_values = [o.past_key_values for o in outs]
+        final_attentions = [o.attentions for o in outs]
+        if len(final_new_token_loss) > 0:
+            final_new_token_loss = torch.stack(final_new_token_loss).mean()
+        else:
+            final_new_token_loss = None
+        #         print([o.new_token_loss for o in outs])
+        final_memories = [o.memories[0] for o in outs]  # list of the dictionaries
 
-            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-                #print("positive losses", torch.stack([o.positive_loss for o in outs]))
-                #print("negative losses", torch.stack([o.negative_loss for o in outs]))
-                final_positive_loss = torch.stack([o.positive_loss for o in outs]).mean()
-                final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
-                # final_positive_logits = torch.stack([o.positive_logits for o in outs])
-                # final_negative_logits = torch.stack([o.negative_logits for o in outs])
+        if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+            #print("positive losses", torch.stack([o.positive_loss for o in outs]))
+            #print("negative losses", torch.stack([o.negative_loss for o in outs]))
+            final_positive_loss = torch.stack([o.positive_loss for o in outs]).mean()
+            final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
+            # final_positive_logits = torch.stack([o.positive_logits for o in outs])
+            # final_negative_logits = torch.stack([o.negative_logits for o in outs])
 
-            if (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
-                # final_base_logits = torch.stack([o.base_logits for o in outs])
-                final_base_hiddens = [o.base_hidden_states for o in outs]
-                final_distillation_loss = torch.stack([o.distillation_loss for o in outs]).mean()
+        if (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
+            # final_base_logits = torch.stack([o.base_logits for o in outs])
+            final_base_hiddens = [o.base_hidden_states for o in outs]
+            final_distillation_loss = torch.stack([o.distillation_loss for o in outs]).mean()
 
-            if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None) and (
-            base_ids, base_attn_mask, base_labels) != (None, None, None):
+        if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None) and (
+        base_ids, base_attn_mask, base_labels) != (None, None, None):
 
-                return CausalLMOutputWithRegressionAndNegativeLoss(
-                    loss=final_loss,
-                    hidden_states=final_hiddens,
-                    positive_loss=final_positive_loss.detach(),
-                    negative_loss=final_negative_loss.detach(),
-                    positive_logits=None,
-                    negative_logits=None,
-                    base_logits=None,
-                    base_hidden_states=final_base_hiddens,
-                    new_token_loss=final_new_token_loss,
-                    memories=final_memories,
-                    regression_loss=final_regression_loss,
-                    distillation_loss=final_distillation_loss
-                )
-            elif (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-                return CausalLMOutputWithNewTokenNegatives(
-                    loss=final_loss,
-                    positive_loss=final_positive_loss.detach(),
-                    negative_loss=final_negative_loss.detach(),
-                    positive_logits=None,
-                    negative_logits=None,
-                    hidden_states=final_hiddens,
-                    attentions=final_attentions,
-                    new_token_loss=final_new_token_loss,
-                    memories=final_memories
-                )
-            elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
-                # final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
-                # final_base_logits = torch.stack([o.base_logits for o in outs])
-                final_logits = torch.stack([o.logits for o in outs])
-                # final_base_hiddens = [o.base_hidden_states for o in outs]
-                return CausalLMOutputWithRegressionLoss(
-                    loss=final_loss,
-                    logits=final_logits,
-                    base_logits=None,
-                    hidden_states=final_hiddens,
-                    base_hidden_states=final_base_hiddens,
-                    new_token_loss=final_new_token_loss,
-                    memories=final_memories,
-                    regression_loss=final_regression_loss,
-                    distillation_loss=final_distillation_loss
-                )
-            else:
-                # final_logits = torch.cat([o.logits for o in outs], dim=0)
-                return CausalLMOutputWithNewToken(
-                    loss=final_loss,
-                    logits=None,
-                    hidden_states=None,
-                    attentions=None,
-                    past_key_values=None,
-                    new_token_loss=final_new_token_loss,
-                    memories=final_memories
-                )
+            return CausalLMOutputWithRegressionAndNegativeLoss(
+                loss=final_loss,
+                hidden_states=final_hiddens,
+                positive_loss=final_positive_loss.detach(),
+                negative_loss=final_negative_loss.detach(),
+                positive_logits=None,
+                negative_logits=None,
+                base_logits=None,
+                base_hidden_states=final_base_hiddens,
+                new_token_loss=final_new_token_loss,
+                memories=final_memories,
+                regression_loss=final_regression_loss,
+                distillation_loss=final_distillation_loss
+            )
+        elif (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
+            return CausalLMOutputWithNewTokenNegatives(
+                loss=final_loss,
+                positive_loss=final_positive_loss.detach(),
+                negative_loss=final_negative_loss.detach(),
+                positive_logits=None,
+                negative_logits=None,
+                hidden_states=final_hiddens,
+                attentions=final_attentions,
+                new_token_loss=final_new_token_loss,
+                memories=final_memories
+            )
+        elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
+            # final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
+            # final_base_logits = torch.stack([o.base_logits for o in outs])
+            final_logits = torch.stack([o.logits for o in outs])
+            # final_base_hiddens = [o.base_hidden_states for o in outs]
+            return CausalLMOutputWithRegressionLoss(
+                loss=final_loss,
+                logits=final_logits,
+                base_logits=None,
+                hidden_states=final_hiddens,
+                base_hidden_states=final_base_hiddens,
+                new_token_loss=final_new_token_loss,
+                memories=final_memories,
+                regression_loss=final_regression_loss,
+                distillation_loss=final_distillation_loss
+            )
+        else:
+            # final_logits = torch.cat([o.logits for o in outs], dim=0)
+            return CausalLMOutputWithNewToken(
+                loss=final_loss,
+                logits=None,
+                hidden_states=None,
+                attentions=None,
+                past_key_values=None,
+                new_token_loss=final_new_token_loss,
+                memories=final_memories
+            )
 
 
 
@@ -1546,307 +1445,307 @@ def main():
     print("training")
 
 
-    with torch.profiler.profile(
-            activities=[
-                torch.profiler.ProfilerActivity.CPU,
-                # torch.profiler.ProfilerActivity.CUDA,
-            ],
-            schedule=torch.profiler.schedule(wait=0, warmup=0, active=10, repeat=1),
-            # record_shapes=True,
-            # profile_memory=True,
-            # with_stack=True,
-            on_trace_ready=trace_handler,
-    ) as prof:
+    # with torch.profiler.profile(
+    #         activities=[
+    #             torch.profiler.ProfilerActivity.CPU,
+    #             # torch.profiler.ProfilerActivity.CUDA,
+    #         ],
+    #         schedule=torch.profiler.schedule(wait=0, warmup=0, active=10, repeat=1),
+    #         # record_shapes=True,
+    #         # profile_memory=True,
+    #         # with_stack=True,
+    #         on_trace_ready=trace_handler,
+    # ) as prof:
 
-        for epoch in range(1):
-            print("epoch", epoch)
-            train_new_token_losses = []
-            train_losses = []
-            total_loss = 0
-            total_new_token_loss = 0
-            total_positive_loss = 0
-            total_negative_loss = 0
-            total_regression_loss = 0
-            total_distillation_loss = 0
-            for i, batch in enumerate(active_train_dl):
-                #if global_step==3:
-                 #   break
-                # prof.step()
-                # print("Context is {} sentences".format(batch['contexts'][0]['input_ids'].shape))
-                # if i == 3:
-                #     try:
-                #         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
-                #     except Exception as e:
-                #         print(f"Failed to capture memory snapshot {e}")
-                #     torch.cuda.memory._record_memory_history(enabled=None)
-                #     #prof.export_memory_timeline(f"memsnap3.html", device="cuda:0")
-                #     break
+    for epoch in range(epochs):
+        print("epoch", epoch)
+        train_new_token_losses = []
+        train_losses = []
+        total_loss = 0
+        total_new_token_loss = 0
+        total_positive_loss = 0
+        total_negative_loss = 0
+        total_regression_loss = 0
+        total_distillation_loss = 0
+        for i, batch in enumerate(active_train_dl):
+            #if global_step==3:
+             #   break
+            # prof.step()
+            # print("Context is {} sentences".format(batch['contexts'][0]['input_ids'].shape))
+            # if i == 3:
+            #     try:
+            #         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
+            #     except Exception as e:
+            #         print(f"Failed to capture memory snapshot {e}")
+            #     torch.cuda.memory._record_memory_history(enabled=None)
+            #     #prof.export_memory_timeline(f"memsnap3.html", device="cuda:0")
+            #     break
 
-                with accelerator.accumulate(model):
-                    log_dict = {}
+            with accelerator.accumulate(model):
+                log_dict = {}
 
-                    model.train()
-                    try:
-                        model.module.firstLM.eval()
-                        model.module.secondLM.eval()
-                    except:
-                        model.firstLM.eval()
-                        model.secondLM.eval()
-                    # model.zero_grad()
+                model.train()
+                try:
+                    model.module.firstLM.eval()
+                    model.module.secondLM.eval()
+                except:
+                    model.firstLM.eval()
+                    model.secondLM.eval()
+                # model.zero_grad()
 
-                    # contexts = []
-                    # for j in range(batch['input_ids'].shape[0]):
-                    #     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                    #     # print("base", tokenizerTask.decode(batch['base_input_ids'][j,:]))
-                    #     # print(batch['input_ids'].shape[0], "shape")
-                    #     assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample,
-                    #                                                                                             tokenizerTask.decode(
-                    #                                                                                                 batch[
-                    #                                                                                                     'input_ids'][
-                    #                                                                                                 j, :]))
-                    #     n = to_sample[0]
-                    #     if n in buffer.buffer:
-                    #         sample = buffer.retrieve(n, batch)
-                    #         if sample is not None:
-                    #             contexts.append(sample)
-                    #         else:
-                    #             print("Null context for {}".format(n))
-                        # else:
-                        #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
-                        #                             clean_up_tokenization_spaces=True)
-                        #     sample = tokenizerMLM([seq],
-                        #                           max_length=tokenizerMLM.model_max_length,
-                        #                           truncation=True,
-                        #                           padding='longest',
-                        #                           return_tensors='pt')
-                        #     contexts.append(sample)
+                # contexts = []
+                # for j in range(batch['input_ids'].shape[0]):
+                #     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
+                #     # print("base", tokenizerTask.decode(batch['base_input_ids'][j,:]))
+                #     # print(batch['input_ids'].shape[0], "shape")
+                #     assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample,
+                #                                                                                             tokenizerTask.decode(
+                #                                                                                                 batch[
+                #                                                                                                     'input_ids'][
+                #                                                                                                 j, :]))
+                #     n = to_sample[0]
+                #     if n in buffer.buffer:
+                #         sample = buffer.retrieve(n, batch)
+                #         if sample is not None:
+                #             contexts.append(sample)
+                #         else:
+                #             print("Null context for {}".format(n))
+                    # else:
+                    #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
+                    #                             clean_up_tokenization_spaces=True)
+                    #     sample = tokenizerMLM([seq],
+                    #                           max_length=tokenizerMLM.model_max_length,
+                    #                           truncation=True,
+                    #                           padding='longest',
+                    #                           return_tensors='pt')
+                    #     contexts.append(sample)
 
-                    # assert len(contexts) == batch['input_ids'].shape[
-                    #     0], "Context has {} elements when it should have {}".format(len(contexts),
-                    #                                                                 batch['input_ids'].shape[0])
-                    # batch['contexts'] = contexts
-                    if args.negative_examples:
-                        neg_train_batch = next(iter(active_negative_train_dl))
-                        # print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
-                        batch['negative_input_ids'] = neg_train_batch['input_ids']
-                        batch['negative_attention_mask'] = neg_train_batch['attention_mask']
-                        batch['negative_labels'] = neg_train_batch['labels']
+                # assert len(contexts) == batch['input_ids'].shape[
+                #     0], "Context has {} elements when it should have {}".format(len(contexts),
+                #                                                                 batch['input_ids'].shape[0])
+                # batch['contexts'] = contexts
+                if args.negative_examples:
+                    neg_train_batch = next(iter(active_negative_train_dl))
+                    # print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
+                    batch['negative_input_ids'] = neg_train_batch['input_ids']
+                    batch['negative_attention_mask'] = neg_train_batch['attention_mask']
+                    batch['negative_labels'] = neg_train_batch['labels']
 
-                    # print(batch['input_ids'].shape[0])
-                    # with record_function("forward + loss"):
+                # print(batch['input_ids'].shape[0])
+                # with record_function("forward + loss"):
 
-                    out = model(batch)
+                out = model(batch)
 
-                    if args.regression_objective and args.negative_examples:
-                        # distillation_weight = 1.0 - ce_weight - args.regression_alpha
-                        loss = out.loss + out.regression_loss + out.distillation_loss
+                if args.regression_objective and args.negative_examples:
+                    # distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                    loss = out.loss + out.regression_loss + out.distillation_loss
 
-                    elif args.regression_objective:
+                elif args.regression_objective:
 
-                        loss = out.regression_loss + out.distillation_loss
+                    loss = out.regression_loss + out.distillation_loss
 
-                    else:
-                        loss = out.loss
-                    # print(loss)
+                else:
+                    loss = out.loss
+                # print(loss)
 
-                    # train_new_token = accelerator.gather(out.new_token_loss)
-                    # train_losses.append(loss.item())
-                    # train_new_token_losses.append(out.new_token_loss.detach().item())
-                    # with record_function("## backward ##"):
-                    accelerator.backward(loss)
-                    if accelerator.sync_gradients:
-                        accelerator.clip_grad_norm_(model.parameters(), 1.0)
-                        for name, param in model.named_parameters():
-                            if param.grad is not None and param.requires_grad:
-                                log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
-                                    param.grad.view(-1)).item()
-                                if torch.isnan(torch.norm(param.grad.view(-1))):
-                                    raise Exception("Nan Gradient for {}".format(name))
-                            if param.requires_grad and param.grad is None:
-                                print(name)
-                    # with record_function("## opt ##"):
-                    opt.step()
-                    scheduler.step()
-                    opt.zero_grad()
-                    model.zero_grad()
-                    total_loss += loss.detach().float()
-                    total_new_token_loss += out.new_token_loss.detach().float()
-                    if args.negative_examples:
-                        total_positive_loss += out.positive_loss.detach().float()
-                        total_negative_loss += out.negative_loss.detach().float()
-                    if args.regression_objective:
-                        total_regression_loss += out.regression_loss.detach().float()
-                        total_distillation_loss += out.distillation_loss.detach().float()
-
+                # train_new_token = accelerator.gather(out.new_token_loss)
+                # train_losses.append(loss.item())
+                # train_new_token_losses.append(out.new_token_loss.detach().item())
+                # with record_function("## backward ##"):
+                accelerator.backward(loss)
                 if accelerator.sync_gradients:
-                    # accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
+                    accelerator.clip_grad_norm_(model.parameters(), 1.0)
+                    for name, param in model.named_parameters():
+                        if param.grad is not None and param.requires_grad:
+                            log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(
+                                param.grad.view(-1)).item()
+                            if torch.isnan(torch.norm(param.grad.view(-1))):
+                                raise Exception("Nan Gradient for {}".format(name))
+                        if param.requires_grad and param.grad is None:
+                            print(name)
+                # with record_function("## opt ##"):
+                opt.step()
+                scheduler.step()
+                opt.zero_grad()
+                model.zero_grad()
+                total_loss += loss.detach().float()
+                total_new_token_loss += out.new_token_loss.detach().float()
+                if args.negative_examples:
+                    total_positive_loss += out.positive_loss.detach().float()
+                    total_negative_loss += out.negative_loss.detach().float()
+                if args.regression_objective:
+                    total_regression_loss += out.regression_loss.detach().float()
+                    total_distillation_loss += out.distillation_loss.detach().float()
 
-                    # for name, param in model.named_parameters():
-                    #     if param.grad is not None and param.requires_grad:
-                    #         log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
-                    #         if torch.isnan(torch.norm(param.grad.view(-1))):
-                    #             raise Exception("Nan Gradient for {}".format(name))
-                    global_step += 1
-                    log_dict['global step'] = global_step
-                    log_dict['train loss'] = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps
+            if accelerator.sync_gradients:
+                # accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
 
-                    log_dict['train new token loss'] = accelerator.gather(
-                        total_new_token_loss).mean().item() / args.gradient_accumulation_steps
-                    # log_dict['num_words_seen'] = len(buffer.buffer)
-                    total_loss = 0
-                    total_new_token_loss = 0
-                    if args.negative_examples:
-                        log_dict['train loss on positive examples'] = accelerator.gather(
-                            total_positive_loss).mean().item() / args.gradient_accumulation_steps
-                        log_dict['train loss on negative examples'] = accelerator.gather(
-                            total_negative_loss).mean().item() / args.gradient_accumulation_steps
-                        total_negative_loss = 0
-                        total_positive_loss = 0
+                # for name, param in model.named_parameters():
+                #     if param.grad is not None and param.requires_grad:
+                #         log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
+                #         if torch.isnan(torch.norm(param.grad.view(-1))):
+                #             raise Exception("Nan Gradient for {}".format(name))
+                global_step += 1
+                log_dict['global step'] = global_step
+                log_dict['train loss'] = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps
 
-                    if args.regression_objective:
-                        log_dict['regression loss without weight'] = accelerator.gather(
-                            total_regression_loss).mean().item() / args.gradient_accumulation_steps
-                        # log_dict['regression loss with alpha'] = (args.regression_alpha * accelerator.gather(total_regression_loss)).mean().item() / args.gradient_accumulation_steps
-                        log_dict['distillation loss without weight'] = accelerator.gather(
-                            total_distillation_loss).mean().item() / args.gradient_accumulation_steps
-                        total_regression_loss = 0
-                        total_distillation_loss = 0
+                log_dict['train new token loss'] = accelerator.gather(
+                    total_new_token_loss).mean().item() / args.gradient_accumulation_steps
+                # log_dict['num_words_seen'] = len(buffer.buffer)
+                total_loss = 0
+                total_new_token_loss = 0
+                if args.negative_examples:
+                    log_dict['train loss on positive examples'] = accelerator.gather(
+                        total_positive_loss).mean().item() / args.gradient_accumulation_steps
+                    log_dict['train loss on negative examples'] = accelerator.gather(
+                        total_negative_loss).mean().item() / args.gradient_accumulation_steps
+                    total_negative_loss = 0
+                    total_positive_loss = 0
 
-                    with torch.no_grad():
-                        memory_norms = {
-                            'input_memory': [],
-                            'output_memory': []
-                        }
+                if args.regression_objective:
+                    log_dict['regression loss without weight'] = accelerator.gather(
+                        total_regression_loss).mean().item() / args.gradient_accumulation_steps
+                    # log_dict['regression loss with alpha'] = (args.regression_alpha * accelerator.gather(total_regression_loss)).mean().item() / args.gradient_accumulation_steps
+                    log_dict['distillation loss without weight'] = accelerator.gather(
+                        total_distillation_loss).mean().item() / args.gradient_accumulation_steps
+                    total_regression_loss = 0
+                    total_distillation_loss = 0
 
-                        for mem_dict in out.memories:
-                            for memory_type in ['input_memory', 'output_memory']:
-                                m = mem_dict[memory_type]
-                                new_ids = list(m.memory.keys())
-                                assert len(new_ids) == 1
-                                new_id = new_ids[0]
-                                memory_norms[memory_type].append(m.retrieve(new_id).norm().detach())
+                with torch.no_grad():
+                    memory_norms = {
+                        'input_memory': [],
+                        'output_memory': []
+                    }
 
+                    for mem_dict in out.memories:
                         for memory_type in ['input_memory', 'output_memory']:
-                            norms = memory_norms[memory_type]
+                            m = mem_dict[memory_type]
+                            new_ids = list(m.memory.keys())
+                            assert len(new_ids) == 1
+                            new_id = new_ids[0]
+                            memory_norms[memory_type].append(m.retrieve(new_id).norm().detach())
 
-                            log_dict["embed_norms/{} token embedding norm".format(memory_type)] = torch.stack(
-                                norms).mean().detach().item()
+                    for memory_type in ['input_memory', 'output_memory']:
+                        norms = memory_norms[memory_type]
 
-                    accelerator.log(log_dict)
-                    print(log_dict)
-                    # buffer.store_task(batch)
-                    # buffer.cleanup()
+                        log_dict["embed_norms/{} token embedding norm".format(memory_type)] = torch.stack(
+                            norms).mean().detach().item()
 
-                if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
-                        or (i % len(active_train_dl) ==0 and i != 0 and epoch != 0):
-                    opt.zero_grad(set_to_none=True)
-                    model.eval()
-                    with torch.no_grad():
-                        total_test_loss = 0
-                        total_test_nonce_loss = 0
-                        total_test_negative_loss = 0
-                        total_test_positive_loss = 0
-                        total_test_regression_loss = 0
-                        total_test_distillation_loss = 0
-                        test_log = {}
-                        ct = 0
-                        for b in test_dl:
-                            ct += 1
-                            if ct >= args.num_eval_steps:
-                                break
-                            # contexts = []
-                            # for j in range(b['input_ids'].shape[0]):
-                            #     to_sample = list(
-                            #         set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
-                            #     assert (len(to_sample) == 1)
-                            #     n = to_sample[0]
-                            #     if n in test_buffer.buffer:
-                            #         sample = test_buffer.retrieve(n, b)
-                            #         if sample is not None:
-                            #             contexts.append(sample)
-                            #     # else:
-                            #     #     seq = tokenizerTask.decode(b['input_ids'][j,:])
-                            #     #     sample = tokenizerMLM([seq],
-                            #     #               max_length=tokenizerMLM.model_max_length,
-                            #     #               truncation=True,
-                            #     #               padding='longest',
-                            #     #               return_tensors='pt')
-                            #     #     contexts.append(sample)
-                            #
-                            # assert len(contexts) == b['input_ids'].shape[
-                            #     0], "Context has {} elements when it should have {}".format(len(contexts),
-                            #                                                                 b['input_ids'].shape[0])
-                            # b['contexts'] = contexts
+                accelerator.log(log_dict)
+                print(log_dict)
+                # buffer.store_task(batch)
+                # buffer.cleanup()
 
-                            if args.negative_examples:
-                                neg_test_batch = next(iter(negative_test_dl))
-                                b['negative_input_ids'] = neg_test_batch['input_ids']
-                                b['negative_attention_mask'] = neg_test_batch['attention_mask']
-                                b['negative_labels'] = neg_test_batch['labels']
-
-                            t_out = model(b)
-                            # all_losses = accelerator.gather(t_out.loss)
-                            if args.regression_objective and args.negative_examples:
-                                # distillation_weight = 1.0 - ce_weight - args.regression_alpha
-                                total_test_loss += t_out.loss + t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
-                            elif args.regression_objective:
-                                total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
-                            else:
-                                total_test_loss += t_out.loss.detach().float()
-
-                            # all_new_tokens = accelerator.gather(t_out.new_token_loss)
-                            total_test_nonce_loss += t_out.new_token_loss.detach()
-                            if args.negative_examples:
-                                total_test_positive_loss += t_out.positive_loss.detach().float()
-                                total_test_negative_loss += t_out.negative_loss.detach().float()
-
-                            if args.regression_objective:
-                                total_test_regression_loss += t_out.regression_loss.detach().float()
-                                total_test_distillation_loss += t_out.distillation_loss.detach().float()
-
-                            # test_buffer.store_task(b)
-                            # test_buffer.cleanup()
-
-                        avg_test = accelerator.gather(total_test_loss).sum().item() / args.num_eval_steps
-                        avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / args.num_eval_steps
-                        test_log['average test loss'] = avg_test
-                        test_log['average test loss on new tokens'] = avg_new_tok
-                        test_log['epoch'] = epoch
-                        test_log['eval step'] = i // eval_ind
+            if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
+                    or (i % len(active_train_dl) ==0 and i != 0 and epoch != 0):
+                opt.zero_grad(set_to_none=True)
+                model.eval()
+                with torch.no_grad():
+                    total_test_loss = 0
+                    total_test_nonce_loss = 0
+                    total_test_negative_loss = 0
+                    total_test_positive_loss = 0
+                    total_test_regression_loss = 0
+                    total_test_distillation_loss = 0
+                    test_log = {}
+                    ct = 0
+                    for b in test_dl:
+                        ct += 1
+                        if ct >= args.num_eval_steps:
+                            break
+                        # contexts = []
+                        # for j in range(b['input_ids'].shape[0]):
+                        #     to_sample = list(
+                        #         set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
+                        #     assert (len(to_sample) == 1)
+                        #     n = to_sample[0]
+                        #     if n in test_buffer.buffer:
+                        #         sample = test_buffer.retrieve(n, b)
+                        #         if sample is not None:
+                        #             contexts.append(sample)
+                        #     # else:
+                        #     #     seq = tokenizerTask.decode(b['input_ids'][j,:])
+                        #     #     sample = tokenizerMLM([seq],
+                        #     #               max_length=tokenizerMLM.model_max_length,
+                        #     #               truncation=True,
+                        #     #               padding='longest',
+                        #     #               return_tensors='pt')
+                        #     #     contexts.append(sample)
+                        #
+                        # assert len(contexts) == b['input_ids'].shape[
+                        #     0], "Context has {} elements when it should have {}".format(len(contexts),
+                        #                                                                 b['input_ids'].shape[0])
+                        # b['contexts'] = contexts
 
                         if args.negative_examples:
-                            test_log['average test loss on positive examples'] = accelerator.gather(
-                                total_test_positive_loss).sum().item() / args.num_eval_steps
-                            test_log['average test loss on negative examples'] = accelerator.gather(
-                                total_test_negative_loss).sum().item() / args.num_eval_steps
+                            neg_test_batch = next(iter(negative_test_dl))
+                            b['negative_input_ids'] = neg_test_batch['input_ids']
+                            b['negative_attention_mask'] = neg_test_batch['attention_mask']
+                            b['negative_labels'] = neg_test_batch['labels']
+
+                        t_out = model(b)
+                        # all_losses = accelerator.gather(t_out.loss)
+                        if args.regression_objective and args.negative_examples:
+                            # distillation_weight = 1.0 - ce_weight - args.regression_alpha
+                            total_test_loss += t_out.loss + t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
+                        elif args.regression_objective:
+                            total_test_loss += t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
+                        else:
+                            total_test_loss += t_out.loss.detach().float()
+
+                        # all_new_tokens = accelerator.gather(t_out.new_token_loss)
+                        total_test_nonce_loss += t_out.new_token_loss.detach()
+                        if args.negative_examples:
+                            total_test_positive_loss += t_out.positive_loss.detach().float()
+                            total_test_negative_loss += t_out.negative_loss.detach().float()
 
                         if args.regression_objective:
-                            test_log['average regression test loss without alpha'] = accelerator.gather(
-                                total_test_regression_loss).sum().item() / args.num_eval_steps
-                            test_log['average distillation test loss'] = accelerator.gather(
-                                total_test_distillation_loss).sum().item() / args.num_eval_steps
+                            total_test_regression_loss += t_out.regression_loss.detach().float()
+                            total_test_distillation_loss += t_out.distillation_loss.detach().float()
 
-                        accelerator.log(test_log)
+                        # test_buffer.store_task(b)
+                        # test_buffer.cleanup()
 
-                        if avg_test < best_test_loss or avg_new_tok < best_new_token_loss:
-                            best_test_loss = avg_test
-                            best_new_token_loss = avg_new_tok
-                            save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
-                            num_copies = 0
-                            tmp_save_dir = save_dir
-                            while os.path.isdir(tmp_save_dir):
-                                num_copies += 1
-                                tmp_save_dir = save_dir + "_v{}".format(num_copies)
+                    avg_test = accelerator.gather(total_test_loss).sum().item() / args.num_eval_steps
+                    avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / args.num_eval_steps
+                    test_log['average test loss'] = avg_test
+                    test_log['average test loss on new tokens'] = avg_new_tok
+                    test_log['epoch'] = epoch
+                    test_log['eval step'] = i // eval_ind
 
-                            save_dir = tmp_save_dir
-                            os.makedirs(save_dir, exist_ok=True)
-                            accelerator.wait_for_everyone()
-                            accelerator.save_state(save_dir)
-                            tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
-                            tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
-                            checkpoint_id += 1
+                    if args.negative_examples:
+                        test_log['average test loss on positive examples'] = accelerator.gather(
+                            total_test_positive_loss).sum().item() / args.num_eval_steps
+                        test_log['average test loss on negative examples'] = accelerator.gather(
+                            total_test_negative_loss).sum().item() / args.num_eval_steps
 
-        accelerator.end_training()
+                    if args.regression_objective:
+                        test_log['average regression test loss without alpha'] = accelerator.gather(
+                            total_test_regression_loss).sum().item() / args.num_eval_steps
+                        test_log['average distillation test loss'] = accelerator.gather(
+                            total_test_distillation_loss).sum().item() / args.num_eval_steps
+
+                    accelerator.log(test_log)
+
+                    if avg_test < best_test_loss or avg_new_tok < best_new_token_loss:
+                        best_test_loss = avg_test
+                        best_new_token_loss = avg_new_tok
+                        save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
+                        num_copies = 0
+                        tmp_save_dir = save_dir
+                        while os.path.isdir(tmp_save_dir):
+                            num_copies += 1
+                            tmp_save_dir = save_dir + "_v{}".format(num_copies)
+
+                        save_dir = tmp_save_dir
+                        os.makedirs(save_dir, exist_ok=True)
+                        accelerator.wait_for_everyone()
+                        accelerator.save_state(save_dir)
+                        tokenizerMLM.save_pretrained(save_dir + "/tokenizerMLM")
+                        tokenizerTask.save_pretrained(save_dir + "tokenizerTask")
+                        checkpoint_id += 1
+
+    accelerator.end_training()
 
 
 if __name__ == "__main__":
