@@ -530,7 +530,10 @@ class MorphMemoryModelLLAMA(nn.Module):
             input_memory = Memory()
             output_memory = Memory()
 
-            mlm_ids = self.swap_with_mask(c['input_ids'])
+            if self.mask_token_id is not None:
+                mlm_ids = self.swap_with_mask(c['input_ids'])
+            else:
+                mlm_ids = c['input_ids']
             #             print('after', c['input_ids'])
             #             print("after mlm ids", mlm_ids)
             with torch.no_grad():
@@ -1166,8 +1169,11 @@ def main():
         tokenizerMLM = AutoTokenizer.from_pretrained(current_checkpoint_path + "/tokenizerMLM", use_fast=False)
         tokenizerTask = LlamaTokenizer.from_pretrained(current_checkpoint_path + "tokenizerTask",
                                                        legacy=True, use_fast=False)
+    if t5_flag:
+        tokenizerMLM = AutoTokenizer.from_pretrained(args.first_lm, use_fast=False, legacy=False)
+    else:
+        tokenizerMLM = AutoTokenizer.from_pretrained(args.first_lm, use_fast=False)
 
-    tokenizerMLM = AutoTokenizer.from_pretrained("roberta-base", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
                                                    use_fast=False)
     tokenizerTask.add_bos_token = True
@@ -1186,7 +1192,10 @@ def main():
     # print("Nonces = {}".format(nonces))
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
-    mask_token_id = tokenizerMLM.mask_token_id
+    if not t5_flag:
+        mask_token_id = tokenizerMLM.mask_token_id
+    else:
+        mask_token_id = None
     #accelerator.wait_for_everyone()
 
     torch.cuda.memory._record_memory_history(
