@@ -971,6 +971,9 @@ def create_checkpoint_directories(args):
 
         path = path + alpha_str + hidden_str
 
+    if args.progressive_training:
+        path = path + "progressive_training/"
+
     if args.l2 is not None:
         path = path + "l2/"
 
