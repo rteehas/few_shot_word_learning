@@ -1280,8 +1280,13 @@ def main():
                                                remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
                                                num_proc=2).with_format("torch")
         # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
+        if args.progressive_training:
+            k = args.num_examples
+        else:
+            k = None
+
         train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=partial(regression_collate, args.num_examples, t5=t5_flag), drop_last=True,
+                              collate_fn=partial(regression_collate, args.num_examples, t5=t5_flag, k=k), drop_last=True,
                               shuffle=True, worker_init_fn=seed_worker, pin_memory=True)
 
         tokenized_test = dataset['test'].map(tokenize_regression,
@@ -1289,7 +1294,7 @@ def main():
                                              num_proc=2).with_format("torch")
         # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
         test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                             collate_fn=partial(regression_collate, args.num_examples, t5=t5_flag), shuffle=True, drop_last=True,
+                             collate_fn=partial(regression_collate, args.num_examples, t5=t5_flag, k=None), shuffle=True, drop_last=True,
                              worker_init_fn=seed_worker, pin_memory=True)
 
     else:
@@ -1297,9 +1302,12 @@ def main():
                                                remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
                                                num_proc=2).with_format("torch")
         # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
-
+        if args.progressive_training:
+            k = args.num_examples
+        else:
+            k = None
         train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
-                              collate_fn=partial(regular_collate, args.num_examples, t5=t5_flag),
+                              collate_fn=partial(regular_collate, args.num_examples, t5=t5_flag, k=k),
                               shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                               pin_memory=True)
 
@@ -1309,7 +1317,7 @@ def main():
 
         # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
         test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
-                             collate_fn=partial(regular_collate, args.num_examples, t5=t5_flag),
+                             collate_fn=partial(regular_collate, args.num_examples, t5=t5_flag, k=None),
                              shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                              pin_memory=True)
 
@@ -1438,6 +1446,18 @@ def main():
 
     for epoch in range(epochs):
         print("epoch", epoch)
+        if args.progressive_training and epoch > 0:
+            k = args.num_examples - epoch
+            if args.regression_objective:
+                collator = regression_collate
+            else:
+                collator = regular_collate
+            train_dl = DataLoader(tokenized_train, batch_size=args.batch_size,
+                                  collate_fn=partial(collator, args.num_examples, t5=t5_flag, k=k),
+                                  shuffle=True, drop_last=True, worker_init_fn=seed_worker,
+                                  pin_memory=True)
+
+            active_train_dl = accelerator.prepare(train_dl)
         train_new_token_losses = []
         train_losses = []
         total_loss = 0
