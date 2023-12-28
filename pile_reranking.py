@@ -93,15 +93,20 @@ def filter_by_score(ex):
 
 def main():
     tokenizer = AutoTokenizer.from_pretrained("distilroberta-base", use_fast=True)
-    model = RobertaForMaskedLM.from_pretrained("distilroberta-base", low_cpu_mem_usage=True)
     partial_scores = partial(score_sentences, tokenizer=tokenizer)
+    print("loading data")
     data = load_from_disk("pile_medium_regression_v3")
+    print("filtering for second half")
     data = data['train'].filter(lambda ex: len(ex['sentences']) > 100)
+    print("reverting sentences")
     data = data.map(revert_sentences)
+    print("scoring")
     scored = data.map(partial_scores)
+    print("filtering")
     scored = scored.filter(filter_by_score)
+    print("ranking")
     scored = scored.map(rank_by_score)
-
+    print("saving")
     scored.save_to_disk("pile_second_half_ranked")
 
 
