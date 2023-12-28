@@ -92,6 +92,7 @@ def filter_by_score(ex):
 
 
 def main():
+    torch.set_grad_enabled(False)
     tokenizer = AutoTokenizer.from_pretrained("distilroberta-base", use_fast=True)
     partial_scores = partial(score_sentences, tokenizer=tokenizer)
     print("loading data")
@@ -101,13 +102,13 @@ def main():
     print("reverting sentences")
     data = data.map(revert_sentences)
     print("scoring")
-    scored = data.map(partial_scores)
+    data = data.map(partial_scores)
     print("filtering")
-    scored = scored.filter(filter_by_score)
+    data = data.filter(filter_by_score)
     print("ranking")
-    scored = scored.map(rank_by_score)
+    data = data.map(rank_by_score)
     print("saving")
-    scored.save_to_disk("pile_second_half_ranked")
+    data.save_to_disk("pile_second_half_ranked")
 
 
 if __name__ == "__main__":
