@@ -1411,22 +1411,25 @@ def main():
         if base_epoch != 0:
             curr_global_step = step
             curr_neg_step = step
+            within_batch_step = curr_global_step - ((base_epoch-1) * len(train_dl))
             # curr_global_step = (step // (base_epoch * len(train_dl))) // args.gradient_accumulation_steps
             # curr_neg_step = (step // (base_epoch * len(negative_train_dl))) // args.gradient_accumulation_steps
         else:
             curr_global_step = step
             curr_neg_step = step
+            within_batch_step = curr_global_step
             # curr_global_step = step // args.gradient_accumulation_steps
             # curr_neg_step = step // args.gradient_accumulation_steps
 
-        active_train_dl = accelerator.skip_first_batches(train_dl, curr_global_step)
+        active_train_dl = accelerator.skip_first_batches(train_dl, within_batch_step)
         if args.negative_examples:
-            active_negative_train_dl = accelerator.skip_first_batches(negative_train_dl, curr_neg_step)
+            active_negative_train_dl = accelerator.skip_first_batches(negative_train_dl, within_batch_step)
         print("curr step", curr_global_step)
         global_step = curr_global_step
         accelerator.load_state(args.resume_from_checkpoint)
     else:
         active_train_dl = train_dl
+        base_epoch = 0
         if args.negative_examples:
             active_negative_train_dl = negative_train_dl
 
@@ -1447,8 +1450,10 @@ def main():
     #         on_trace_ready=trace_handler,
     # ) as prof:
 
-    for epoch in range(epochs):
+    for epoch in range(base_epoch, epochs):
         print("epoch", epoch)
+        if epoch > base_epoch and args.resume_from_checkpoint is not None:
+            active_train_dl = train_dl
         if args.progressive_training and epoch > 0:
             k = args.num_examples - epoch
             if args.regression_objective:
@@ -1465,6 +1470,8 @@ def main():
                                   pin_memory=True)
 
             active_train_dl = accelerator.prepare(train_dl)
+            if args.resume_from_checkpoint is not None:
+                active_train_dl = accelerator.skip_first_batches(active_train_dl, curr_global_step)
         train_new_token_losses = []
         train_losses = []
         total_loss = 0
