@@ -1412,7 +1412,7 @@ def main():
             curr_global_step = step
             curr_neg_step = step
             within_batch_step = curr_global_step - ((base_epoch-1) * len(train_dl))
-            print("Within batch step {}")
+            print("Within batch step {}".format(within_batch_step))
             # curr_global_step = (step // (base_epoch * len(train_dl))) // args.gradient_accumulation_steps
             # curr_neg_step = (step // (base_epoch * len(negative_train_dl))) // args.gradient_accumulation_steps
         else:
