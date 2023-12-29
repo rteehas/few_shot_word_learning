@@ -148,9 +148,11 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
         'labels': input_ids.clone()
     }
     initial_outputs = model(initial_batch)
-
-    input_weights = model.get_new_weights(task="Task", memory=initial_outputs.memories[0]['input_memory'])
-    output_weights = model.get_new_output_weights(initial_outputs.memories[0]['output_memory'])
+    new_tok_id = list(initial_outputs.memories[0]['input_memory'].memory.keys())[0]
+    inp_embed = initial_outputs.memories[0]['input_memory'].retrieve(new_tok_id)
+    outp_embed = initial_outputs.memories[0]['output_memory'].retrieve(new_tok_id)
+    input_weights = model.get_new_weights(task="Task", new_embed=inp_embed)
+    output_weights = model.get_new_output_weights(outp_embed)
 
     first_token = decoding_step(initial_outputs.logits, temperature, top_k)
     new_input_ids = torch.cat([input_ids, first_token], dim=1)
@@ -684,7 +686,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             else:
                 out_vals = CausalLMOutputWithNewToken(
                     loss=llama_outputs.loss,
-                    logits=None,
+                    logits=llama_outputs.logits,
                     past_key_values=None,
                     hidden_states=None,
                     attentions=None,
@@ -785,10 +787,10 @@ class MorphMemoryModelLLAMA(nn.Module):
                 distillation_loss=final_distillation_loss
             )
         else:
-            # final_logits = torch.cat([o.logits for o in outs], dim=0)
+            final_logits = torch.cat([o.logits for o in outs if o.logits is not None], dim=0)
             return CausalLMOutputWithNewToken(
                 loss=final_loss,
-                logits=None,
+                logits=final_logits,
                 hidden_states=None,
                 attentions=None,
                 past_key_values=None,
@@ -1410,8 +1412,7 @@ def main():
         #todo: implement for second epoch
         if base_epoch != 0:
             curr_global_step = step
-            curr_neg_step = step
-            within_batch_step = 2 * (curr_global_step - ((base_epoch-1) * len(train_dl)))
+            within_batch_step = args.gradient_accumulation_steps * (curr_global_step - ((base_epoch-1) * len(train_dl)))
             print("Within batch step {}".format(within_batch_step))
             # curr_global_step = (step // (base_epoch * len(train_dl))) // args.gradient_accumulation_steps
             # curr_neg_step = (step // (base_epoch * len(negative_train_dl))) // args.gradient_accumulation_steps
