@@ -125,6 +125,8 @@ def order_and_select_indices(ind_seq):
 
 
 def decoding_step(logits, temperature, top_k=None, do_sample=False):
+    if len(logits.shape) == 2:
+        logits = logits.unsqueeze(0)
     scaled_logits = logits[:, -1, :] / temperature
     if top_k is not None:
         v, _ = torch.topk(scaled_logits, min(top_k, scaled_logits.size(-1)))
@@ -165,7 +167,7 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
             inputs_embeds=input_embeds,
             attention_mask=new_attention_mask
         )
-        llama_outputs = model.llama_forward(labels=None, outputs=outputs, new_w=output_weights)
+        llama_outputs = model.llama_forward(labels=None, outputs=outputs, new_w=output_weights, index=None)
 
         next_token = decoding_step(llama_outputs.logits, temperature, top_k, do_sample)
 
@@ -964,7 +966,8 @@ def create_checkpoint_directories(args):
         dataset_name= "pile"
 
     path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}/layernorm/{}/{}_layers/last_{}/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
-    path = path.format(dataset_name, args.first_lm, args.num_layers, args.num_feature_layers, args.batch_size * args.gradient_accumulation_steps, args.memory,
+    path = path.format(dataset_name, args.first_lm, args.num_layers, args.num_feature_layers,
+                       args.batch_size * args.gradient_accumulation_steps * torch.cuda.device_count, args.memory,
                        args.num_examples, args.lr, args.weight_decay, neg_string)
 
     if args.regression_objective:
