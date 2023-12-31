@@ -1228,7 +1228,7 @@ def main():
             raise NotImplementedError("LM {} is not supported".format(args.first_lm))
 
         secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                low_cpu_mem_usage=True).to(accelerator.device)
+                                                low_cpu_mem_usage=True, device_map=accelerator.device)
 
     firstLM.eval()
     secondLM.eval()
