@@ -1415,7 +1415,7 @@ def main():
         #todo: implement for second epoch
         if base_epoch != 0:
             curr_global_step = step
-            within_batch_step = args.gradient_accumulation_steps * (curr_global_step - ((base_epoch) * len(train_dl)))
+            within_batch_step = args.gradient_accumulation_steps * (curr_global_step - ((base_epoch) * len(train_dl)) + 1)
             print("Within batch step {}".format(within_batch_step))
             print("Training DL len = {}".format(len(train_dl)))
             # curr_global_step = (step // (base_epoch * len(train_dl))) // args.gradient_accumulation_steps
