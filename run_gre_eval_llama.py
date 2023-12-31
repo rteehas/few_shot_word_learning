@@ -152,7 +152,7 @@ def main():
     # else:
     #     layers=[-1]
     layers = [-1]
-    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, layers, None).to(device)
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None).to(device)
     model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
     model.device = device
     model.firstLM.eval()
