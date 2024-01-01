@@ -304,28 +304,28 @@ def main():
         nonces = list(tokenizerTask.get_added_vocab().keys())
         # tokenizerMLM.add_tokens(nonces)
         # tokenizerTask.add_tokens(nonces)
-        firstLM = RobertaForMaskedLM.from_pretrained("roberta-base", low_cpu_mem_usage=True)
+        firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
         secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
         firstLM.resize_token_embeddings(len(tokenizerMLM))
         secondLM.resize_token_embeddings(len(tokenizerTask))
 
-        config_args = extract_arguments_from_path(args.path)
-        print(config_args)
-        if config_args['memory'] == "mean":
-            memory_config = AggregatorConfig()
-        elif config_args['memory'] == 'cls':
-            memory_config = TransformerCLSConfig(
-                input_size=firstLM.config.hidden_size,
-                nhead=firstLM.config.num_attention_heads,
-                num_layers=1
-            )
+        # config_args = extract_arguments_from_path(args.path)
+        # print(config_args)
+        # if config_args['memory'] == "mean":
+        memory_config = AggregatorConfig()
+        # elif config_args['memory'] == 'cls':
+        #     memory_config = TransformerCLSConfig(
+        #         input_size=firstLM.config.hidden_size,
+        #         nhead=firstLM.config.num_attention_heads,
+        #         num_layers=1
+        #     )
 
         mask_token_id = tokenizerMLM.mask_token_id
-        if 'num_feature_layers' in config_args:
-            layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
-        else:
-            layers=[-1]
-        model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, config_args['num_layers'], None).to(device)
+        # if 'num_feature_layers' in config_args:
+        #     layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
+        # else:
+        layers=[-1]
+        model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None).to(device)
         model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
         model.device = device
         model.firstLM.eval()
