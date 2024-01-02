@@ -312,13 +312,13 @@ def main():
         # config_args = extract_arguments_from_path(args.path)
         # print(config_args)
         # if config_args['memory'] == "mean":
-        # memory_config = AggregatorConfig()
+        memory_config = AggregatorConfig()
         # elif config_args['memory'] == 'cls':
-        memory_config = TransformerCLSConfig(
-                input_size=firstLM.config.hidden_size,
-                nhead=2,
-                num_layers=1
-            )
+        # memory_config = TransformerCLSConfig(
+        #         input_size=firstLM.config.hidden_size,
+        #         nhead=2,
+        #         num_layers=1
+        #     )
 
         mask_token_id = tokenizerMLM.mask_token_id
         # if 'num_feature_layers' in config_args:
