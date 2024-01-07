@@ -28,7 +28,7 @@ def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with
     outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 100, temperature=1.0, top_k=None, do_sample=False)
     # print(outputs)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
-    print(ex['word'], generated_def)
+    # print(ex['word'], generated_def)
     new_ex = {'definition': ex['definition'],
            'word':ex['word'],
            'generated definition': generated_def,
@@ -220,8 +220,8 @@ def get_arguments():
 
 if __name__ == "__main__":
     args = get_arguments().parse_args()
-    def_task = load_from_disk("initial_wordnet_def_task")
-    def_task = def_task.map(replace_for_llama_baseline)
+    def_task = load_from_disk("def_task_998")
+    # def_task = def_task.map(replace_for_llama_baseline)
     run_baseline(def_task, args.lr)
 
 
