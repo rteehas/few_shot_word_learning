@@ -24,7 +24,7 @@ def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with
 
     inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 100, temperature=1.0, top_k=None, do_sample=False)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 100, temperature=0.8, top_k=None, do_sample=True)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     new_ex = {'definition': ex['definition'],
            'word':ex['word'],
