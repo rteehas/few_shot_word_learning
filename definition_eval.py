@@ -25,7 +25,7 @@ def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with
 
     inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 100, temperature=1.0, top_k=None, do_sample=False)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, temperature=1.0, top_k=None, do_sample=False)
     # print(outputs)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     # print(ex['word'], generated_def)
@@ -41,7 +41,7 @@ def generate_definitions(ex,k):
     examples = np.random.choice(ex['replaced_examples'], size=k, replace=False)
     example_prompt = definition_prompt.format("\n".join(examples), "<nonce>")
     inputs = tokenizer(example_prompt, return_tensors='pt')
-    output = model.generate(**inputs.to(device), max_new_tokens=100)
+    output = model.generate(**inputs.to(device), max_new_tokens=30)
     generated_def = tokenizer.decode(output[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     new_ex = {'definition': ex['definition'],
            'word':ex['word'],
@@ -55,7 +55,7 @@ def generate_definitions_examples(model, tokenizer, ex, examples, with_prompt):
     else:
         example_prompt = "The word <nonce> means"
     inputs = tokenizer(example_prompt, return_tensors='pt')
-    output = model.generate(**inputs.to(device), max_new_tokens=100)
+    output = model.generate(**inputs.to(device), max_new_tokens=30)
     generated_def = tokenizer.decode(output[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     new_ex = {'definition': ex['definition'],
               'word': ex['word'],
@@ -114,7 +114,7 @@ def gradient_descent_tuning(model, tokenizerTask, ex, k, num_steps, lr):
     return all_step_outputs
 
 def run_baseline(def_task, lr):
-    max_num_steps = 5
+    max_num_steps = 2
     fname_format = "definition_task_outputs/baseline_generations_lr_{}"
     print(lr)
     all_outputs = []
@@ -196,6 +196,7 @@ def run_emb_gen(def_task, path):
     model.eval()
     all_outputs = []
     for k in range(1,4):
+        print("Examples: " + str(k))
         for ex in def_task:
             step_output_with_prompt = generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt=True)
             step_output_without_prompt = generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt=False)
