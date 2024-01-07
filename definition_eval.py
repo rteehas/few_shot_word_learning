@@ -10,22 +10,25 @@ from run_gre_eval_llama import extract_arguments_from_path
 
 device = "cuda"
 
-definition_prompt = "Given the following examples: {}, give the definition of a new word \"{}\".\n Definition:"
+definition_prompt = "Given the following examples: {}, the word \"{}\" is defined as"
 
 @torch.no_grad
 def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt):
     examples = np.random.choice(ex['replaced_examples'], size=k, replace=False)
     context = tokenizerMLM(examples.tolist(), truncation=True, padding='longest', return_tensors='pt')
-    nonce = "<{}_new>".format(ex['word'].lower())
+    # nonce = "<{}_new>".format(ex['word'].lower())
+    nonce = "<nonce>"
     if with_prompt:
         prompt = definition_prompt.format("\n".join(examples), nonce)
     else:
-        prompt = "{} is defined as".format(nonce)
+        prompt = "The word \"{}\" is defined as".format(nonce)
 
     inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 100, temperature=0.8, top_k=None, do_sample=True)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 100, temperature=1.0, top_k=None, do_sample=False)
+    # print(outputs)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
+    print(ex['word'], generated_def)
     new_ex = {'definition': ex['definition'],
            'word':ex['word'],
            'generated definition': generated_def,
@@ -147,7 +150,7 @@ def run_baseline(def_task, lr):
 
 
 def run_emb_gen(def_task, path):
-    config_args = extract_arguments_from_path(args.path)
+    # config_args = extract_arguments_from_path(args.path)
     fname_format = "definition_task_outputs/emb_gen_generations"
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
@@ -156,8 +159,8 @@ def run_emb_gen(def_task, path):
     # tokenizerTask.add_tokens(nonces)
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
-    firstLM.resize_token_embeddings(len(tokenizerMLM))
-    secondLM.resize_token_embeddings(len(tokenizerTask))
+    # firstLM.resize_token_embeddings(len(tokenizerMLM))
+    # secondLM.resize_token_embeddings(len(tokenizerTask))
 
     # config_args = extract_arguments_from_path(args.path)
     # print(config_args)
