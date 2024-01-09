@@ -6,8 +6,9 @@ import re
 
 from torch.nn import CrossEntropyLoss
 device = "cuda"
-example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of this word is \"{}\". The word is <nonce>"
-def_prompt = "The definition of a new word is \"{}\". The word is <nonce>"
+example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of <nonce> is \"{}\"."
+# def_prompt = "The definition of a new word is \"{}\". The word is <nonce>"
+def_prompt = "The definition of <nonce> is \"{}\"."
 
 def prepare_example(ex, k, emb_gen):
     samples = []
@@ -32,10 +33,12 @@ def prepare_example(ex, k, emb_gen):
     definition = ex['definition'].replace(word, "<nonce>")
     if emb_gen:
         word_seq = def_prompt.format(definition)
+        seqs.append(word_seq)
     else:
         word_seq = example_prompt.format("\n".join(word_samples), definition)
+        base_seq = def_prompt.format(definition)
+        seqs.append((word_seq, base_seq))
     print("word seq", word_seq)
-    seqs.append(word_seq)
     samples.append(word_samples)
     # new_ex['word'] = word
     for i in range(3):
@@ -58,10 +61,14 @@ def prepare_example(ex, k, emb_gen):
             neg_samples = [s.replace("GOBLIN mode", "<nonce>") for s in neg_samples]
         if emb_gen:
             neg_seq = def_prompt.format(definition)
+            seqs.append(neg_seq)
         else:
             neg_seq = example_prompt.format("\n".join(neg_samples), definition)
+            base_seq = def_prompt.format(definition)
+            seqs.append((neg_seq, base_seq))
+
         print("neg seq", neg_seq)
-        seqs.append(neg_seq)
+
         samples.append(neg_samples)
     return samples, seqs, labels
 
@@ -69,7 +76,7 @@ def prepare_prompt(examples, definition):
     return example_prompt.format("\n".join(examples), definition)
 
 def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
-    samples, seqs, labels = prepare_example(ex, k)
+    samples, seqs, labels = prepare_example(ex, k, False)
 
 
     tokenizer.pad_token = tokenizer.unk_token
@@ -90,11 +97,12 @@ def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
         zero_grad_indices = torch.arange(0, len(tokenizer)) != any(new_tok_indices)
 
         total_probs = []
-        for sample, seq in zip(samples, seqs):
+        for sample, seq_tup in zip(samples, seqs):
             opt = AdamW([p for p in model.parameters() if p.requires_grad],
                         lr=lr)
             input = tokenizer(sample, truncation=True, padding='longest', return_tensors='pt')
             per_step_probs = []
+            seq, base_seq = seq_tup
             for step in range(max_steps):
                 model.train()
                 model.zero_grad()
@@ -110,10 +118,10 @@ def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
                 model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
                 with torch.no_grad():
                     model.eval()
-                    inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
-                    out = model(**inputs)
-                    logits = out.logits
-                    prob = get_sentence_prob(inputs['input_ids'].clone(), logits, model)
+                    # inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
+                    # out = model(**inputs)
+                    # logits = out.logits
+                    prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
                     per_step_probs.append(prob)
 
             total_probs.append(per_step_probs)
@@ -130,11 +138,12 @@ def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
         with torch.no_grad():
             model.eval()
             probs = []
-            for seq in seqs:
-                inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
-                out = model(**inputs)
-                logits = out.logits
-                prob = get_sentence_prob(inputs['input_ids'].clone(), logits, model)
+            for seq_tup in seqs:
+                seq, base_seq = seq_tup
+                # inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
+                # out = model(**inputs)
+                # logits = out.logits
+                prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
                 probs.append(prob)
 
             return evaluate_type_1(probs, labels)
@@ -146,20 +155,43 @@ def evaluate_type_1(probs, labels):
 
     return max_prob == lab_id
 
-def get_sentence_prob(labels, logits, model):
-    ce = CrossEntropyLoss(reduction='none')
-    # print(answer_labels)
-    shift_logits = logits[..., :-1, :].contiguous()
-    shift_labels = labels[..., 1:].contiguous()
-    shift_logits = shift_logits.view(-1, model.config.vocab_size + 1)
-    shift_labels = shift_labels.view(-1)
-    shift_labels = shift_labels.to(shift_logits.device)
-    loss = ce(shift_logits, shift_labels)
-    return -loss[-1].item()
+def get_sentence_probs(model, tokenizer, sequences, base_seqs):
+    probs = []
+    ce = CrossEntropyLoss()
+    for seq,base in zip(sequences, base_seqs):
+        toks = tokenizer(seq, return_tensors="pt").to(model.device)
+        question_toks = tokenizer(base)
+        answer_length = len(question_toks['input_ids']) - 1 # for bos token
+        # print(question_toks, answer_length)
+        labels = toks['input_ids'].clone()
+        answer_labels = labels[:, -answer_length:]
+        # print(answer_labels)
+        out = model(input_ids=toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
+        answer_logits = out.logits[:,-answer_length:, :]
+        shift_logits = answer_logits[..., :-1, :].contiguous()
+        shift_labels = answer_labels[..., 1:].contiguous()
+        shift_logits = shift_logits.view(-1, model.config.vocab_size)
+        shift_labels = shift_labels.view(-1)
+        shift_labels = shift_labels.to(shift_logits.device)
+        loss = ce(shift_logits, shift_labels)
+        probs.append(-loss.item())
+    return probs
+
+
+# def get_sentence_prob(labels, logits, model):
+#     ce = CrossEntropyLoss(reduction='none')
+#     # print(answer_labels)
+#     shift_logits = logits[..., :-1, :].contiguous()
+#     shift_labels = labels[..., 1:].contiguous()
+#     shift_logits = shift_logits.view(-1, model.config.vocab_size + 1)
+#     shift_labels = shift_labels.view(-1)
+#     shift_labels = shift_labels.to(shift_logits.device)
+#     loss = ce(shift_logits, shift_labels)
+#     return -loss[-1].item()
 
 
 def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k):
-    samples, seqs, labels = prepare_example(ex, k)
+    samples, seqs, labels = prepare_example(ex, k, True)
     probs = []
     for sample, seq in zip(samples, seqs):
         print(sample)
@@ -173,7 +205,9 @@ def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k):
         }
 
         outputs = model(batch)
-        prob = get_sentence_prob(input['input_ids'].clone(), outputs.logits, model.secondLM)
+        # prob = get_sentence_prob(input['input_ids'].clone(), outputs.logits, model.secondLM)
+        prob = -outputs.loss.item()
         probs.append(prob)
+    print(probs)
     return evaluate_type_1(probs, labels)
 
