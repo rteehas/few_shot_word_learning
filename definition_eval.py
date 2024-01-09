@@ -148,6 +148,49 @@ def run_baseline(def_task, lr):
     print("Saving...")
     Dataset.from_dict(data_dict).save_to_disk(save_dir)
 
+def run_baseline_no_gd(def_task):
+    max_num_steps = 2
+    fname_format = "definition_task_outputs/baseline_generations_no_lr"
+    # print(lr)
+    all_outputs = []
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True).to(device)
+
+
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                   legacy=True,
+                                                   use_fast=False)
+    tokenizerTask.pad_token = tokenizerTask.unk_token
+    tokenizerTask.add_tokens(["<nonce>"])
+    secondLM.resize_token_embeddings(len(tokenizerTask))
+    # orig_input_embeds = deepcopy(secondLM.get_input_embeddings())
+    # orig_output_embeds = deepcopy(secondLM.get_output_embeddings())
+    for k in range(1,4):
+        print("k", k)
+        for ex in def_task:
+            examples = np.random.choice(ex['replaced_examples'], size=k, replace=False).tolist()
+            new_ex_with_prompt = generate_definitions_examples(secondLM, tokenizerTask, ex, examples, with_prompt=True)
+            new_ex_without_prompt = generate_definitions_examples(secondLM, tokenizerTask, ex, examples, with_prompt=False)
+            # step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
+
+            # secondLM.set_input_embeddings(orig_input_embeds)
+            # secondLM.set_output_embeddings(orig_output_embeds)
+            for new_ex in [new_ex_with_prompt, new_ex_without_prompt]:
+                output_dict = {'num_examples': k}
+                for key in new_ex:
+                    output_dict[key] = new_ex[key]
+
+                all_outputs.append(output_dict)
+
+    # save_dir = fname_format.format(lr)
+    save_dir= fname_format
+    keys = all_outputs[0].keys()
+    data_dict = {}
+    for key in keys:
+        data_dict[key] = [output_ex[key] for output_ex in all_outputs]
+    print("Saving...")
+    Dataset.from_dict(data_dict).save_to_disk(save_dir)
+
 
 def run_emb_gen(def_task, path):
     # config_args = extract_arguments_from_path(args.path)
@@ -198,6 +241,7 @@ def run_emb_gen(def_task, path):
     for k in range(1,4):
         print("Examples: " + str(k))
         for ex in def_task:
+            # print(ex)
             step_output_with_prompt = generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt=True)
             step_output_without_prompt = generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with_prompt=False)
             all_outputs.append(step_output_with_prompt)
@@ -221,11 +265,12 @@ def get_arguments():
 
 if __name__ == "__main__":
     args = get_arguments().parse_args()
-    def_task = load_from_disk("def_task_998")
+    def_task = load_from_disk("def_task_994")
     # def_task = def_task.map(replace_for_llama_baseline)
     # run_baseline(def_task, args.lr)
-    path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/t5-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_5_10500"
-    run_emb_gen(def_task, path)
+    # path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
+    # run_emb_gen(def_task, path)
+    run_baseline_no_gd(def_task)
 
 
 # for k in range(1,4):
