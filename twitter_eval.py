@@ -122,4 +122,20 @@ def get_sentence_prob(labels, logits, model):
 
 
 def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k):
-    pass
+    samples, seqs, labels = prepare_example(ex, k)
+    probs = []
+    for sample, seq in zip(samples, seqs):
+        ctx = tokenizerMLM(samples, truncation=True, padding='longest', return_tensors='pt').to(device)
+        input = tokenizerTask(seq,truncation=True, return_tensors='pt').to(device)
+        batch = {
+            'contexts': [ctx],
+            'input_ids': input['input_ids'],
+            'attention_mask': input['attention_mask'],
+            'labels': input['input_ids'].clone()
+        }
+
+        outputs = model(batch)
+        prob = get_sentence_prob(input['input_ids'].clone(), outputs.logits)
+        probs.append(prob)
+    return evaluate_type_1(probs, labels)
+
