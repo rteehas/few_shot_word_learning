@@ -6,9 +6,9 @@ import re
 
 from torch.nn import CrossEntropyLoss
 device = "cuda"
-example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of <nonce> is \"{}\"."
+example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of <nonce> is \"{}\""
 # def_prompt = "The definition of a new word is \"{}\". The word is <nonce>"
-def_prompt = "The definition of <nonce> is \"{}\"."
+def_prompt = "\"{}\""
 
 def prepare_example(ex, k, emb_gen):
     samples = []
@@ -121,7 +121,7 @@ def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
                     # inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
                     # out = model(**inputs)
                     # logits = out.logits
-                    prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                    prob = get_sentence_probs(model, tokenizer, [seq], ["<nonce>"])
                     per_step_probs.append(prob)
 
             total_probs.append(per_step_probs)
@@ -145,7 +145,8 @@ def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
                 # logits = out.logits
                 prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
                 probs.append(prob)
-
+            print()
+            print("probs",probs)
             return evaluate_type_1(probs, labels)
 
 def evaluate_type_1(probs, labels):
@@ -174,6 +175,7 @@ def get_sentence_probs(model, tokenizer, sequences, base_seqs):
         shift_labels = shift_labels.view(-1)
         shift_labels = shift_labels.to(shift_logits.device)
         loss = ce(shift_logits, shift_labels)
+        print("loss",loss)
         probs.append(-loss.item())
     return probs
 
@@ -211,3 +213,80 @@ def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k):
     print(probs)
     return evaluate_type_1(probs, labels)
 
+def get_def_loss_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k):
+    samples, seqs, labels = prepare_example(ex, k, True)
+    sample = samples[0]
+    seq = seqs[0]
+    ctx = tokenizerMLM(sample, truncation=True, padding='longest', return_tensors='pt').to(device)
+    input = tokenizerTask(seq, truncation=True, return_tensors='pt').to(device)
+    batch = {
+        'contexts': [ctx],
+        'input_ids': input['input_ids'],
+        'attention_mask': input['attention_mask'],
+        'labels': input['input_ids'].clone()
+    }
+
+    outputs = model(batch)
+    return outputs.loss.item()
+
+def get_def_loss_baseline(ex, model, tokenizer, k, tuning=False, lr=3e-4):
+    samples, seqs, labels = prepare_example(ex, k, False)
+    sample = samples[0]
+    seq, base_seq = seqs[0]
+
+    tokenizer.pad_token = tokenizer.unk_token
+    orig_input_embeds = model.get_input_embeddings().weight.clone()
+    orig_output_embeds = model.get_output_embeddings().weight.clone()
+
+    if tuning:
+        max_steps = 2
+        outputs = []
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.get_input_embeddings().parameters():
+            param.requires_grad = True
+        for param in model.get_output_embeddings().parameters():
+            param.requires_grad = True
+
+        new_tok_indices = [v for k,v in tokenizer.get_added_vocab().items()]
+        zero_grad_indices = torch.arange(0, len(tokenizer)) != any(new_tok_indices)
+
+        opt = AdamW([p for p in model.parameters() if p.requires_grad],
+                    lr=lr)
+        input = tokenizer(sample, truncation=True, padding='longest', return_tensors='pt')
+        per_step_probs = []
+        for step in range(max_steps):
+            model.train()
+            model.zero_grad()
+            opt.zero_grad()
+            output = model(input_ids=input['input_ids'].to(model.device),
+                           attention_mask=input['attention_mask'].to(model.device),
+                           labels=input['input_ids'].clone().to(model.device))
+            loss = output.loss
+            loss.backward()
+            opt.step()
+
+            model.get_input_embeddings().weight.grad[zero_grad_indices] = 0.
+            model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
+            with torch.no_grad():
+                model.eval()
+                # inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
+                # out = model(**inputs)
+                # logits = out.logits
+                prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                per_step_probs.append(-prob[0])
+
+
+        model.get_input_embeddings().weight = torch.nn.Parameter(orig_input_embeds)
+        model.get_output_embeddings().weight = torch.nn.Parameter(orig_output_embeds)
+
+        return per_step_probs
+
+    else:
+        with torch.no_grad():
+            model.eval()
+                # inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
+                # out = model(**inputs)
+                # logits = out.logits
+            prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+            return -prob[0]
