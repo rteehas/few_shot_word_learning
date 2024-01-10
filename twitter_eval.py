@@ -8,7 +8,7 @@ from torch.nn import CrossEntropyLoss
 device = "cuda"
 example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of <nonce> is \"{}\""
 # def_prompt = "The definition of a new word is \"{}\". The word is <nonce>"
-def_prompt = "\"{}\""
+def_prompt = " \"{}\""
 
 def prepare_example(ex, k, emb_gen):
     samples = []
