@@ -7,8 +7,8 @@ import re
 from torch.nn import CrossEntropyLoss
 device = "cuda"
 example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of <nonce> is \"{}\""
-# def_prompt = "The definition of a new word is \"{}\". The word is <nonce>"
-def_prompt = " \"{}\""
+def_prompt = "The definition of <nonce> is \"{}\""
+base_prompt = " \"{}\""
 
 def prepare_example(ex, k, emb_gen):
     samples = []
@@ -33,7 +33,8 @@ def prepare_example(ex, k, emb_gen):
     definition = ex['definition'].replace(word, "<nonce>")
     if emb_gen:
         word_seq = def_prompt.format(definition)
-        seqs.append(word_seq)
+        base_seq = base_prompt.format(definition)
+        seqs.append((word_seq, base_seq))
     else:
         word_seq = example_prompt.format("\n".join(word_samples), definition)
         base_seq = def_prompt.format(definition)
@@ -61,7 +62,8 @@ def prepare_example(ex, k, emb_gen):
             neg_samples = [s.replace("GOBLIN mode", "<nonce>") for s in neg_samples]
         if emb_gen:
             neg_seq = def_prompt.format(definition)
-            seqs.append(neg_seq)
+            base_seq = base_prompt.format(definition)
+            seqs.append((neg_seq, base_seq))
         else:
             neg_seq = example_prompt.format("\n".join(neg_samples), definition)
             base_seq = def_prompt.format(definition)
@@ -118,10 +120,10 @@ def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
                 model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
                 with torch.no_grad():
                     model.eval()
-                    # inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
-                    # out = model(**inputs)
-                    # logits = out.logits
-                    prob = get_sentence_probs(model, tokenizer, [seq], ["<nonce>"])
+                    inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
+                    out = model(**inputs)
+                    logits = out.logits
+                    prob = get_sentence_probs_agnostic(logits, tokenizer, seq, base_seq, model.config.vocab_size)
                     per_step_probs.append(prob)
 
             total_probs.append(per_step_probs)
@@ -140,10 +142,10 @@ def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
             probs = []
             for seq_tup in seqs:
                 seq, base_seq = seq_tup
-                # inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
-                # out = model(**inputs)
-                # logits = out.logits
-                prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
+                out = model(**inputs)
+                logits = out.logits
+                prob = get_sentence_probs(logits, tokenizer, seq, base_seq, model.config.vocab_size)
                 probs.append(prob)
             print()
             print("probs",probs)
@@ -179,6 +181,22 @@ def get_sentence_probs(model, tokenizer, sequences, base_seqs):
         probs.append(-loss.item())
     return probs
 
+def get_sentence_probs_agnostic(logits, tokenizer, seq, base, vocab_size):
+    ce = CrossEntropyLoss()
+    toks = tokenizer(seq, return_tensors="pt").to(device)
+    question_toks = tokenizer(base)
+    answer_length = len(question_toks['input_ids']) - 1
+    labels = toks['input_ids'].clone()
+    answer_labels = labels[:, -answer_length:]
+    answer_logits = logits[:, -answer_length:, :]
+    shift_logits = answer_logits[..., :-1, :].contiguous()
+    shift_labels = answer_labels[..., 1:].contiguous()
+    shift_logits = shift_logits.view(-1, vocab_size)
+    shift_labels = shift_labels.view(-1)
+    shift_labels = shift_labels.to(shift_logits.device)
+    loss = ce(shift_logits, shift_labels)
+    return -loss.item()
+
 
 # def get_sentence_prob(labels, logits, model):
 #     ce = CrossEntropyLoss(reduction='none')
@@ -195,8 +213,11 @@ def get_sentence_probs(model, tokenizer, sequences, base_seqs):
 def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k):
     samples, seqs, labels = prepare_example(ex, k, True)
     probs = []
-    for sample, seq in zip(samples, seqs):
-        print(sample)
+    for sample, seq_tup in zip(samples, seqs):
+        seq, base = seq_tup
+        print("sample", sample)
+        print("seq", seq)
+
         ctx = tokenizerMLM(sample, truncation=True, padding='longest', return_tensors='pt').to(device)
         input = tokenizerTask(seq,truncation=True, return_tensors='pt').to(device)
         batch = {
@@ -208,7 +229,8 @@ def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k):
 
         outputs = model(batch)
         # prob = get_sentence_prob(input['input_ids'].clone(), outputs.logits, model.secondLM)
-        prob = -outputs.loss.item()
+        prob = get_sentence_probs_agnostic(outputs.logits, tokenizerTask, seq, base, model.secondLM.config.vocab_size + 1)
+        # prob = -outputs.loss.item()
         probs.append(prob)
     print(probs)
     return evaluate_type_1(probs, labels)
