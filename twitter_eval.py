@@ -37,7 +37,7 @@ def prepare_example(ex, k, emb_gen):
         seqs.append((word_seq, base_seq))
     else:
         word_seq = example_prompt.format("\n".join(word_samples), definition)
-        base_seq = def_prompt.format(definition)
+        base_seq = base_prompt.format(definition)
         seqs.append((word_seq, base_seq))
     print("word seq", word_seq)
     samples.append(word_samples)
@@ -66,7 +66,7 @@ def prepare_example(ex, k, emb_gen):
             seqs.append((neg_seq, base_seq))
         else:
             neg_seq = example_prompt.format("\n".join(neg_samples), definition)
-            base_seq = def_prompt.format(definition)
+            base_seq = base_prompt.format(definition)
             seqs.append((neg_seq, base_seq))
 
         print("neg seq", neg_seq)
@@ -145,7 +145,7 @@ def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
                 inputs = tokenizer(seq, truncation=True, return_tensors='pt').to(device)
                 out = model(**inputs)
                 logits = out.logits
-                prob = get_sentence_probs(logits, tokenizer, seq, base_seq, model.config.vocab_size)
+                prob = get_sentence_probs_agnostic(logits, tokenizer, seq, base_seq, model.config.vocab_size)
                 probs.append(prob)
             print()
             print("probs",probs)
@@ -185,8 +185,11 @@ def get_sentence_probs_agnostic(logits, tokenizer, seq, base, vocab_size):
     ce = CrossEntropyLoss()
     toks = tokenizer(seq, return_tensors="pt").to(device)
     question_toks = tokenizer(base)
+    print(logits.shape, toks['input_ids'].shape,len(question_toks['input_ids']) )
     answer_length = len(question_toks['input_ids']) - 1
     labels = toks['input_ids'].clone()
+    if len(logits.shape) == 2:
+        logits = logits.unsqueeze(0)
     answer_labels = labels[:, -answer_length:]
     answer_logits = logits[:, -answer_length:, :]
     shift_logits = answer_logits[..., :-1, :].contiguous()
