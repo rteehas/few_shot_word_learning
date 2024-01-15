@@ -418,6 +418,17 @@ class MorphMemoryModelLLAMA(nn.Module):
         # return w + msk
         return torch.cat([w, new_embed])
 
+    def get_new_weights_definition_input(self, new_input_embed, def_input_embed):
+
+        input_w = self.secondLM.get_input_embeddings().weight
+        # output_w = self.secondLM.get_output_embeddings().weight
+
+        return torch.cat([input_w, new_input_embed, def_input_embed])
+
+    def get_new_weights_definition_output(self, new_output_embed, def_output_embed):
+        output_w = self.secondLM.get_output_embeddings().weight
+        return torch.cat([output_w, new_output_embed, def_output_embed])
+
     def llama_forward(self, labels, outputs, new_w, index, new_token_loss=False):
         '''
         Copied from https://github.com/huggingface/transformers/blob/18ee1fe76295239335bf1528c744fe1cfba21cc8/src/transformers/models/llama/modeling_llama.py#L742C7-L742C7
@@ -566,19 +577,12 @@ class MorphMemoryModelLLAMA(nn.Module):
 
             input_memory.store(new_token, inp_embs)
             output_memory.store(new_token, out_embs)
-            new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
-            # output_weights = self.get_new_output_weights(new_embed=out_embs)
-
-        # with record_function("## LLAMA MODEL NONCE ##"):
-            input_embeds = F.embedding(task_ids[i], new_w)
-            embeds.append(input_embeds)
-            mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
 
             if "definitions" in batch:
                 nonce_def = batch['definitions'][i].to(self.firstLM.device)
                 def_inputs = self.swap_with_mask(nonce_def['input_ids'])
                 # pass in a random embed 1/3 of the time
-                flag = random.binomial(1, 1/3)
+                flag = np.random.binomial(1, 1/3)
                 if flag == 1:
                     def_in_embs = torch.randn(1, self.emb_gen.output_hidden_size, device=self.firstLM.device)
                     def_out_embs = torch.randn(1, self.emb_gen.output_hidden_size, device=self.firstLM.device)
@@ -595,6 +599,16 @@ class MorphMemoryModelLLAMA(nn.Module):
                         def_in_embs, def_out_embs = self.emb_gen(def_combined, def_attn)
 
                 definition_outputs.append(dict(input_embed=def_in_embs, output_embed=def_out_embs))
+                new_w = self.get_new_weights_definition_input(inp_embs, def_in_embs)
+            else:
+                new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
+            # output_weights = self.get_new_output_weights(new_embed=out_embs)
+
+        # with record_function("## LLAMA MODEL NONCE ##"):
+            input_embeds = F.embedding(task_ids[i], new_w)
+            embeds.append(input_embeds)
+            mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
+
 
             # outputs = self.secondLM.model(
             #     inputs_embeds=input_embeds.unsqueeze(0),
@@ -646,7 +660,10 @@ class MorphMemoryModelLLAMA(nn.Module):
         outs = []
         for i, mem in enumerate(mem_embeds):
             out_embs = mem['output_memory'].retrieve(self.firstLM.config.vocab_size + self.num_new_tokens - 1)
-            output_weights = self.get_new_output_weights(new_embed=out_embs)
+            if "definitions" in batch:
+                output_weights = self.get_new_weights_definition_output(out_embs, definition_outputs[i]['output_embed'])
+            else:
+                output_weights = self.get_new_output_weights(new_embed=out_embs)
             llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights,
                                                              i, new_token_loss=True)
             # loss.append(llama_outputs.loss)
