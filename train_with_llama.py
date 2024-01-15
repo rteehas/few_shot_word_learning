@@ -522,6 +522,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         embeds = []
         neg_embeds = []
         distillation_outputs = []
+        definition_outputs = []
         for i in range(b_task):
             # print("Context {}".format(i))
             # with record_function("## MLM STEP ##"):
@@ -572,6 +573,29 @@ class MorphMemoryModelLLAMA(nn.Module):
             input_embeds = F.embedding(task_ids[i], new_w)
             embeds.append(input_embeds)
             mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
+
+            if "definitions" in batch:
+                nonce_def = batch['definitions'][i].to(self.firstLM.device)
+                def_inputs = self.swap_with_mask(nonce_def['input_ids'])
+                # pass in a random embed 1/3 of the time
+                flag = random.binomial(1, 1/3)
+                if flag == 1:
+                    def_in_embs = torch.randn(1, self.emb_gen.output_hidden_size, device=self.firstLM.device)
+                    def_out_embs = torch.randn(1, self.emb_gen.output_hidden_size, device=self.firstLM.device)
+                else:
+                    with torch.no_grad():
+                        def_out = self.firstLM(input_ids=def_inputs,
+                                               attention_mask=nonce_def['attention_mask'],
+                                               output_hidden_states=True)
+                        def_combined = combine_layers((def_out.hidden_states, self.layers))
+                        if len(def_combined.shape) == 2:
+                            def_combined = def_combined.unsqueeze(0)
+    
+                        def_attn = nonce_def['attention_mask']
+                        def_in_embs, def_out_embs = self.emb_gen(def_combined, def_attn)
+
+                definition_outputs.append(dict(input_embed=def_in_embs, output_embed=def_out_embs))
+
             # outputs = self.secondLM.model(
             #     inputs_embeds=input_embeds.unsqueeze(0),
             #     attention_mask=task_attn[i].unsqueeze(0),
@@ -949,6 +973,7 @@ def get_arguments():
     parser.add_argument("--l2", type=float, default=None)
     parser.add_argument("--first_lm", type=str, default="roberta-base")
     parser.add_argument("--progressive_training", action="store_true")
+    parser.add_argument("--definition_training", action="store_true")
     return parser
 
 
