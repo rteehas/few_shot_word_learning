@@ -1013,8 +1013,11 @@ def main():
         return tokenizerMLM(ex['text'], truncation=True, return_tensors="pt")
 
     def tokenize_regression(ex):
-
-        inps = tokenizerTask(ex['text'], truncation=True, max_length=256, padding='max_length', return_tensors=None)
+        if args.definition_training:
+            text = "<def>" + ex['text']
+            inps = tokenizerTask(text, truncation=True, max_length=256, padding='max_length', return_tensors=None)
+        else:
+            inps = tokenizerTask(ex['text'], truncation=True, max_length=256, padding='max_length', return_tensors=None)
         base_inps = tokenizerTask(ex['base text'], truncation=True, max_length=256, padding='max_length',
                                   return_tensors=None)
         row = dict(input_ids=inps['input_ids'],
@@ -1029,6 +1032,9 @@ def main():
         else:
             num_examples = k
         contexts = [sample_context(num_examples, b, t5=t5) for b in batch]
+        if "definition" in batch[0]:
+            definitions = [tokenizerMLM(b['definition'], max_length=256, truncation=True, return_tensors='pt') for b in batch]
+
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
         base_batch = [dict(input_ids=b['base_input_ids'], attention_mask=b['base_attention_mask']) for b in batch]
 
@@ -1042,6 +1048,8 @@ def main():
                 final_collate[k] = coll[k]
 
         final_collate['contexts'] = contexts
+        if "definition" in batch[0]:
+            final_collate['definitions'] = definitions
 
         return final_collate
 
@@ -1209,6 +1217,9 @@ def main():
         nonces = list(set(nonces))
     else:
         nonces = ["<nonce>"]
+        if args.definition_training:
+            nonces.append("<def>")
+
         
     # print("Nonces = {}".format(nonces))
     tokenizerMLM.add_tokens(nonces)
