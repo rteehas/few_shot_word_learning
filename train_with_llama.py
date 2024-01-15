@@ -1077,7 +1077,7 @@ def main():
                 final_collate[k] = coll[k]
 
         final_collate['contexts'] = contexts
-        if "definition" in batch[0]:
+        if "definition" in batch[0] and args.definition_training:
             final_collate['definitions'] = definitions
 
         return final_collate
