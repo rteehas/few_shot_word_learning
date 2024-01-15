@@ -590,7 +590,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                         def_combined = combine_layers((def_out.hidden_states, self.layers))
                         if len(def_combined.shape) == 2:
                             def_combined = def_combined.unsqueeze(0)
-    
+
                         def_attn = nonce_def['attention_mask']
                         def_in_embs, def_out_embs = self.emb_gen(def_combined, def_attn)
 
@@ -1007,9 +1007,13 @@ def create_checkpoint_directories(args):
 
     if args.progressive_training:
         path = path + "progressive_training/"
+    if args.definition_training:
+        path = path + "definition_training/"
 
     if args.l2 is not None:
         path = path + "l2/"
+
+
 
     suffix = "checkpoints/"
     # if os.path.isdir(path + suffix):
