@@ -486,7 +486,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             attentions=outputs.attentions,
         )
 
-    def forward(self, batch):
+    def forward(self, batch, relational=False):
         # nonceMLM = batch["nonceMLM"]
         assert "labels" in batch, "You need labels"
         task_labels = batch["labels"]
@@ -533,10 +533,14 @@ class MorphMemoryModelLLAMA(nn.Module):
             output_memory = Memory()
 
             if self.mask_token_id is not None:
-                new_token = c['input_ids'][
-                    torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
-                    0].item()
-                mlm_ids = self.swap_with_mask(c['input_ids'])
+                if not relational:
+                    new_token = c['input_ids'][
+                        torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
+                        0].item()
+                    mlm_ids = self.swap_with_mask(c['input_ids'])
+                else:
+                    new_token = torch.tensor(self.first_list, device=c['input_ids'].device).unique()[0].item()
+                    mlm_ids = c['input_ids']
             else:
                 new_token = torch.tensor(self.first_list, device=c['input_ids'].device).unique()[0].item()
                 mlm_ids = c['input_ids']
