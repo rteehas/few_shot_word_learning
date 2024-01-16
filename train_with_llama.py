@@ -600,11 +600,13 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 definition_outputs.append(dict(input_embed=def_in_embs, output_embed=def_out_embs))
                 new_w = self.get_new_weights_definition_input(inp_embs, def_in_embs)
+                print("input weight shape", new_w.shape)
             else:
                 new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
             # output_weights = self.get_new_output_weights(new_embed=out_embs)
 
         # with record_function("## LLAMA MODEL NONCE ##"):
+            print(task_ids[i])
             input_embeds = F.embedding(task_ids[i], new_w)
             embeds.append(input_embeds)
             mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
@@ -659,7 +661,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         new_token_loss = []
         outs = []
         for i, mem in enumerate(mem_embeds):
-            out_embs = mem['output_memory'].retrieve(self.firstLM.config.vocab_size + self.num_new_tokens - 1)
+            out_embs = mem['output_memory'].retrieve(self.firstLM.config.vocab_size)
             if "definitions" in batch:
                 output_weights = self.get_new_weights_definition_output(out_embs, definition_outputs[i]['output_embed'])
             else:
