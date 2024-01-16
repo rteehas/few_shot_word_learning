@@ -325,7 +325,7 @@ class MorphMemoryModelLLAMA(nn.Module):
     @property
     def second_list(self):
         # initial_second_ind = int(self.secondLM.config.vocab_size - self.num_new_tokens)
-        return list(range(self.secondLM.config.vocab_size, self.firstLM.config.vocab_size + self.num_new_tokens))
+        return list(range(self.secondLM.config.vocab_size, self.secondLM.config.vocab_size + self.num_new_tokens))
 
     @property
     def initial_first_ind(self):
