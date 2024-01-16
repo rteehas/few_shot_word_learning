@@ -612,7 +612,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             input_embeds = F.embedding(task_ids[i], new_w)
             embeds.append(input_embeds)
             mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
-            sys.exit(0)
+            # sys.exit(0)
 
             # outputs = self.secondLM.model(
             #     inputs_embeds=input_embeds.unsqueeze(0),
