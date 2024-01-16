@@ -1074,6 +1074,8 @@ def main():
                    attention_mask=inps['attention_mask'],
                    base_input_ids=base_inps['input_ids'],
                    base_attention_mask=base_inps['attention_mask'])
+        if args.definition_training:
+            row['definition'] = ex['definition']
         return row
 
     def regression_collate(max_num_examples, batch, t5=False, k=None):
