@@ -499,6 +499,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
     def forward(self, batch, relational=False):
         # nonceMLM = batch["nonceMLM"]
+        print("batch", batch.keys())
         assert "labels" in batch, "You need labels"
         task_labels = batch["labels"]
 
