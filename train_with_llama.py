@@ -1077,6 +1077,7 @@ def main():
         return row
 
     def regression_collate(max_num_examples, batch, t5=False, k=None):
+        print(batch[0].keys())
         if k is None:
             num_examples = np.random.choice(max_num_examples) + 1
         else:
