@@ -499,7 +499,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
     def forward(self, batch, relational=False):
         # nonceMLM = batch["nonceMLM"]
-        print("batch", batch.keys())
+        # print("batch", batch.keys())
         assert "labels" in batch, "You need labels"
         task_labels = batch["labels"]
 
@@ -582,7 +582,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             if "definitions" in batch:
                 nonce_def = batch['definitions'][i].to(self.firstLM.device)
                 def_inputs = self.swap_with_mask(nonce_def['input_ids'])
-                print("def input ids", def_inputs)
+                # print("def input ids", def_inputs)
                 # pass in a random embed 1/3 of the time
                 flag = np.random.binomial(1, 1/3)
                 if flag == 1:
@@ -593,7 +593,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                         def_out = self.firstLM(input_ids=def_inputs,
                                                attention_mask=nonce_def['attention_mask'],
                                                output_hidden_states=True)
-                        def_combined = combine_layers((def_out.hidden_states, self.layers))
+                        def_combined = combine_layers(def_out.hidden_states, self.layers)
                         if len(def_combined.shape) == 2:
                             def_combined = def_combined.unsqueeze(0)
 
@@ -602,13 +602,13 @@ class MorphMemoryModelLLAMA(nn.Module):
 
                 definition_outputs.append(dict(input_embed=def_in_embs, output_embed=def_out_embs))
                 new_w = self.get_new_weights_definition_input(inp_embs, def_in_embs)
-                print("input weight shape", new_w.shape)
+                # print("input weight shape", new_w.shape)
             else:
                 new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
             # output_weights = self.get_new_output_weights(new_embed=out_embs)
 
         # with record_function("## LLAMA MODEL NONCE ##"):
-            print(task_ids[i])
+        #     print(task_ids[i])
             input_embeds = F.embedding(task_ids[i], new_w)
             embeds.append(input_embeds)
             mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
@@ -1079,7 +1079,7 @@ def main():
         return row
 
     def regression_collate(max_num_examples, batch, t5=False, k=None):
-        print(batch[0].keys())
+        # print(batch[0].keys())
         if k is None:
             num_examples = np.random.choice(max_num_examples) + 1
         else:
