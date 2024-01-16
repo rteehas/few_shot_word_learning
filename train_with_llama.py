@@ -2,7 +2,7 @@ import re
 from argparse import ArgumentParser
 from functools import partial
 from math import sqrt
-
+import sys
 import torch
 from datasets import load_from_disk, load_dataset
 from torch import nn
@@ -581,6 +581,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             if "definitions" in batch:
                 nonce_def = batch['definitions'][i].to(self.firstLM.device)
                 def_inputs = self.swap_with_mask(nonce_def['input_ids'])
+                print("def input ids", def_inputs)
                 # pass in a random embed 1/3 of the time
                 flag = np.random.binomial(1, 1/3)
                 if flag == 1:
@@ -610,7 +611,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             input_embeds = F.embedding(task_ids[i], new_w)
             embeds.append(input_embeds)
             mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
-
+            sys.exit(0)
 
             # outputs = self.secondLM.model(
             #     inputs_embeds=input_embeds.unsqueeze(0),
