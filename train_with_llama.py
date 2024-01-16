@@ -1082,7 +1082,7 @@ def main():
         else:
             num_examples = k
         contexts = [sample_context(num_examples, b, t5=t5) for b in batch]
-        if "definition" in batch[0]:
+        if args.definition_training:
             definitions = [tokenizerMLM(b['definition'], max_length=256, truncation=True, return_tensors='pt') for b in batch]
 
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
@@ -1098,7 +1098,7 @@ def main():
                 final_collate[k] = coll[k]
 
         final_collate['contexts'] = contexts
-        if "definition" in batch[0] and args.definition_training:
+        if args.definition_training:
             final_collate['definitions'] = definitions
 
         return final_collate
