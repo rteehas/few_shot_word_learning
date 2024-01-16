@@ -586,8 +586,8 @@ class MorphMemoryModelLLAMA(nn.Module):
                 # pass in a random embed 1/3 of the time
                 flag = np.random.binomial(1, 1/3)
                 if flag == 1:
-                    def_in_embs = torch.randn(1, self.emb_gen.output_hidden_size, device=self.firstLM.device)
-                    def_out_embs = torch.randn(1, self.emb_gen.output_hidden_size, device=self.firstLM.device)
+                    def_in_embs = torch.randn(1, self.emb_gen.module.output_hidden_size, device=self.firstLM.device)
+                    def_out_embs = torch.randn(1, self.emb_gen.module.output_hidden_size, device=self.firstLM.device)
                 else:
                     with torch.no_grad():
                         def_out = self.firstLM(input_ids=def_inputs,
