@@ -262,17 +262,14 @@ class EmbeddingGenerator(nn.Module):
 
         out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
         out = self.norm(out)
-        print("after norm", out)
-        print(out.shape)
+
         out = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
-        print("after first agg", out)
-        print(out.shape)
+
         if self.agg_method == "CLS":
             out = self.agg(out)
         else:
             out = torch.mean(out, dim=0, keepdim=True)
-        print("after second agg", out)
-        print(out.shape)
+
         inp_embeds = self.input_emb_head(out)
         out_embeds = self.output_emb_head(out)
 

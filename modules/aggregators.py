@@ -66,7 +66,10 @@ class TransformerSummarizer(nn.Module):
     def forward(self, x):
         # seq_len = x.shape[1] # make sure to unsqueeze so batch size = 1
         # pos = torch.arange(seq_len, dtype=torch.long).unsqueeze(0)
-        out = self.transformer_encoder(x)
+        out = self.transformer_encoder(x.unsqueeze(0))
+        # print(out)
+        # print(out.shape, "incls")
         out = self.norm(out)
-        return torch.mean(out, dim=0, keepdim=True)
+        # print(out.shape, "after cls norm")
+        return torch.mean(out, dim=1)
 
