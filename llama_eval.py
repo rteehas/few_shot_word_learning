@@ -428,9 +428,9 @@ def filter_gre(sents, ex):
 
     return is_valid
 
-def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=False, defs=None):
+def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=False, defs=None, t5=False):
     samples, seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs)
-    probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs)
+    probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs, t5=t5)
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
