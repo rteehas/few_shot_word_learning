@@ -304,9 +304,9 @@ def main():
         nonces = list(tokenizerTask.get_added_vocab().keys())
         # tokenizerMLM.add_tokens(nonces)
         # tokenizerTask.add_tokens(nonces)
-        # firstLM = RobertaForMaskedLM.from_pretrained("t5-large", low_cpu_mem_usage=True)
-        T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
-        firstLM = T5EncoderModel.from_pretrained("t5-large", low_cpu_mem_usage=True).to(device)
+        firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
+        # T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
+        # firstLM = T5EncoderModel.from_pretrained("t5-large", low_cpu_mem_usage=True).to(device)
         secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
         # firstLM.resize_token_embeddings(len(tokenizerMLM))
         # secondLM.resize_token_embeddings(len(tokenizerTask))
@@ -357,7 +357,7 @@ def main():
                             for key in sent_dict:
                                 if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
                                     sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k,with_def,defs, t5=True))
+                        outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k,with_def,defs))
                         # except:
                         #     print("ERROR")
                         #     continue
