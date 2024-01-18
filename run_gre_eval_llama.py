@@ -304,7 +304,9 @@ def main():
         nonces = list(tokenizerTask.get_added_vocab().keys())
         # tokenizerMLM.add_tokens(nonces)
         # tokenizerTask.add_tokens(nonces)
-        firstLM = RobertaForMaskedLM.from_pretrained("t5-large", low_cpu_mem_usage=True)
+        # firstLM = RobertaForMaskedLM.from_pretrained("t5-large", low_cpu_mem_usage=True)
+        T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
+        firstLM = T5EncoderModel.from_pretrained(args.first_lm, low_cpu_mem_usage=True).to(accelerator.device)
         secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
         # firstLM.resize_token_embeddings(len(tokenizerMLM))
         # secondLM.resize_token_embeddings(len(tokenizerTask))
