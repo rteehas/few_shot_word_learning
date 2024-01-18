@@ -124,7 +124,7 @@ def order_and_select_indices(ind_seq):
     return ordered
 
 
-def decoding_step(logits, temperature, top_k=None, do_sample=False):
+def decoding_step(logits, temperature, top_k=None, do_sample=False, new_token_idx = 32000, mask_new_tokens=False):
     if len(logits.shape) == 2:
         logits = logits.unsqueeze(0)
     scaled_logits = logits[:, -1, :] / temperature
@@ -133,6 +133,16 @@ def decoding_step(logits, temperature, top_k=None, do_sample=False):
         scaled_logits[scaled_logits < v[:, [-1]]] = -float('Inf')
 
     probs = F.softmax(scaled_logits, dim=-1)
+    # print(probs.shape)
+    # print("before probs", probs)
+    # print("mask tokens is", mask_new_tokens)
+    if mask_new_tokens:
+        # print("here")
+        probs[:,new_token_idx] = 0.0
+        # print("after zeros probs", probs)
+        # print("sum", probs.sum())
+        probs = probs / probs.sum() #renormalize
+        # print("after renormalize probs", probs)
     if do_sample:
         idx_next = torch.multinomial(probs, num_samples=1)
     else:
@@ -142,7 +152,7 @@ def decoding_step(logits, temperature, top_k=None, do_sample=False):
 
 
 @torch.no_grad
-def generate(model, context, input_ids, attention_mask, max_new_tokens, temperature=1.0, top_k=None, do_sample=False):
+def generate(model, context, input_ids, attention_mask, max_new_tokens, temperature=1.0, top_k=None, do_sample=False, mask_new_tokens=False):
     initial_batch = {
         "contexts": [context],
         'input_ids': input_ids,
@@ -156,11 +166,11 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
     input_weights = model.get_new_weights(task="Task", new_embed=inp_embed)
     output_weights = model.get_new_output_weights(outp_embed)
 
-    first_token = decoding_step(initial_outputs.logits, temperature, top_k)
+    first_token = decoding_step(initial_outputs.logits, temperature, top_k, mask_new_tokens=mask_new_tokens)
     new_input_ids = torch.cat([input_ids, first_token], dim=1)
     last_element = attention_mask[:, -1].unsqueeze(1)
     new_attention_mask = torch.cat([attention_mask, last_element], dim=1)
-
+    # print("mask tokens is", mask_new_tokens)
     for i in range(1, max_new_tokens):
         input_embeds = F.embedding(new_input_ids, input_weights)
         outputs = model.secondLM.model(
@@ -169,7 +179,7 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
         )
         llama_outputs = model.llama_forward(labels=None, outputs=outputs, new_w=output_weights, index=None)
 
-        next_token = decoding_step(llama_outputs.logits, temperature, top_k, do_sample)
+        next_token = decoding_step(llama_outputs.logits, temperature, top_k, do_sample, mask_new_tokens=mask_new_tokens)
 
         #         print(next_token.shape)
         #         print(new_input_ids.shape)
