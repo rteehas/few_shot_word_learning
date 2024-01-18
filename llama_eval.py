@@ -1,8 +1,10 @@
+from copy import deepcopy
+
 import torch
 import numpy as np
 import itertools
 import re
-
+from train_with_llama import *
 from torch.nn import CrossEntropyLoss
 
 
@@ -94,30 +96,90 @@ def evaluate_baseline_example(model, tokenizer, ex):
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
 
-def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, k, with_definition=False, defs=None):
+def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definition=False, defs=None, tuning=False, max_steps=2):
     if ex["ANSWER_TYPE"] == "top_1":
-        seqs, labels, base_seqs = prepare_type_1_fewshot(ex, sents, k, with_definition, defs)
+        seqs, labels, base_seqs, samples = prepare_type_1_fewshot(ex, sents, with_definition, defs)
     elif ex["ANSWER_TYPE"] == "top_2":
-        seqs, labels, base_seqs = prepare_for_type_2_fewshot(ex, sents, k, with_definition, defs)
+        seqs, labels, base_seqs, samples = prepare_for_type_2_fewshot(ex, sents, with_definition, defs)
     else:
         raise NotImplementedError
+    tokenizer.pad_token = tokenizer.unk_token
+    orig_input_embeds = model.get_input_embeddings().weight.clone()
+    orig_output_embeds = model.get_output_embeddings().weight.clone()
+    if tuning:
+        outputs = []
+        for param in model.parameters():
+            param.requires_grad = False
+        for param in model.get_input_embeddings().parameters():
+            param.requires_grad = True
+        for param in model.get_output_embeddings().parameters():
+            param.requires_grad = True
 
-    probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
-    # print(probs)
-    if ex["ANSWER_TYPE"] == "top_1":
-        return evaluate_type_1(probs, labels)
-    elif ex["ANSWER_TYPE"] == "top_2":
-        return evaluate_type_2(probs, labels)
+        new_tok_indices = [v for k,v in tokenizer.get_added_vocab().items()]
+        zero_grad_indices = torch.arange(0, len(tokenizer)) != any(new_tok_indices)
+
+        total_probs = []
+        for sample, seq, base_seq in zip(samples, seqs, base_seqs):
+            opt = AdamW([p for p in model.parameters() if p.requires_grad],
+                        lr=1e-3)
+            input = tokenizer(sample, truncation=True, padding='longest', return_tensors='pt')
+            per_step_probs = []
+            for step in range(max_steps):
+                model.train()
+                model.zero_grad()
+                opt.zero_grad()
+                output = model(input_ids=input['input_ids'].to(model.device),
+                               attention_mask=input['attention_mask'].to(model.device),
+                               labels=input['input_ids'].clone().to(model.device))
+
+                loss = output.loss
+                loss.backward()
+                opt.step()
+
+                model.get_input_embeddings().weight.grad[zero_grad_indices] = 0.
+                model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
+
+                with torch.no_grad():
+                    model.eval()
+                    prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                    per_step_probs.append(prob[0])
+
+            total_probs.append(per_step_probs)
+
+            #reset embeddings
+            model.get_input_embeddings().weight = torch.nn.Parameter(orig_input_embeds)
+            model.get_output_embeddings().weight = torch.nn.Parameter(orig_output_embeds)
+
+        seq_probs_by_step = [[seq_prob[step] for seq_prob in total_probs] for step in range(max_steps)]
 
 
-def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
-    sentence_stem = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\n"
-    definition_stem = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\n"
-    sentence_template = "Word: {}\nExamples: {}\n"
-    definition_template = "Word: {}\nDefinition: {}.\nExamples: {}\n"
-    seq_template = "Sentence: {}"
-    nonce_template = "<{}_new>"
+        example_outputs_by_step = []
+        for probs in seq_probs_by_step:
+            if ex["ANSWER_TYPE"] == "top_1":
+                example_outputs_by_step.append(evaluate_type_1(probs, labels))
+            elif ex["ANSWER_TYPE"] == "top_2":
+                example_outputs_by_step.append(evaluate_type_2(probs, labels))
 
+        return example_outputs_by_step
+    else:
+        with torch.no_grad():
+            probs = get_sentence_probs(model, tokenizer, seqs, base_seqs)
+            # print(probs)
+            if ex["ANSWER_TYPE"] == "top_1":
+                return evaluate_type_1(probs, labels)
+            elif ex["ANSWER_TYPE"] == "top_2":
+                return evaluate_type_2(probs, labels)
+
+
+def prepare_type_1_fewshot(ex, sent_dict,with_definition=False, defs=None):
+    # sentence_stem = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\n"
+    # definition_stem = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\n"
+    sentence_template = "Here are some sentences for a new word \"{}\":\n{}"
+    # sentence_template = "Word: {}\nExamples: {}\n"
+    # definition_template = "Word: {}\nDefinition: {}.\nExamples: {}\n"
+    # seq_template = "Sentence: {}"
+    # nonce_template = ""
+    nonce = "<nonce>"
     base_seqs, labels = prepare_for_top_1_selection(ex)
     multi_blank_vals = ["(i)", "(ii)", "(iii)"]
     question = ex["QUESTION"]
@@ -137,87 +199,106 @@ def prepare_type_1_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
     seqs = []
     #     print(answers)
     question_seqs = []
+    final_samples = []
     for w, s in zip(answers, base_seqs):
         if type(w) == str:
-            nonce = "<{}_new>".format(w.lower())
+            # nonce = "<nonce>"
             #             print(w)
-            samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
+            samples = sent_dict[w]
             samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
             examples = [" \n".join(samples)]
         else:
             examples = [re.sub(r"\b({})\b".format(w), nonce, " \n".join(answer_samples[v]), flags=re.I) for v in w]
         #             examples = [" \n".join(sample) for sample in samples]
 
+
         if with_definition and defs is not None:
             if type(w) == str:
-                nonce = nonce_template.format(w.lower())
+                # nonce = "<nonce>"
                 definition = defs[w]
-                formatted_examples_with_definition = [definition_template.format(nonce, definition, ex) for ex in
-                                                      examples]
+                def_s = "The word {} is defined as {}".format(nonce, definition)
+                formatted_examples_with_definition = []
+                for example in examples:
+                    new_example = example + "\n" + def_s
+                    formatted_examples_with_definition.append(sentence_template.format(nonce, new_example))
+
+                final_samples.append(samples + [def_s])
             else:
                 formatted_examples_with_definition = []
                 for i, v in enumerate(w):
-                    nonce = nonce_template.format(v.lower())
+                    # nonce = nonce_template.format(v.lower())
                     definition = defs[v]
-                    formatted_example = definition_template.format(nonce, definition, examples[i])
+                    def_s = "The word {} is defined as {}".format(nonce, definition)
+                    new_example = examples[i] + "\n" + def_s
+                    formatted_example = sentence_template.format(nonce, "\n".join(new_example))
                     formatted_examples_with_definition.append(formatted_example)
+                    converted_ans = [re.sub(r"\b({})\b".format(w), nonce, tmp_sample, flags=re.I) for tmp_sample in answer_samples[v]]
+                    final_samples.append(converted_ans + [def_s])
 
-            seq_minus_sentence = definition_stem + "".join(formatted_examples_with_definition)
+
+            seq_minus_sentence = sentence_template.format(nonce, "".join(formatted_examples_with_definition))
         else:
             if type(w) == str:
-                nonce = nonce_template.format(w.lower())
+                # nonce = nonce_template.format(w.lower())
                 formatted_examples = [sentence_template.format(nonce, ex) for ex in examples]
+                final_samples.append(samples)
 
             else:
                 formatted_examples = []
                 for i, v in enumerate(w):
-                    nonce = nonce_template.format(v.lower())
+                    # nonce = nonce_template.format(v.lower())
                     formatted_example = sentence_template.format(nonce, examples[i])
                     formatted_examples.append(formatted_example)
+                    converted_ans = [re.sub(r"\b({})\b".format(w), nonce, tmp_sample, flags=re.I) for tmp_sample in
+                                     answer_samples[v]]
+                    final_samples.append(converted_ans)
 
-            seq_minus_sentence = sentence_stem + "".join(formatted_examples)
+            seq_minus_sentence = sentence_template.format(nonce,"".join(formatted_examples))
 
         if type(w) == str:
-            nonce = nonce_template.format(w.lower())
+            # nonce = nonce_template.format(w.lower())
             new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
 
         else:
             new_s = s
             for v in w:
                 new_s = re.sub(r"\b({})\b".format(v), nonce_template.format(v), new_s)
-        seq = seq_minus_sentence + seq_template.format(new_s)
+        seq = seq_minus_sentence + "\n" + new_s
         question_seqs.append(new_s)
         seqs.append(seq)
 
-    return seqs, labels, question_seqs
+    return seqs, labels, question_seqs, final_samples
 
 
-def prepare_for_type_2_fewshot(ex, sent_dict, k, with_definition=False, defs=None):
-    sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
-    definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
+def prepare_for_type_2_fewshot(ex, sent_dict, with_definition=False, defs=None):
+    # sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
+    sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
+    # definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
 
     base_seqs, labels = prepare_for_top_2_selection(ex)
     answers = ex["ANSWERS"][0]
     seqs = []
     question_seqs = []
+    final_samples = []
     for w, s in zip(answers, base_seqs):
-        nonce = "<{}_new>".format(w.lower())
-        samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k)
+        nonce = "<nonce>"
+        samples = sent_dict[w]
         samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
-        example_string = " \n".join(samples)
-
-        new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
         if with_definition and defs is not None:
             definition = defs[w]
-            seq = definition_template.format(nonce, definition, example_string, new_s)
-        else:
-            seq = sentence_template.format(nonce, example_string, new_s)
+            def_s = "The word {} is defined as {}".format(nonce, definition)
+            samples.append(def_s)
+        example_string = "\n".join(samples)
+
+        new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
+        seq = sentence_template.format(nonce, example_string + "\n" + new_s)
         seqs.append(seq)
         question_seqs.append(new_s)
+        final_samples.append(samples)
 
-    return seqs, labels, question_seqs
+    return seqs, labels, question_seqs, final_samples
 
-def prepare_emb_gen_batch(ex, sent_dict, k):
+def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None):
 
     if ex["ANSWER_TYPE"] == "top_1":
         question = ex["QUESTION"]
@@ -249,6 +330,10 @@ def prepare_emb_gen_batch(ex, sent_dict, k):
             samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
             # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
             samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
+            if with_def and defs is not None:
+                definition = defs[w]
+                def_s = "The word {} is defined as {}".format(nonce, definition)
+                samples.append(def_s)
             # print("Samples for {}".format(w), samples)
             # new_samples = []
             # for s in samples:
@@ -325,15 +410,10 @@ def filter_gre(sents, ex):
 
     return is_valid
 
-def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k):
-    samples, seqs, labels = prepare_emb_gen_batch(ex, sents, k)
+def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=False, defs=None):
+    samples, seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs)
     probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs)
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
-
-
-
-
-
