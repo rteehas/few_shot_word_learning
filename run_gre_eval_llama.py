@@ -347,17 +347,18 @@ def main():
                 for k in range(1, 7):
                     outputs = []
                     for ex in subselection['train']:
-                        try:
-                            if args.sent_version == "question":
-                                sent_dict = sents[ex['QUESTION']]
-                            elif args.sent_version == "answer":
-                                sent_dict = sents
-                                for key in sent_dict:
-                                    if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
-                                        sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                            outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k,with_def,defs))
-                        except:
-                            continue
+                        # try:
+                        if args.sent_version == "question":
+                            sent_dict = sents[ex['QUESTION']]
+                        elif args.sent_version == "answer":
+                            sent_dict = sents
+                            for key in sent_dict:
+                                if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                                    sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+                        outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k,with_def,defs))
+                        # except:
+                        #     print("ERROR")
+                        #     continue
                     acc = sum(outputs) / len(outputs)
                     print("Accuracy for k = {} is {}".format(k, acc))
                     if k in scores:
