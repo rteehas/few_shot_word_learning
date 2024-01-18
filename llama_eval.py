@@ -8,6 +8,17 @@ from train_with_llama import *
 from torch.nn import CrossEntropyLoss
 
 
+def prepare_for_t5(seq, nonce):
+    t5_format = "<extra_id_{}>"
+    ct = 0
+    tmp_seq = seq
+    while nonce in tmp_seq:
+        tmp_seq = tmp_seq.replace(nonce, t5_format.format(ct), 1)
+        ct += 1
+
+    return tmp_seq
+
+
 def prepare_for_top_1_selection(ex):
     multi_blank_vals = ["(i)", "(ii)", "(iii)"]
     question = ex["QUESTION"]
@@ -331,7 +342,10 @@ def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None):
             # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
             samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
             if with_def and defs is not None:
-                definition = defs[w]
+                if w in defs:
+                    definition = defs[w]
+                else:
+                    definition = defs[w.lower()]
                 def_s = "The word {} is defined as {}".format(nonce, definition)
                 samples.append(def_s)
             # print("Samples for {}".format(w), samples)
@@ -352,10 +366,14 @@ def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None):
 
 
 @torch.no_grad()
-def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seqs):
+def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seqs, t5=False):
     probs = []
     for i,seq in enumerate(seqs):
-        context = tokenizerMLM(contexts[i], padding=True, truncation=True, max_length=256, return_tensors='pt')
+        if t5:
+            ctx = [prepare_for_t5(s, "<nonce>") for s in contexts[i]]
+            context = tokenizerMLM(ctx, padding=True, truncation=True, max_length=256, return_tensors='pt')
+        else:
+            context = tokenizerMLM(contexts[i], padding=True, truncation=True, max_length=256, return_tensors='pt')
         # print(context)
         toks = tokenizerTask(seq, truncation=True, max_length=256, return_tensors="pt").to(model.device)
         labels = toks['input_ids'].clone()
