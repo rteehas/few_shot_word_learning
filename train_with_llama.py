@@ -1,3 +1,4 @@
+import math
 import re
 from argparse import ArgumentParser
 from functools import partial
@@ -226,10 +227,32 @@ class Memory():
         for k in self.memory:
             self.memory[k].detach()
 
+class PositionalEncoder(nn.Module):
+    """
+    self.pe: Positional encoding matrix stored as shape [1, max_len, vector_size]
+    """
+
+    def __init__(self, vector_size, max_len=100):
+        super().__init__()
+
+        pe = torch.zeros(max_len, vector_size)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, vector_size, 2).float() * (-math.log(10000.0) / vector_size))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)[:,:vector_size//2]
+        pe = pe.unsqueeze(0)
+        self.pe = nn.Parameter(pe, requires_grad=False)
+
+    def forward(self, x):
+        """
+        :input x: tensor of shape [batch_size, seq_length, vector_size]
+        """
+        return x + self.pe[:, :x.size(1)]
+
 
 class EmbeddingGenerator(nn.Module):
 
-    def __init__(self, firstLM, secondLM, num_layers, config):
+    def __init__(self, firstLM, secondLM, num_layers, config, use_pos=False):
         super().__init__()
         self.input_hidden_size = firstLM.config.hidden_size
         self.output_hidden_size = secondLM.config.hidden_size
@@ -252,6 +275,12 @@ class EmbeddingGenerator(nn.Module):
             num_layers = self.config.num_layers
             self.agg = TransformerSummarizer(input_size, nhead, num_layers)
 
+        if use_pos:
+            self.pe = PositionalEncoder(self.input_hidden_size, max_len=512)
+
+        self.use_pos = use_pos
+
+
     def calc_init_std(self, desired_mean_norm):
         # calculates the std for initializing the linear year to achieve the desired output norm at initialization
         return sqrt(((desired_mean_norm / sqrt(self.input_hidden_size)) ** 2) / self.output_hidden_size)
@@ -269,8 +298,11 @@ class EmbeddingGenerator(nn.Module):
             self.output_emb_head.bias.zero_()
 
     def forward(self, inputs, attn_mask):
-
-        out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
+        if self.use_pos:
+            out = self.pe(inputs)
+            out = self.encoder(out, src_key_padding_mask=~attn_mask.bool())
+        else:
+            out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
         out = self.norm(out)
 
         out = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
@@ -289,7 +321,7 @@ class EmbeddingGenerator(nn.Module):
 class MorphMemoryModelLLAMA(nn.Module):
 
     def __init__(self, firstLM, secondLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers,
-                 distillation_temp):
+                 distillation_temp, use_pos=False):
         super().__init__()
 
         self.layers = layers
@@ -302,7 +334,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.num_layers = num_layers
         self.distillation_temp = distillation_temp
 
-        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers, config=self.memory_config)
+        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers, config=self.memory_config, use_pos=use_pos)
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
 
@@ -1005,6 +1037,7 @@ def get_arguments():
     parser.add_argument("--first_lm", type=str, default="roberta-base")
     parser.add_argument("--progressive_training", action="store_true")
     parser.add_argument("--definition_training", action="store_true")
+    parser.add_argument("--use_pos", action="store_true")
     return parser
 
 
@@ -1044,6 +1077,8 @@ def create_checkpoint_directories(args):
     if args.l2 is not None:
         path = path + "l2/"
 
+    if args.use_pos:
+        path = path + "positional_encoding/"
 
 
     suffix = "checkpoints/"
