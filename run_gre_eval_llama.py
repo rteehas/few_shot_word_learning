@@ -375,7 +375,7 @@ def main():
                     else:
                         scores[k] = [acc]
                 print("-----------Saving Wrong Answers----------")
-                with open("gre_wrong_{}.json".format(trial)) as fp:
+                with open("gre_wrong_{}.json".format(trial), 'w') as fp:
                     json.dump(wrong_ans, fp)
 
                 print(wrong_ans)
