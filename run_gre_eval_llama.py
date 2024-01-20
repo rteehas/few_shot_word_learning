@@ -343,9 +343,13 @@ def main():
         # model.secondLM.resize_token_embeddings(len(tokenizerTask))
         # model.add_new_tokens(new_token_num)
         model.eval()
+
         with torch.no_grad():
             scores = {}
             for trial in range(args.trials):
+                wrong_ans = {}
+                for k in range(1,7):
+                    wrong_ans[k] = []
                 for k in range(1, 7):
                     outputs = []
                     for ex in subselection['train']:
@@ -357,7 +361,10 @@ def main():
                             for key in sent_dict:
                                 if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
                                     sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        outputs.append(evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k,with_def,defs))
+                        result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k,with_def,defs)
+                        outputs.append(result)
+                        if not result:
+                            wrong_ans[k].append(ex["QUESTION"])
                         # except:
                         #     print("ERROR")
                         #     continue
@@ -367,6 +374,9 @@ def main():
                         scores[k].append(acc)
                     else:
                         scores[k] = [acc]
+                print("-----------Wrong Answers----------")
+                print(wrong_ans)
+
 
 
         for value in scores:
