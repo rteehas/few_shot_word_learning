@@ -1368,7 +1368,7 @@ def main():
     accelerator.wait_for_everyone()
     layers = [-1 * (x + 1) for x in range(args.num_feature_layers)]
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, args.num_layers,
-                                  args.distillation_temp).to(accelerator.device)
+                                  args.distillation_temp, use_pos=args.use_pos).to(accelerator.device)
     print("first list", model.first_list)
     print("second list", model.second_list)
     model.emb_gen = accelerator.prepare(model.emb_gen)
