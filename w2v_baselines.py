@@ -173,9 +173,9 @@ class HiCEBaseline(nn.Module):
 
 
 class AdditiveBaseline(nn.Module):
-    def __init__(self, w2v, dictionary, input_linear_path, output_linear_path, secondLM):
+    def __init__(self, dictionary, input_linear_path, output_linear_path, secondLM):
         super().__init__()
-        self.w2v = w2v
+        # self.w2v = w2v
         self.dictionary = dictionary
         self.input_linear = torch.load(input_linear_path)
         self.output_linear = torch.load(output_linear_path)
@@ -360,7 +360,7 @@ def make_w2v_batch(contexts, pad=0):
     return data
 
 def get_w2v_ctx_prediction(oov_cxt, dictionary, pad=0):
-    pred = [torch.mean(torch.stack([dictionary.idx2vec[pi] for pi in pp if pi != pad]), dim=0) for pp in oov_cxt.reshape(oov_cxt.shape[0], -1)]
+    pred = [torch.mean(torch.stack([torch.tensor(dictionary.idx2vec[pi], device="cuda") for pi in pp if pi != pad]), dim=0, keepdim=True) for pp in oov_cxt.reshape(oov_cxt.shape[0], -1)]
     return pred
 
 @torch.no_grad
@@ -376,7 +376,7 @@ def generate_hice(model, context, vocab, input_ids, attention_mask, max_new_toke
     new_tok_id = list(initial_outputs.memories[0]['input_memory'].memory.keys())[0]
     inp_embed = initial_outputs.memories[0]['input_memory'].retrieve(new_tok_id)
     outp_embed = initial_outputs.memories[0]['output_memory'].retrieve(new_tok_id)
-    input_weights = model.get_new_weights(task="Task", new_embed=inp_embed)
+    input_weights = model.get_new_input_weights(inp_embed)
     output_weights = model.get_new_output_weights(outp_embed)
 
     first_token = decoding_step(initial_outputs.logits, temperature, top_k, mask_new_tokens=mask_new_tokens)
@@ -401,6 +401,48 @@ def generate_hice(model, context, vocab, input_ids, attention_mask, max_new_toke
         new_attention_mask = torch.cat([new_attention_mask, last_element], dim=1)
 
     return new_input_ids
+
+@torch.no_grad
+def generate_additive(model, context, input_ids, attention_mask, max_new_tokens, temperature=1.0, top_k=None, do_sample=False, mask_new_tokens=False):
+    initial_batch = {
+        "contexts": [context],
+        'input_ids': input_ids,
+        'attention_mask': attention_mask,
+        'labels': input_ids.clone(),
+        # 'character': [vocab]
+    }
+    initial_outputs = model(initial_batch)
+    new_tok_id = list(initial_outputs.memories[0]['input_memory'].memory.keys())[0]
+    inp_embed = initial_outputs.memories[0]['input_memory'].retrieve(new_tok_id)
+    outp_embed = initial_outputs.memories[0]['output_memory'].retrieve(new_tok_id)
+    input_weights = model.get_new_input_weights(inp_embed)
+    output_weights = model.get_new_output_weights(outp_embed)
+
+    first_token = decoding_step(initial_outputs.logits, temperature, top_k, mask_new_tokens=mask_new_tokens)
+    new_input_ids = torch.cat([input_ids, first_token], dim=1)
+    last_element = attention_mask[:, -1].unsqueeze(1)
+    new_attention_mask = torch.cat([attention_mask, last_element], dim=1)
+    # print("mask tokens is", mask_new_tokens)
+    for i in range(1, max_new_tokens):
+        input_embeds = F.embedding(new_input_ids, input_weights)
+        outputs = model.secondLM.model(
+            inputs_embeds=input_embeds,
+            attention_mask=new_attention_mask
+        )
+        llama_outputs = model.llama_forward(labels=None, outputs=outputs, new_w=output_weights, index=None)
+
+        next_token = decoding_step(llama_outputs.logits, temperature, top_k, do_sample, mask_new_tokens=mask_new_tokens)
+
+        #         print(next_token.shape)
+        #         print(new_input_ids.shape)
+        new_input_ids = torch.cat([new_input_ids, next_token], dim=1)
+        last_element = new_attention_mask[:, -1].unsqueeze(1)
+        new_attention_mask = torch.cat([new_attention_mask, last_element], dim=1)
+
+    return new_input_ids
+
+
+
 
 def load_dictionary(w2v_dir, corpus_dir, maxlen):
     base_w2v = Word2Vec.load(w2v_dir)
