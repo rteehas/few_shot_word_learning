@@ -9,6 +9,7 @@ import numpy as np
 import itertools
 import re
 from init_baseline import *
+from w2v_baselines import *
 
 def get_arguments():
     parser = ArgumentParser()
@@ -254,7 +255,84 @@ def eval_baseline(args):
                 print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
 
 
+def eval_hice(args):
+    device = "cuda"
+    hice_path = "HiCE/save/model.pt"
+    input_linear_path = "baseline_mappings/input_linear.pt"
+    output_linear_path = "baseline_mappings/output_linear.pt"
+    w2v_dir = 'HiCE/data/base_w2v/wiki_all.sent.split.model'
+    corpus_dir = "HiCE/data/wikitext-103/"
 
+    gre = load_from_disk("processed_kaplan_v0")
+    subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
+    if args.defs != '':
+        with open(args.defs, 'r') as fp:
+            defs = json.load(fp)
+            with_def = True
+            subselection = subselection.filter(partial(filter_gre, defs))
+    else:
+        defs = None
+        with_def = True
+
+    answers = subselection['train']['ANSWERS']
+    answers = list(itertools.chain(*answers))
+    answers = list(itertools.chain(*answers))
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    with open(args.sents, 'r') as fp:
+        sents = json.load(fp)
+
+    if "pile" in args.sents:
+        for key in sents:
+            for i, example in enumerate(sents[key]):
+                split = example.split(".")
+                output = [idx for idx, element in enumerate(split) if
+                          re.search(r"\b({})\b".format(key), element, flags=re.I) is not None]
+                first_index = output[0]
+
+                new_text = ".".join(split[first_index:])
+                sents[key][i] = new_text
+
+    if args.sent_version == "answer":
+        with open("gre_examples_gpt4.json", 'r') as fp:
+            auxiliary_sents = json.load(fp)
+
+
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True)
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
+                                                   use_fast=False)
+
+    tokenizerTask.add_tokens(["<nonce>"])
+
+    hice = HiCEBaseline(hice_path, input_linear_path, output_linear_path, secondLM).to(device)
+    hice.device = device
+    dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
+    for trial in range(3):
+        selected_sent_dict = {}
+        for ex in subselection['train']:
+            if True:
+                sent_dict = sents[ex['QUESTION']]
+                for key in sent_dict:
+                    samples = np.random.choice(
+                        [s for s in sent_dict[key] if re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                        replace=False)
+                    sent_dict[key] = samples
+
+                selected_sent_dict[ex["QUESTION"]] = sent_dict
+        for k in range(1, 7):
+            print("k = {}".format(k))
+            outputs = []
+            for ex in subselection['train']:
+                curr_sent_dict = {}
+                base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+                for key in base_sent_dict:
+                    curr_sent_dict[key] = base_sent_dict[key][:k]
+                outputs.append(
+                    evaluate_hice(hice, tokenizerTask, ex, curr_sent_dict, k, dictionary, with_def=False, defs=None))
+            acc = sum(outputs) / len(outputs)
+            print("Accuracy for k = {} is {}".format(k, acc))
 
 
 def main():
