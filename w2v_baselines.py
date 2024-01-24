@@ -8,7 +8,7 @@ import numpy as np
 
 from modules.model_outputs import CausalLMOutputWithNewToken
 from train_with_llama import decoding_step, Memory
-from HiCE.model import HiCE
+# from HiCE.model import HiCE
 from HiCE.util import load_training_corpus
 from gensim import Word2Vec
 import sys
