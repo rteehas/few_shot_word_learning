@@ -236,7 +236,7 @@ def run_baseline_no_gd(def_task):
 
 def run_emb_gen(def_task, path):
     # config_args = extract_arguments_from_path(args.path)
-    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token"
+    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_cls"
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
@@ -250,13 +250,13 @@ def run_emb_gen(def_task, path):
     # config_args = extract_arguments_from_path(args.path)
     # print(config_args)
     # if config_args['memory'] == "mean":
-    memory_config = AggregatorConfig()
+    # memory_config = AggregatorConfig()
     # elif config_args['memory'] == 'cls':
-    #     memory_config = TransformerCLSConfig(
-    #         input_size=firstLM.config.hidden_size,
-    #         nhead=firstLM.config.num_attention_heads,
-    #         num_layers=1
-    #     )
+    memory_config = TransformerCLSConfig(
+        input_size=firstLM.config.hidden_size,
+        nhead=2,
+        num_layers=1
+    )
 
     mask_token_id = tokenizerMLM.mask_token_id
     # if 'num_feature_layers' in config_args:
@@ -420,7 +420,8 @@ if __name__ == "__main__":
     # def_task = def_task.map(replace_for_llama_baseline)
     # run_baseline(def_task, args.lr)
     # path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
-    # run_emb_gen(def_task, path)
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/cls_agg/4_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_13500"
+    run_emb_gen(def_task, path)
     # run_baseline_no_gd(def_task)
     print("running Hice....")
     run_hice(def_task)
