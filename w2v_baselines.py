@@ -10,7 +10,7 @@ from modules.model_outputs import CausalLMOutputWithNewToken
 from train_with_llama import decoding_step, Memory
 # from HiCE.model import HiCE
 from HiCE.util import load_training_corpus
-from gensim import Word2Vec
+from gensim.models import Word2Vec
 import sys
 
 sys.path.insert(0, "./HiCE") # to allow loading HiCE model
