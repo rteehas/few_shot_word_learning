@@ -74,6 +74,8 @@ def generate_definitions_examples_hice(model, tokenizer, ex, examples, dictionar
     b = make_hice_batch(examples, ex['wordnet_word'], dictionary, 24, 0)
     context = b['contexts'].to(model.device)
     vocab = b['character'].to(model.device)
+    # print(context)
+    # print(vocab)
     inputs = tokenizer(example_prompt, return_tensors='pt').to(model.device)
     output = generate_hice(model, context, vocab, inputs['input_ids'], inputs['attention_mask'], 30)
     generated_def = tokenizer.decode(output[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
@@ -327,8 +329,8 @@ def run_hice(def_task):
         print("k", k)
         for ex in def_task:
             examples = np.random.choice(ex['replaced_examples'], size=k, replace=False).tolist()
-            new_ex_with_prompt = generate_definitions_examples_hice(secondLM, tokenizerTask, ex, examples, dictionary, with_prompt=True)
-            new_ex_without_prompt = generate_definitions_examples_hice(secondLM, tokenizerTask, ex, examples, dictionary, with_prompt=False)
+            new_ex_with_prompt = generate_definitions_examples_hice(hice, tokenizerTask, ex, examples, dictionary, with_prompt=True)
+            new_ex_without_prompt = generate_definitions_examples_hice(hice, tokenizerTask, ex, examples, dictionary, with_prompt=False)
             # step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
 
             # secondLM.set_input_embeddings(orig_input_embeds)
@@ -381,8 +383,8 @@ def run_additive(def_task):
         print("k", k)
         for ex in def_task:
             examples = np.random.choice(ex['replaced_examples'], size=k, replace=False).tolist()
-            new_ex_with_prompt = generate_definitions_examples_additive(secondLM, tokenizerTask, ex, examples, dictionary, with_prompt=True)
-            new_ex_without_prompt = generate_definitions_examples_additive(secondLM, tokenizerTask, ex, examples, dictionary, with_prompt=False)
+            new_ex_with_prompt = generate_definitions_examples_additive(additive, tokenizerTask, ex, examples, dictionary, with_prompt=True)
+            new_ex_without_prompt = generate_definitions_examples_additive(additive, tokenizerTask, ex, examples, dictionary, with_prompt=False)
             # step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
 
             # secondLM.set_input_embeddings(orig_input_embeds)
