@@ -5,16 +5,18 @@ import itertools
 import re
 
 from torch.nn import CrossEntropyLoss
+from w2v_baselines import make_hice_batch
 device = "cuda"
 example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of <nonce> is \"{}\""
 def_prompt = "The definition of <nonce> is \"{}\""
 base_prompt = " \"{}\""
 
-def prepare_example(ex, k, emb_gen):
+def prepare_example(ex, k, emb_gen, hice=False):
     samples = []
     seqs = []
     labels = [1,0,0,0]
     word = ex['word']
+    true_words = [word]
     if word == "take the l":
         word = "take the L"
     if word == "goblin era":
@@ -54,7 +56,7 @@ def prepare_example(ex, k, emb_gen):
             neg = "caught in 4K"
         if neg == "trade":
             neg = "trad"
-
+        true_words.append(neg)
         neg_samples = np.random.choice([s.replace(neg, "<nonce>").replace(neg.lower(), "<nonce>").replace(neg.capitalize(), "<nonce>").replace(neg.upper(), "<nonce>").replace(" ".join([w.capitalize() for w in neg.split(" ")]), "<nonce>") for s in ex['negative_choice_examples_{}'.format(i)] if neg.lower() in s.lower()], size=k, replace=False).tolist()
         if neg == "beyhive":
             neg_samples = [s.replace("BeyHive", "<nonce>") for s in neg_samples]
@@ -72,7 +74,10 @@ def prepare_example(ex, k, emb_gen):
         print("neg seq", neg_seq)
 
         samples.append(neg_samples)
-    return samples, seqs, labels
+    if hice:
+        return samples, seqs, labels, true_words
+    else:
+        return samples, seqs, labels
 
 def prepare_prompt(examples, definition):
     return example_prompt.format("\n".join(examples), definition)
@@ -315,3 +320,29 @@ def get_def_loss_baseline(ex, model, tokenizer, k, tuning=False, lr=3e-4):
                 # logits = out.logits
             prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
             return -prob[0]
+
+def evaluate_example_hice(ex, model, tokenizerMLM, tokenizerTask, k):
+    samples, seqs, labels, true_words = prepare_example(ex, k, False, hice=True)
+    probs = []
+    for sample, seq_tup, word in zip(samples, seqs, true_words):
+        seq, base = seq_tup
+        print("sample", sample)
+        print("seq", seq)
+        ctx, vocab = make_hice_batch([sample],word, maxlen=24, pad=0)
+        # ctx = tokenizerMLM(sample, truncation=True, padding='longest', return_tensors='pt').to(device)
+        input = tokenizerTask(seq,truncation=True, return_tensors='pt').to(device)
+        batch = {
+            'contexts': [ctx],
+            'input_ids': input['input_ids'],
+            'attention_mask': input['attention_mask'],
+            'labels': input['input_ids'].clone(),
+            'character': [vocab]
+        }
+
+        outputs = model(batch)
+        # prob = get_sentence_prob(input['input_ids'].clone(), outputs.logits, model.secondLM)
+        prob = get_sentence_probs_agnostic(outputs.logits, tokenizerTask, seq, base, model.secondLM.config.vocab_size + 1)
+        # prob = -outputs.loss.item()
+        probs.append(prob)
+    print(probs)
+    return evaluate_type_1(probs, labels)

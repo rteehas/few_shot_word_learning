@@ -6,7 +6,7 @@ import itertools
 import re
 from train_with_llama import *
 from torch.nn import CrossEntropyLoss
-
+from w2v_baselines import make_hice_batch, make_w2v_batch
 
 def prepare_for_t5(seq, nonce):
     t5_format = "<extra_id_{}>"
@@ -435,3 +435,86 @@ def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
+
+def prepare_hice_batch(ex, sent_dict, k, with_def=False, defs=None):
+
+    if ex["ANSWER_TYPE"] == "top_1":
+        question = ex["QUESTION"]
+        answers = ex["ANSWERS"]
+        if "_____" in question:
+            answers = answers[0]
+
+
+        elif "(i)" in question:
+            # answers = list(itertools.product(*answers))
+            raise NotImplementedError
+
+        seqs, labels = prepare_for_top_1_selection(ex)
+
+    elif ex["ANSWER_TYPE"] == "top_2":
+        seqs, labels = prepare_for_top_2_selection(ex)
+        answers = ex["ANSWERS"][0]
+    else:
+        raise NotImplementedError
+
+    task_seqs = []
+    task_samples = []
+    for w, task_s in zip(answers, seqs):
+        if type(w) == str:
+            # nonce = "<{}_new>".format(w.lower())
+            nonce = "<nonce>"
+            #print(w)
+            #print(sent_dict[w])
+            samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
+            # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
+            samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
+            if with_def and defs is not None:
+                if w in defs:
+                    definition = defs[w]
+                else:
+                    definition = defs[w.lower()]
+                def_s = "The word {} is defined as {}".format(nonce, definition)
+                samples.append(def_s)
+            # print("Samples for {}".format(w), samples)
+            # new_samples = []
+            # for s in samples:
+            #     if w in s:
+            #         new_samples.append(s.replace(w, nonce))
+            #     elif w.capitalize() in s:
+            #         new_samples.append(w.capitalize(), nonce)
+            # # samples = [s.replace(w, nonce) if w in s else s.replace(w.capitalize(), nonce) if w.capitalize() in s for s in samples]
+            # samples = new_samples
+            task_samples.append(samples)
+            task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, task_s, flags=re.I))
+        else:
+            raise NotImplementedError
+
+    return task_samples, task_seqs, labels, answers
+
+@torch.no_grad()
+def get_sentence_probs_hice(model, tokenizerTask, contexts, seqs, answers):
+    probs = []
+    for i,seq in enumerate(seqs):
+        context, vocab = make_hice_batch(contexts[i], answers[i], maxlen=24, pad=0)
+        # print(context)
+        toks = tokenizerTask(seq, truncation=True, max_length=256, return_tensors="pt").to(model.device)
+        labels = toks['input_ids'].clone()
+        batch = {
+            "contexts": [context],
+            "input_ids": toks['input_ids'],
+            "attention_mask": toks['attention_mask'],
+            'labels': labels,
+            'character': [vocab]
+        }
+        out = model(batch)
+        probs.append(-out.loss.item())
+    return probs
+
+def evaluate_hice(model, tokenizerTask, ex, sents, k, with_def=False, defs=None):
+    samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs)
+    probs = get_sentence_probs_emb_gen(model, tokenizerTask, samples, seqs, answers)
+    if ex["ANSWER_TYPE"] == "top_1":
+        return evaluate_type_1(probs, labels)
+    elif ex["ANSWER_TYPE"] == "top_2":
+        return evaluate_type_2(probs, labels)
+
