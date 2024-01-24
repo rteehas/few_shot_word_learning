@@ -349,3 +349,32 @@ def evaluate_example_hice(ex, model, tokenizerTask, k, dictionary):
         probs.append(prob)
     print(probs)
     return evaluate_type_1(probs, labels)
+
+def evaluate_example_additive(ex, model, tokenizerTask, k, dictionary):
+    samples, seqs, labels, true_words = prepare_example(ex, k, False, hice=True)
+    probs = []
+    for sample, seq_tup, word in zip(samples, seqs, true_words):
+        seq, base = seq_tup
+        print("sample", sample)
+        print("seq", seq)
+        b = make_hice_batch(sample,word, dictionary, maxlen=24, pad=0)
+        ctx = b['contexts'].to(model.device)
+        # vocab = b['character'].to(model.device)
+
+        # ctx = tokenizerMLM(sample, truncation=True, padding='longest', return_tensors='pt').to(device)
+        input = tokenizerTask(seq, truncation=True, return_tensors='pt').to(device)
+        batch = {
+            'contexts': [ctx],
+            'input_ids': input['input_ids'],
+            'attention_mask': input['attention_mask'],
+            'labels': input['input_ids'].clone(),
+            # 'character': [vocab]
+        }
+
+        outputs = model(batch)
+        # prob = get_sentence_prob(input['input_ids'].clone(), outputs.logits, model.secondLM)
+        prob = get_sentence_probs_agnostic(outputs.logits, tokenizerTask, seq, base, model.secondLM.config.vocab_size + 1)
+        # prob = -outputs.loss.item()
+        probs.append(prob)
+    print(probs)
+    return evaluate_type_1(probs, labels)
