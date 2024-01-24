@@ -7,6 +7,8 @@ from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, Ll
 from copy import deepcopy
 from datasets import Dataset
 from run_gre_eval_llama import extract_arguments_from_path
+from w2v_baselines import HiCEBaseline, load_dictionary, make_hice_batch, generate_hice, AdditiveBaseline, \
+    generate_additive
 
 device = "cuda"
 
@@ -62,6 +64,44 @@ def generate_definitions_examples(model, tokenizer, ex, examples, with_prompt):
               'generated definition': generated_def,
               'prompt': example_prompt}
     return new_ex
+
+@torch.no_grad
+def generate_definitions_examples_hice(model, tokenizer, ex, examples, dictionary, with_prompt):
+    if with_prompt:
+        example_prompt = definition_prompt.format("\n".join(examples), "<nonce>")
+    else:
+        example_prompt = "The word <nonce> means"
+    b = make_hice_batch(examples, ex['wordnet_word'], dictionary, 24, 0)
+    context = b['contexts'].to(model.device)
+    vocab = b['character'].to(model.device)
+    inputs = tokenizer(example_prompt, return_tensors='pt').to(model.device)
+    output = generate_hice(model, context, vocab, inputs['input_ids'], inputs['attention_mask'], 30)
+    generated_def = tokenizer.decode(output[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
+    new_ex = {'definition': ex['definition'],
+              'word': ex['word'],
+              'generated definition': generated_def,
+              'prompt': example_prompt}
+    return new_ex
+
+@torch.no_grad
+def generate_definitions_examples_additive(model, tokenizer, ex, examples, dictionary, with_prompt):
+    if with_prompt:
+        example_prompt = definition_prompt.format("\n".join(examples), "<nonce>")
+    else:
+        example_prompt = "The word <nonce> means"
+    b = make_hice_batch(examples, ex['wordnet_word'], dictionary, 24, 0)
+    context = b['contexts'].to(model.device)
+    # vocab = b['character'].to(model.device)
+    inputs = tokenizer(example_prompt, return_tensors='pt').to(model.device)
+    output = generate_additive(model, context, inputs['input_ids'], inputs['attention_mask'], 30)
+    generated_def = tokenizer.decode(output[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
+    new_ex = {'definition': ex['definition'],
+              'word': ex['word'],
+              'generated definition': generated_def,
+              'prompt': example_prompt}
+    return new_ex
+
+
 
 def replace_for_llama_baseline(ex):
     examples = ex['replaced_examples']
@@ -256,6 +296,115 @@ def run_emb_gen(def_task, path):
     Dataset.from_dict(data_dict).save_to_disk(fname_format)
     return all_outputs
 
+def run_hice(def_task):
+    # max_num_steps = 2
+    device = "cuda"
+    fname_format = "definition_task_outputs/hice_generations"
+    # print(lr)
+    all_outputs = []
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True).to(device)
+
+
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                   legacy=True,
+                                                   use_fast=False)
+    tokenizerTask.pad_token = tokenizerTask.unk_token
+    tokenizerTask.add_tokens(["<nonce>"])
+
+    hice_path = "HiCE/save/model.pt"
+    input_linear_path = "baseline_mappings/input_linear.pt"
+    output_linear_path = "baseline_mappings/output_linear.pt"
+    w2v_dir = 'HiCE/data/base_w2v/wiki_all.sent.split.model'
+    corpus_dir = "HiCE/data/wikitext-103/"
+    hice = HiCEBaseline(hice_path, input_linear_path, output_linear_path, secondLM).to(device)
+    hice.device = device
+    dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
+    # secondLM.resize_token_embeddings(len(tokenizerTask))
+    # orig_input_embeds = deepcopy(secondLM.get_input_embeddings())
+    # orig_output_embeds = deepcopy(secondLM.get_output_embeddings())
+    for k in range(1,4):
+        print("k", k)
+        for ex in def_task:
+            examples = np.random.choice(ex['replaced_examples'], size=k, replace=False).tolist()
+            new_ex_with_prompt = generate_definitions_examples_hice(secondLM, tokenizerTask, ex, examples, dictionary, with_prompt=True)
+            new_ex_without_prompt = generate_definitions_examples_hice(secondLM, tokenizerTask, ex, examples, dictionary, with_prompt=False)
+            # step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
+
+            # secondLM.set_input_embeddings(orig_input_embeds)
+            # secondLM.set_output_embeddings(orig_output_embeds)
+            for new_ex in [new_ex_with_prompt, new_ex_without_prompt]:
+                output_dict = {'num_examples': k}
+                for key in new_ex:
+                    output_dict[key] = new_ex[key]
+
+                all_outputs.append(output_dict)
+
+    # save_dir = fname_format.format(lr)
+    save_dir= fname_format
+    keys = all_outputs[0].keys()
+    data_dict = {}
+    for key in keys:
+        data_dict[key] = [output_ex[key] for output_ex in all_outputs]
+    print("Saving...")
+    Dataset.from_dict(data_dict).save_to_disk(save_dir)
+
+def run_additive(def_task):
+    # max_num_steps = 2
+    device = "cuda"
+    fname_format = "definition_task_outputs/additive_generations"
+    # print(lr)
+    all_outputs = []
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True).to(device)
+
+
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                   legacy=True,
+                                                   use_fast=False)
+    tokenizerTask.pad_token = tokenizerTask.unk_token
+    tokenizerTask.add_tokens(["<nonce>"])
+
+    hice_path = "HiCE/save/model.pt"
+    input_linear_path = "baseline_mappings/input_linear.pt"
+    output_linear_path = "baseline_mappings/output_linear.pt"
+    w2v_dir = 'HiCE/data/base_w2v/wiki_all.sent.split.model'
+    corpus_dir = "HiCE/data/wikitext-103/"
+    dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
+    additive = AdditiveBaseline(dictionary, input_linear_path, output_linear_path, secondLM).to(device)
+    additive.device = device
+
+    # secondLM.resize_token_embeddings(len(tokenizerTask))
+    # orig_input_embeds = deepcopy(secondLM.get_input_embeddings())
+    # orig_output_embeds = deepcopy(secondLM.get_output_embeddings())
+    for k in range(1,4):
+        print("k", k)
+        for ex in def_task:
+            examples = np.random.choice(ex['replaced_examples'], size=k, replace=False).tolist()
+            new_ex_with_prompt = generate_definitions_examples_additive(secondLM, tokenizerTask, ex, examples, dictionary, with_prompt=True)
+            new_ex_without_prompt = generate_definitions_examples_additive(secondLM, tokenizerTask, ex, examples, dictionary, with_prompt=False)
+            # step_outputs = gradient_descent_tuning(secondLM, tokenizerTask,ex, k, max_num_steps, lr)
+
+            # secondLM.set_input_embeddings(orig_input_embeds)
+            # secondLM.set_output_embeddings(orig_output_embeds)
+            for new_ex in [new_ex_with_prompt, new_ex_without_prompt]:
+                output_dict = {'num_examples': k}
+                for key in new_ex:
+                    output_dict[key] = new_ex[key]
+
+                all_outputs.append(output_dict)
+
+    # save_dir = fname_format.format(lr)
+    save_dir= fname_format
+    keys = all_outputs[0].keys()
+    data_dict = {}
+    for key in keys:
+        data_dict[key] = [output_ex[key] for output_ex in all_outputs]
+    print("Saving...")
+    Dataset.from_dict(data_dict).save_to_disk(save_dir)
+
+
+
 def get_arguments():
     parser = ArgumentParser()
     parser.add_argument("--lr", type=float, default=1e-3)
@@ -268,9 +417,13 @@ if __name__ == "__main__":
     def_task = load_from_disk("def_task_994")
     # def_task = def_task.map(replace_for_llama_baseline)
     # run_baseline(def_task, args.lr)
-    path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
-    run_emb_gen(def_task, path)
+    # path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
+    # run_emb_gen(def_task, path)
     # run_baseline_no_gd(def_task)
+    print("running Hice....")
+    run_hice(def_task)
+    print("Running Additive....")
+    run_additive(def_task)
 
 
 # for k in range(1,4):
