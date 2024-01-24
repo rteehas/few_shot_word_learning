@@ -539,7 +539,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             attentions=outputs.attentions,
         )
 
-    def forward(self, batch, relational=False):
+    def forward(self, batch):
         # nonceMLM = batch["nonceMLM"]
         # print("batch", batch.keys())
         assert "labels" in batch, "You need labels"
@@ -576,7 +576,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         embeds = []
         neg_embeds = []
         distillation_outputs = []
-        definition_outputs = []
+        # definition_outputs = []
         for i in range(b_task):
             # print("Context {}".format(i))
             # with record_function("## MLM STEP ##"):
@@ -588,14 +588,11 @@ class MorphMemoryModelLLAMA(nn.Module):
             output_memory = Memory()
 
             if self.mask_token_id is not None:
-                if not relational:
-                    new_token = c['input_ids'][
-                        torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
-                        0].item()
-                    mlm_ids = self.swap_with_mask(c['input_ids'])
-                else:
-                    new_token = torch.tensor(self.first_list, device=c['input_ids'].device).unique()[0].item()
-                    mlm_ids = c['input_ids']
+                # if not relational:
+                new_token = c['input_ids'][
+                    torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
+                    0].item()
+                mlm_ids = self.swap_with_mask(c['input_ids'])
             else:
                 new_token = torch.tensor(self.first_list, device=c['input_ids'].device).unique()[0].item()
                 mlm_ids = c['input_ids']
@@ -621,32 +618,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             input_memory.store(new_token, inp_embs)
             output_memory.store(new_token, out_embs)
 
-            if "definitions" in batch:
-                nonce_def = batch['definitions'][i].to(self.firstLM.device)
-                def_inputs = self.swap_with_mask(nonce_def['input_ids'])
-                # print("def input ids", def_inputs)
-                # pass in a random embed 1/3 of the time
-                flag = np.random.binomial(1, 1/3)
-                if flag == 1:
-                    def_in_embs = torch.randn(1, self.emb_gen.module.output_hidden_size, device=self.firstLM.device)
-                    def_out_embs = torch.randn(1, self.emb_gen.module.output_hidden_size, device=self.firstLM.device)
-                else:
-                    with torch.no_grad():
-                        def_out = self.firstLM(input_ids=def_inputs,
-                                               attention_mask=nonce_def['attention_mask'],
-                                               output_hidden_states=True)
-                        def_combined = combine_layers(def_out.hidden_states, self.layers)
-                        if len(def_combined.shape) == 2:
-                            def_combined = def_combined.unsqueeze(0)
-
-                        def_attn = nonce_def['attention_mask']
-                        def_in_embs, def_out_embs = self.emb_gen(def_combined, def_attn)
-
-                definition_outputs.append(dict(input_embed=def_in_embs, output_embed=def_out_embs))
-                new_w = self.get_new_weights_definition_input(inp_embs, def_in_embs)
-                # print("input weight shape", new_w.shape)
-            else:
-                new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
+            new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
             # output_weights = self.get_new_output_weights(new_embed=out_embs)
 
         # with record_function("## LLAMA MODEL NONCE ##"):
@@ -706,10 +678,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         outs = []
         for i, mem in enumerate(mem_embeds):
             out_embs = mem['output_memory'].retrieve(self.firstLM.config.vocab_size)
-            if "definitions" in batch:
-                output_weights = self.get_new_weights_definition_output(out_embs, definition_outputs[i]['output_embed'])
-            else:
-                output_weights = self.get_new_output_weights(new_embed=out_embs)
+            output_weights = self.get_new_output_weights(new_embed=out_embs)
             llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights,
                                                              i, new_token_loss=True)
             # loss.append(llama_outputs.loss)
