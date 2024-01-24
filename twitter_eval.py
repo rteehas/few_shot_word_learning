@@ -321,16 +321,19 @@ def get_def_loss_baseline(ex, model, tokenizer, k, tuning=False, lr=3e-4):
             prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
             return -prob[0]
 
-def evaluate_example_hice(ex, model, tokenizerMLM, tokenizerTask, k):
+def evaluate_example_hice(ex, model, tokenizerTask, k, dictionary):
     samples, seqs, labels, true_words = prepare_example(ex, k, False, hice=True)
     probs = []
     for sample, seq_tup, word in zip(samples, seqs, true_words):
         seq, base = seq_tup
         print("sample", sample)
         print("seq", seq)
-        ctx, vocab = make_hice_batch([sample],word, maxlen=24, pad=0)
+        b = make_hice_batch(sample,word, dictionary, maxlen=24, pad=0)
+        ctx = b['contexts'].to(model.device)
+        vocab = b['character'].to(model.device)
+
         # ctx = tokenizerMLM(sample, truncation=True, padding='longest', return_tensors='pt').to(device)
-        input = tokenizerTask(seq,truncation=True, return_tensors='pt').to(device)
+        input = tokenizerTask(seq, truncation=True, return_tensors='pt').to(device)
         batch = {
             'contexts': [ctx],
             'input_ids': input['input_ids'],

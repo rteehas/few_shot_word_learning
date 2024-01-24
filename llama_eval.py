@@ -439,7 +439,7 @@ def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
 
-def prepare_hice_batch(ex, sent_dict, k, with_def=False, defs=None):
+def prepare_hice_batch(ex, sent_dict, k, with_def=False, defs=None, with_prompt=False):
 
     if ex["ANSWER_TYPE"] == "top_1":
         question = ex["QUESTION"]
@@ -495,11 +495,14 @@ def prepare_hice_batch(ex, sent_dict, k, with_def=False, defs=None):
     return task_samples, task_seqs, labels, answers
 
 @torch.no_grad()
-def get_sentence_probs_hice(model, tokenizerTask, contexts, seqs, answers):
+def get_sentence_probs_hice(model, tokenizerTask, contexts, seqs, answers, dictionary):
     probs = []
     for i,seq in enumerate(seqs):
-        context, vocab = make_hice_batch(contexts[i], answers[i], maxlen=24, pad=0)
-        # print(context)
+        b = make_hice_batch(contexts[i], answers[i], dictionary, maxlen=24, pad=0)
+        context = b['contexts'].to(model.device)
+        vocab = b['character'].to(model.device)
+        # print(context.shape)
+        # print(vocab.shape)
         toks = tokenizerTask(seq, truncation=True, max_length=256, return_tensors="pt").to(model.device)
         labels = toks['input_ids'].clone()
         batch = {
@@ -513,9 +516,9 @@ def get_sentence_probs_hice(model, tokenizerTask, contexts, seqs, answers):
         probs.append(-out.loss.item())
     return probs
 
-def evaluate_hice(model, tokenizerTask, ex, sents, k, with_def=False, defs=None):
-    samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs)
-    probs = get_sentence_probs_hice(model, tokenizerTask, samples, seqs, answers)
+def evaluate_hice(model, tokenizerTask, ex, sents, k, dictionary, with_def=False, defs=None, with_prompt=False):
+    samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs, with_prompt=with_prompt)
+    probs = get_sentence_probs_hice(model, tokenizerTask, samples, seqs, answers, dictionary)
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
