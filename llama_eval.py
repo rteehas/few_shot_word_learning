@@ -309,7 +309,10 @@ def prepare_for_type_2_fewshot(ex, sent_dict, with_definition=False, defs=None):
 
     return seqs, labels, question_seqs, final_samples
 
-def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None):
+def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None, with_prompt=False):
+
+    if with_prompt:
+        sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
 
     if ex["ANSWER_TYPE"] == "top_1":
         question = ex["QUESTION"]
@@ -512,7 +515,7 @@ def get_sentence_probs_hice(model, tokenizerTask, contexts, seqs, answers):
 
 def evaluate_hice(model, tokenizerTask, ex, sents, k, with_def=False, defs=None):
     samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs)
-    probs = get_sentence_probs_emb_gen(model, tokenizerTask, samples, seqs, answers)
+    probs = get_sentence_probs_hice(model, tokenizerTask, samples, seqs, answers)
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":

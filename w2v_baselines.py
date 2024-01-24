@@ -257,7 +257,7 @@ def generate_hice(model, context, vocab, input_ids, attention_mask, max_new_toke
 def load_dictionary(w2v_dir, corpus_dir, maxlen):
     base_w2v = Word2Vec.load(w2v_dir)
     source_train_dataset, source_valid_dataset, dictionary = load_training_corpus(base_w2v, corpus_dir,
-                                                                                  maxlen=24,
+                                                                                  maxlen=maxlen,
                                                                                   freq_lbound=16,
                                                                                   freq_ubound=2**16,
                                                                                   cxt_lbound=2)
