@@ -52,10 +52,11 @@ def generate_definitions(ex,k):
 
 @torch.no_grad
 def generate_definitions_examples(model, tokenizer, ex, examples, with_prompt):
+    nonce = "<nonce>"
     if with_prompt:
         example_prompt = definition_prompt.format("\n".join(examples), "<nonce>")
     else:
-        example_prompt = "The word <nonce> means"
+        example_prompt = "The word \"{}\" is defined as".format(nonce)
     inputs = tokenizer(example_prompt, return_tensors='pt')
     output = model.generate(**inputs.to(device), max_new_tokens=30)
     generated_def = tokenizer.decode(output[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
@@ -67,10 +68,11 @@ def generate_definitions_examples(model, tokenizer, ex, examples, with_prompt):
 
 @torch.no_grad
 def generate_definitions_examples_hice(model, tokenizer, ex, examples, dictionary, with_prompt):
+    nonce = "<nonce>"
     if with_prompt:
         example_prompt = definition_prompt.format("\n".join(examples), "<nonce>")
     else:
-        example_prompt = "The word <nonce> means"
+        example_prompt = "The word \"{}\" is defined as".format(nonce)
     b = make_hice_batch(examples, ex['wordnet_word'], dictionary, 24, 0)
     context = b['contexts'].to(model.device)
     vocab = b['character'].to(model.device)
@@ -192,7 +194,7 @@ def run_baseline(def_task, lr):
 
 def run_baseline_no_gd(def_task):
     max_num_steps = 2
-    fname_format = "definition_task_outputs/baseline_generations_no_lr"
+    fname_format = "definition_task_outputs/baseline_generations_no_lr_2"
     # print(lr)
     all_outputs = []
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -420,13 +422,13 @@ if __name__ == "__main__":
     # def_task = def_task.map(replace_for_llama_baseline)
     # run_baseline(def_task, args.lr)
     # path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/cls_agg/4_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_13500"
-    run_emb_gen(def_task, path)
-    # run_baseline_no_gd(def_task)
-    print("running Hice....")
-    run_hice(def_task)
-    print("Running Additive....")
-    run_additive(def_task)
+    # path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/cls_agg/4_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_13500"
+    # run_emb_gen(def_task, path)
+    run_baseline_no_gd(def_task)
+    # print("running Hice....")
+    # run_hice(def_task)
+    # print("Running Additive....")
+    # run_additive(def_task)
 
 
 # for k in range(1,4):
