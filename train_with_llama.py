@@ -213,7 +213,7 @@ def generate_multi(model, context, input_ids, attention_mask, max_new_tokens, te
     input_weights = model.get_new_input_weights_multi(inp_embed)
     output_weights = model.get_new_output_weights_multi(outp_embed)
 
-    first_token = decoding_step(initial_outputs.logits, temperature, top_k, mask_new_tokens=mask_new_tokens)
+    first_token = decoding_step(initial_outputs.logits, temperature, top_k, do_sample=do_sample, mask_new_tokens=mask_new_tokens)
     new_input_ids = torch.cat([input_ids, first_token], dim=1)
     last_element = attention_mask[:, -1].unsqueeze(1)
     new_attention_mask = torch.cat([attention_mask, last_element], dim=1)
