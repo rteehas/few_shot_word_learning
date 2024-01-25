@@ -139,7 +139,7 @@ def decoding_step(logits, temperature, top_k=None, do_sample=False, new_token_id
     # print("mask tokens is", mask_new_tokens)
     if mask_new_tokens:
         # print("here")
-        probs[:,new_token_idx] = 0.0
+        probs[:,new_token_idx:] = 0.0
         # print("after zeros probs", probs)
         # print("sum", probs.sum())
         probs = probs / probs.sum() #renormalize
@@ -189,6 +189,53 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
         new_attention_mask = torch.cat([new_attention_mask, last_element], dim=1)
 
     return new_input_ids
+
+@torch.no_grad
+def generate_multi(model, context, input_ids, attention_mask, max_new_tokens, temperature=1.0, top_k=None, do_sample=False, mask_new_tokens=False):
+    initial_batch = {
+        "contexts": [context],
+        'input_ids': input_ids,
+        'attention_mask': attention_mask,
+        'labels': input_ids.clone()
+    }
+    initial_outputs = model.multi_token_inference(initial_batch)
+    new_tok_id = list(initial_outputs.memories[0]['input_memory'].memory.keys())[0]
+    inp_embed = []
+    sorted_toks = sorted(list(initial_outputs.memories[0]['input_memory'].memory.keys()))
+    for tok in sorted_toks:
+        inp_embed.append(initial_outputs.memories[0]['input_memory'].retrieve(tok))
+    # inp_embed = initial_outputs.memories[0]['input_memory'].retrieve(new_tok_id)
+    outp_embed = []
+    sorted_toks = sorted(list(initial_outputs.memories[0]['output_memory'].memory.keys()))
+    for tok in sorted_toks:
+        outp_embed.append(initial_outputs.memories[0]['output_memory'].retrieve(tok))
+
+    input_weights = model.get_new_input_weights_multi(inp_embed)
+    output_weights = model.get_new_output_weights_multi(outp_embed)
+
+    first_token = decoding_step(initial_outputs.logits, temperature, top_k, mask_new_tokens=mask_new_tokens)
+    new_input_ids = torch.cat([input_ids, first_token], dim=1)
+    last_element = attention_mask[:, -1].unsqueeze(1)
+    new_attention_mask = torch.cat([attention_mask, last_element], dim=1)
+    # print("mask tokens is", mask_new_tokens)
+    for i in range(1, max_new_tokens):
+        input_embeds = F.embedding(new_input_ids, input_weights)
+        outputs = model.secondLM.model(
+            inputs_embeds=input_embeds,
+            attention_mask=new_attention_mask
+        )
+        llama_outputs = model.llama_forward(labels=None, outputs=outputs, new_w=output_weights, index=None)
+
+        next_token = decoding_step(llama_outputs.logits, temperature, top_k, do_sample, mask_new_tokens=mask_new_tokens)
+
+        #         print(next_token.shape)
+        #         print(new_input_ids.shape)
+        new_input_ids = torch.cat([new_input_ids, next_token], dim=1)
+        last_element = new_attention_mask[:, -1].unsqueeze(1)
+        new_attention_mask = torch.cat([new_attention_mask, last_element], dim=1)
+
+    return new_input_ids
+
 
 @torch.no_grad
 def generate_definition(batch, model, tokenizer):
@@ -538,6 +585,108 @@ class MorphMemoryModelLLAMA(nn.Module):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
+
+    def get_new_input_weights_multi(self, embeds):
+        input_w = self.secondLM.get_input_embeddings().weight
+        weights = [input_w]
+        for e in embeds:
+            weights.append(e)
+        return torch.cat(weights)
+
+    def get_new_output_weights_multi(self, embeds):
+        output_w = self.secondLM.get_output_embeddings().weight
+        weights = [output_w]
+        for e in embeds:
+            weights.append(e)
+        return torch.cat(weights)
+
+    def multi_token_inference(self, batch):
+        assert "labels" in batch, "You need labels"
+
+        contexts = batch['contexts']
+
+        b_task, l_task = batch["input_ids"].shape
+
+        task_ids = batch['input_ids']
+        task_attn = batch["attention_mask"]
+        task_labels = batch['labels']
+        outs = []
+        embeds = []
+        mem_embeds = []
+        assert len(contexts) == b_task
+        # for i in range(b_task):
+
+        for i in range(b_task):
+            ctx = contexts[i]
+            input_memory = Memory()
+            output_memory = Memory()
+            # print(ctx, "outer loop")
+            for c in ctx:
+                # print(c, "within loop")
+                new_token = c['input_ids'][
+                    torch.isin(c['input_ids'], torch.tensor(self.first_list, device=c['input_ids'].device))].unique()[
+                    0].item()
+                mlm_ids = self.swap_with_mask(c['input_ids'])
+                with torch.no_grad():
+                    first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
+                                             output_hidden_states=True)
+
+                first_hidden = first_out.hidden_states
+                combined = combine_layers(first_hidden, self.layers)
+
+                if len(combined.shape) == 2:
+                    combined = combined.unsqueeze(0)
+
+                attn = c['attention_mask']
+                embed_inputs = combined
+
+                inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
+
+                input_memory.store(new_token, inp_embs)
+                output_memory.store(new_token, out_embs)
+
+            input_weights = []
+            sorted_toks = sorted(list(input_memory.memory.keys()))
+            for tok in sorted_toks:
+                input_weights.append(input_memory.retrieve(tok))
+
+            new_w = self.get_new_input_weights_multi(input_weights)
+            # output_weights = self.get_new_output_weights(new_embed=out_embs)
+
+            # with record_function("## LLAMA MODEL NONCE ##"):
+            #     print(task_ids[i])
+            input_embeds = F.embedding(task_ids[i], new_w)
+            embeds.append(input_embeds)
+            mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
+
+        input_embeds = torch.stack(embeds)
+        attn = task_attn
+        outputs = self.secondLM.model(
+            inputs_embeds=input_embeds,
+            attention_mask=attn,
+            # output_hidden_states=True
+        )
+
+        outs = []
+        for i, mem in enumerate(mem_embeds):
+            sorted_toks = sorted(list(mem['output_memory'].memory.keys()))
+            out_embs = [mem['output_memory'].retrieve(tok) for tok in sorted_toks]
+            output_weights = self.get_new_output_weights_multi(out_embs)
+            llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights,
+                                                             i, new_token_loss=True)
+
+            out_vals = CausalLMOutputWithNewToken(
+                loss=llama_outputs.loss,
+                logits=llama_outputs.logits,
+                past_key_values=None,
+                hidden_states=None,
+                attentions=None,
+                new_token_loss=new_tok_loss,
+                memories=[mem]
+            )
+            outs.append(out_vals)
+
+        return outs[0] # batch size = 1
 
     def forward(self, batch):
         # nonceMLM = batch["nonceMLM"]
