@@ -187,9 +187,7 @@ def main(path):
             out_example['generation'] = out_text
             out_example['k_shot'] = k_shot
             # out_example['final_answer'] = ex['final_answer']
-            for k in ex:
-                if k not in out_example:
-                    out_example = ex[k]
+            out_example['original_example'] = ex
 
             outputs.append(out_example)
 
