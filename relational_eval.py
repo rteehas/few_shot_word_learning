@@ -175,6 +175,7 @@ def main(path):
 
     for k_shot in [1,2,3,4]:
         outputs = []
+        bad_examples = []
         print("{} shots...".format(k_shot))
         for i, ex in enumerate(examples):
             if i % 100 == 0:
@@ -183,17 +184,23 @@ def main(path):
             model.num_new_tokens = 1
             tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
             tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
-            out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot)
-            out_example['input'] = text
-            out_example['generation'] = out_text
-            out_example['k_shot'] = k_shot
-            # out_example['final_answer'] = ex['final_answer']
-            out_example['original_example'] = ex
+            try:
+                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot)
+                out_example['input'] = text
+                out_example['generation'] = out_text
+                out_example['k_shot'] = k_shot
+                # out_example['final_answer'] = ex['final_answer']
+                out_example['original_example'] = ex
 
-            outputs.append(out_example)
-
+                outputs.append(out_example)
+            except:
+                bad_examples.append(ex)
+        
         with open("relational_test_outputs_emb_gen_{}shot.json".format(k_shot), 'w') as fp:
             json.dump(outputs, fp)
+
+        with open("relational_error_examples_{}shot.json".format(k_shot), 'w') as fp:
+            json.dump(bad_examples, fp)
 
 
 if __name__ == "__main__":
