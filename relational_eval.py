@@ -144,7 +144,7 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot):
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
-    target_input = tokenizerTask(text, truncation=True, return_tensors='pt').to(model.device)
+    target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
     gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 50, mask_new_tokens=True, top_k=10)
     out_text = tokenizerTask.decode(gen_out[0])
     return out_text, text
@@ -172,8 +172,9 @@ def main(path):
     model.eval()
     train_examples = read_jsonl("train_relation.jsonl")
     examples = read_jsonl("test_relation.jsonl")
-    outputs = []
-    for k_shot in range(1,6):
+
+    for k_shot in [1,2,3,4]:
+        outputs = []
         print("{} shots...".format(k_shot))
         for i, ex in enumerate(examples):
             if i % 100 == 0:
@@ -191,8 +192,8 @@ def main(path):
 
             outputs.append(out_example)
 
-    with open("relational_test_outputs_emb_gen.json", 'w') as fp:
-        json.dump(outputs, fp)
+        with open("relational_test_outputs_emb_gen_{}shot.json".format(k_shot), 'w') as fp:
+            json.dump(outputs, fp)
 
 
 if __name__ == "__main__":
