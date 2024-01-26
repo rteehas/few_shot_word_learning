@@ -125,7 +125,7 @@ def gradient_descent_tuning(model, tokenizerTask, ex, k, num_steps, lr):
         param.requires_grad = True
 
     opt = AdamW([p for p in model.parameters() if p.requires_grad],
-                lr=lr)f
+                lr=lr)
     examples = np.random.choice(ex['replaced_examples'], size=k, replace=False).tolist()
     inputs = tokenizerTask(examples, truncation=True, padding='longest', return_tensors='pt').to(model.device)
     model.train()
