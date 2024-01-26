@@ -27,7 +27,7 @@ def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with
 
     inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, temperature=0.9, top_k=10, do_sample=True, mask_new_tokens=True)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, temperature=1.2, top_k=10, do_sample=True, mask_new_tokens=True)
     # print(outputs)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     # print(ex['word'], generated_def)
@@ -125,7 +125,7 @@ def gradient_descent_tuning(model, tokenizerTask, ex, k, num_steps, lr):
         param.requires_grad = True
 
     opt = AdamW([p for p in model.parameters() if p.requires_grad],
-                lr=lr)
+                lr=lr)f
     examples = np.random.choice(ex['replaced_examples'], size=k, replace=False).tolist()
     inputs = tokenizerTask(examples, truncation=True, padding='longest', return_tensors='pt').to(model.device)
     model.train()
@@ -238,7 +238,7 @@ def run_baseline_no_gd(def_task):
 
 def run_emb_gen(def_task, path):
     # config_args = extract_arguments_from_path(args.path)
-    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_temp09_top10"
+    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_temp1_2_top10"
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
