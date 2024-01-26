@@ -238,7 +238,7 @@ def run_baseline_no_gd(def_task):
 
 def run_emb_gen(def_task, path):
     # config_args = extract_arguments_from_path(args.path)
-    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_temp08_top10"
+    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_temp09_top10"
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
