@@ -1173,6 +1173,8 @@ def create_checkpoint_directories(args):
         dataset_name = "interleaved"
     elif "generated" in args.data_path:
         dataset_name = "generated"
+    elif "redone_pile" in args.data_path:
+        dataset_name = "redone_pile"
     else:
         dataset_name= "pile"
 
