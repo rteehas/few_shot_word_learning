@@ -259,10 +259,10 @@ def main(path, let=False):
             except:
                 bad_examples.append(ex)
 
-        with open("relational_test_outputs_emb_gen_{}shot.json".format(k_shot), 'w') as fp:
+        with open("relational_test_outputs_emb_gen_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
             json.dump(outputs, fp)
 
-        with open("relational_error_examples_{}shot.json".format(k_shot), 'w') as fp:
+        with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
             json.dump(bad_examples, fp)
 
 def run_baseline(with_relation=True):
