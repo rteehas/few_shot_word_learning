@@ -81,8 +81,25 @@ def construct_context(mapping, example_list):
         context_mapping[nonce] = nonce_context
     return list(context_mapping.values())
 
-def create_example(ex, mapping=None, use_one_example=False, no_text=False):
+
+def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False):
     answer, mapping, processed = process_answer(ex, mapping=mapping, no_text=no_text)
+    if let:
+        first_let_str = "Let {} = {}"
+        second_let_str = first_let_str.lower()
+
+        lets = []
+        for i, (k, v) in enumerate(mapping.items()):
+            if i == 0:
+                lets.append(first_let_str.format(k, v) + ",")
+            elif i < len(list(mapping.keys())) - 1:
+                lets.append(" " + second_let_str.format(k, v) + ",")
+            else:
+                lets.append(" " + second_let_str.format(k, v) + ".\n")
+
+        preamble = " ".join(lets)
+        answer = preamble + answer
+
     example_list = [p[0] for p in processed]
     context = construct_context(mapping, example_list)
 
@@ -91,14 +108,15 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False):
 
     return context, answer, mapping
 
-def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, no_text=False):
+
+def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, no_text=False, let=False):
     mapping = None
     if k_shot > 0:
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
         contexts = []
         answers = []
         for ex in sampled_k_shot_examples:
-            context, answer, mapping = create_example(ex, mapping=mapping, use_one_example=use_one_example, no_text=no_text)
+            context, answer, mapping = create_example(ex, mapping=mapping, use_one_example=use_one_example, no_text=no_text, let=let)
             answer = "{}\n{}".format(ex['question'], answer)
             answer = answer + "Final answer: {}".format(ex['final_answer'])
             contexts += context
@@ -106,7 +124,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
     #             print(contexts)
 
     test_context, test_answer, final_mapping = create_example(test_example, mapping=mapping,
-                                                              use_one_example=use_one_example, no_text=no_text)
+                                                              use_one_example=use_one_example, no_text=no_text, let=let)
 
     test_expl, test_eq = get_explanations_and_equations(test_example)
 
@@ -146,8 +164,8 @@ def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
         tokenizer.add_tokens(new_tokens)
         model.resize_token_embeddings(len(tokenizer))
 
-def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot):
-    contexts, text, ans = process_for_eval(train_examples,ex, k_shot, use_one_example=False, no_text=True)
+def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False):
+    contexts, text, ans = process_for_eval(train_examples,ex, k_shot, use_one_example=False, no_text=True, let=let)
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
@@ -194,7 +212,7 @@ def process_for_baseline_eval(train_set, test_example, k_shot=0):
     else:
         return truncated_answer, test_example['final_answer']
 
-def main(path):
+def main(path, let=False):
     device = "cuda"
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
@@ -230,7 +248,7 @@ def main(path):
             tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
             tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
             try:
-                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot)
+                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let)
                 out_example['input'] = text
                 out_example['generation'] = out_text
                 out_example['k_shot'] = k_shot
@@ -282,11 +300,11 @@ def run_baseline(with_relation=True):
 
 
 if __name__ == "__main__":
-    # path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
-    # main(path)
-    print("running with relation=True")
-    run_baseline(True)
-    print("running with relation=False")
-    run_baseline(False)
+    path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
+    main(path, let=True)
+    # print("running with relation=True")
+    # run_baseline(True)
+    # print("running with relation=False")
+    # run_baseline(False)
 
 
