@@ -1464,7 +1464,7 @@ def main():
                                                 low_cpu_mem_usage=True, device_map=accelerator.device)
 
     firstLM.eval()
-    secondLM.eval()
+    # secondLM.eval()
     print("init memory")
     if args.memory == "mean":
         memory_config = AggregatorConfig()
