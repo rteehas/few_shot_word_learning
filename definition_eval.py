@@ -58,7 +58,7 @@ def generate_definitions_examples(model, tokenizer, ex, examples, with_prompt):
     else:
         example_prompt = "The word \"{}\" is defined as".format(nonce)
     inputs = tokenizer(example_prompt, return_tensors='pt')
-    output = model.generate(**inputs.to(device), max_new_tokens=30)
+    output = model.generate(**inputs.to(device), max_new_tokens=30, use_cache=True)
     generated_def = tokenizer.decode(output[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     new_ex = {'definition': ex['definition'],
               'word': ex['word'],
