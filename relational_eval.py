@@ -5,7 +5,7 @@ import numpy as np
 from train_with_llama import *
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
     get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig, T5EncoderModel
-
+from tqdm import tqdm
 
 def read_jsonl(path: str):
     """Read JSON file. Copied from gsm.py"""
@@ -139,6 +139,13 @@ def verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, context):
     if model.num_new_tokens < tokens_needed_for_task:
         model.num_new_tokens = tokens_needed_for_task
 
+def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
+    tokens_needed_for_task = len(context)
+    if len(tokenizer.get_added_vocab()) < tokens_needed_for_task:
+        new_tokens = ["<nonce{}>".format(i) for i in range(1,tokens_needed_for_task)]
+        tokenizer.add_tokens(new_tokens)
+        model.resize_token_embeddings(len(tokenizer))
+
 def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot):
     contexts, text, ans = process_for_eval(train_examples,ex, k_shot, use_one_example=False, no_text=True)
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
@@ -148,6 +155,44 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot):
     gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 50, mask_new_tokens=True, top_k=10)
     out_text = tokenizerTask.decode(gen_out[0])
     return out_text, text
+
+def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation):
+    if not with_relation:
+        contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True)
+        verify_or_fix_baseline_num_tokens(model, tokenizer, contexts)
+    else:
+        text, ans = process_for_baseline_eval(train_examples, ex, k_shot)
+
+    target_input = tokenizer(text, return_tensors='pt').to(model.device)
+    gen_out = model.generate(**target_input, use_cache=True, top_k=10)
+    out_text = tokenizer.decode(gen_out[0])
+    return out_text, text
+
+def process_baseline_answer_with_relation(ex):
+    explanations, equations = get_explanations_and_equations(ex)
+    answer = ex['answer']
+    for i, expl in enumerate(explanations):
+        eq = equations[i]
+        eq_with_relation = "{} {}".format(expl, eq)
+        answer = answer.replace(eq, eq_with_relation)
+    return answer
+
+def process_for_baseline_eval(train_set, test_example, k_shot=0):
+    if k_shot > 0:
+        sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
+        answers = []
+        for ex in sampled_k_shot_examples:
+            answer = process_baseline_answer_with_relation(ex)
+            answers.append(answer)
+    test_answer = process_baseline_answer_with_relation(test_example)
+    test_expl, test_eq = get_explanations_and_equations(test_example)
+    truncated_answer = test_answer.split(test_eq[-1])[0]
+    if k_shot > 0:
+        answer_text = "\n".join(answers)
+        answer_text = answer_text + "\n" + truncated_answer
+        return answer_text, test_example['final_answer']
+    else:
+        return truncated_answer, test_example['final_answer']
 
 def main(path):
     device = "cuda"
@@ -195,11 +240,44 @@ def main(path):
                 outputs.append(out_example)
             except:
                 bad_examples.append(ex)
-        
+
         with open("relational_test_outputs_emb_gen_{}shot.json".format(k_shot), 'w') as fp:
             json.dump(outputs, fp)
 
         with open("relational_error_examples_{}shot.json".format(k_shot), 'w') as fp:
+            json.dump(bad_examples, fp)
+
+def run_baseline(with_relation=True):
+    device = "cuda"
+    model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True).to(device)
+    train_examples = read_jsonl("train_relation.jsonl")
+    examples = read_jsonl("test_relation.jsonl")
+    model.eval()
+    for k_shot in [1, 2, 3, 4]:
+        outputs = []
+        bad_examples = []
+        print("{} shots...".format(k_shot))
+        for i, ex in tqdm(enumerate(examples)):
+            out_example = {}
+            tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                       use_fast=False, legacy=True)
+            try:
+                out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot)
+                out_example['input'] = text
+                out_example['generation'] = out_text
+                out_example['k_shot'] = k_shot
+                # out_example['final_answer'] = ex['final_answer']
+                out_example['original_example'] = ex
+
+                outputs.append(out_example)
+            except:
+                bad_examples.append(ex)
+
+        with open("relational_test_outputs_baseline_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
+            json.dump(outputs, fp)
+
+        with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
             json.dump(bad_examples, fp)
 
 
