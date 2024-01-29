@@ -164,7 +164,7 @@ def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_rela
         text, ans = process_for_baseline_eval(train_examples, ex, k_shot)
 
     target_input = tokenizer(text, return_tensors='pt').to(model.device)
-    gen_out = model.generate(**target_input, use_cache=True, top_k=10)
+    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=50)
     out_text = tokenizer.decode(gen_out[0])
     return out_text, text
 
@@ -263,7 +263,7 @@ def run_baseline(with_relation=True):
             tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                        use_fast=False, legacy=True)
             try:
-                out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot)
+                out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation)
                 out_example['input'] = text
                 out_example['generation'] = out_text
                 out_example['k_shot'] = k_shot
