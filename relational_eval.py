@@ -6,6 +6,7 @@ from train_with_llama import *
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
     get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig, T5EncoderModel
 from tqdm import tqdm
+import json
 
 def read_jsonl(path: str):
     """Read JSON file. Copied from gsm.py"""
@@ -170,7 +171,7 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
-    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 50, mask_new_tokens=True, top_k=10)
+    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 30, mask_new_tokens=True, top_k=10)
     out_text = tokenizerTask.decode(gen_out[0])
     return out_text, text
 
@@ -233,7 +234,9 @@ def main(path, let=False):
     model.secondLM.eval()
 
     model.eval()
-    train_examples = read_jsonl("train_relation.jsonl")
+    # train_examples = read_jsonl("train_relation.jsonl")
+    with open("annotated_cot_for_relational.json", 'r') as fp:
+        train_examples = json.load(fp)
     examples = read_jsonl("test_relation.jsonl")
 
     for k_shot in [1,2,3,4]:
@@ -269,7 +272,9 @@ def run_baseline(with_relation=True):
     device = "cuda"
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                 low_cpu_mem_usage=True).to(device)
-    train_examples = read_jsonl("train_relation.jsonl")
+    with open("annotated_cot_for_relational.json", 'r') as fp:
+        train_examples = json.load(fp)
+
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
     for k_shot in [1, 2, 3, 4]:
