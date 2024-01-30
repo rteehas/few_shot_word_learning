@@ -1740,10 +1740,10 @@ def main():
                 model.train()
                 try:
                     model.module.firstLM.eval()
-                    model.module.secondLM.eval()
+                    # model.module.secondLM.eval()
                 except:
                     model.firstLM.eval()
-                    model.secondLM.eval()
+                    # model.secondLM.eval()
                 # model.zero_grad()
 
                 # contexts = []
