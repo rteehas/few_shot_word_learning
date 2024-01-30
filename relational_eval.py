@@ -250,23 +250,23 @@ def main(path, let=False):
             model.num_new_tokens = 1
             tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
             tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
-            try:
-                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let)
-                out_example['input'] = text
-                out_example['generation'] = out_text
-                out_example['k_shot'] = k_shot
-                # out_example['final_answer'] = ex['final_answer']
-                out_example['original_example'] = ex
+            # try:
+            out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let)
+            out_example['input'] = text
+            out_example['generation'] = out_text
+            out_example['k_shot'] = k_shot
+            # out_example['final_answer'] = ex['final_answer']
+            out_example['original_example'] = ex
 
-                outputs.append(out_example)
-            except:
-                bad_examples.append(ex)
+            outputs.append(out_example)
+            # except:
+            #     bad_examples.append(ex)
 
         with open("relational_test_outputs_emb_gen_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
             json.dump(outputs, fp)
 
-        with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
-            json.dump(bad_examples, fp)
+        # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
+        #     json.dump(bad_examples, fp)
 
 def run_baseline(with_relation=True):
     device = "cuda"
@@ -285,23 +285,23 @@ def run_baseline(with_relation=True):
             out_example = {}
             tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                        use_fast=False, legacy=True)
-            try:
-                out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation)
-                out_example['input'] = text
-                out_example['generation'] = out_text
-                out_example['k_shot'] = k_shot
-                # out_example['final_answer'] = ex['final_answer']
-                out_example['original_example'] = ex
+            # try:
+            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation)
+            out_example['input'] = text
+            out_example['generation'] = out_text
+            out_example['k_shot'] = k_shot
+            # out_example['final_answer'] = ex['final_answer']
+            out_example['original_example'] = ex
 
-                outputs.append(out_example)
-            except:
-                bad_examples.append(ex)
+            outputs.append(out_example)
+            # except:
+            #     bad_examples.append(ex)
 
         with open("relational_test_outputs_baseline_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
             json.dump(outputs, fp)
 
-        with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
-            json.dump(bad_examples, fp)
+        # with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
+        #     json.dump(bad_examples, fp)
 
 
 if __name__ == "__main__":
