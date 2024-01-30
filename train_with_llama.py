@@ -1156,6 +1156,8 @@ def get_arguments():
     parser.add_argument("--progressive_training", action="store_true")
     parser.add_argument("--definition_training", action="store_true")
     parser.add_argument("--use_pos", action="store_true")
+    parser.add_argument("--ablate_cosine", action="store_true")
+    parser.add_argument("--ablate_logits", action="store_true")
     return parser
 
 
