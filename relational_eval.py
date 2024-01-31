@@ -189,9 +189,9 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
     return out_text, text
 
 
-def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation):
+def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let):
     if not with_relation:
-        contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True)
+        contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let)
         verify_or_fix_baseline_num_tokens(model, tokenizer, contexts)
     else:
         text, ans = process_for_baseline_eval(train_examples, ex, k_shot)
@@ -368,7 +368,7 @@ def main(path, let=False):
         #     json.dump(bad_examples, fp)
 
 
-def run_baseline(with_relation=True):
+def run_baseline(with_relation=True, let=False):
     device = "cuda"
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                              low_cpu_mem_usage=True).to(device)
@@ -386,7 +386,7 @@ def run_baseline(with_relation=True):
             tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                        use_fast=False, legacy=True)
             # try:
-            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation)
+            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let=let)
             out_example['input'] = text
             out_example['generation'] = out_text
             out_example['k_shot'] = k_shot
