@@ -664,6 +664,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         outputs = self.secondLM.model(
             inputs_embeds=input_embeds,
             attention_mask=attn,
+            use_cache=True
             # output_hidden_states=True
         )
 
