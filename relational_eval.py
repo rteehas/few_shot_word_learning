@@ -8,10 +8,16 @@ from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, Ll
 from tqdm import tqdm
 import json
 
+
 def read_jsonl(path: str):
     """Read JSON file. Copied from gsm.py"""
     with open(path) as fh:
         return [json.loads(line) for line in fh.readlines() if line]
+
+
+def reverse_index(arr, value):
+    return len(arr) - 1 - arr[::-1].index(value)
+
 
 def process_explanation(explanation, nonce_mapping=None):
     operations = ["\+", "-", "/", "\*", "="]
@@ -35,6 +41,7 @@ def process_explanation(explanation, nonce_mapping=None):
         if comp not in nonce_mapping:
             nonce_mapping[comp] = nonce
     return masked_examples, final_relation, nonce_mapping
+
 
 def get_explanations_and_equations(ex):
     keys = list(ex.keys())
@@ -62,18 +69,20 @@ def process_answer(ex, mapping=None, no_text=False):
         else:
             answer = answer.replace(equations[i], eq_with_nonces)
         mapping = processed_explanation[2]
-        processed.append((processed_explanation[0],processed_explanation[1]))
+        processed.append((processed_explanation[0], processed_explanation[1]))
 
     return answer, mapping, processed
+
 
 def remove_answer_for_eval(answer):
     delimiter = "Final answer:"
     return answer.split(delimiter)[0] + delimiter
 
+
 def construct_context(mapping, example_list):
     context_mapping = OrderedDict()
     for nonce in mapping.values():
-#         print(nonce)
+        #         print(nonce)
         nonce_context = []
         for example in example_list:
             for sentence in example:
@@ -117,7 +126,8 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
         contexts = []
         answers = []
         for ex in sampled_k_shot_examples:
-            context, answer, mapping = create_example(ex, mapping=mapping, use_one_example=use_one_example, no_text=no_text, let=let)
+            context, answer, mapping = create_example(ex, mapping=mapping, use_one_example=use_one_example,
+                                                      no_text=no_text, let=let)
             answer = "{}\n{}".format(ex['question'], answer)
             answer = answer + "Final answer: {}".format(ex['final_answer'])
             contexts += context
@@ -149,31 +159,35 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
 def verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, context):
     tokens_needed_for_task = len(context)
     if len(tokenizerMLM.get_added_vocab()) < tokens_needed_for_task:
-        new_tokens = ["<nonce{}>".format(i) for i in range(1,tokens_needed_for_task)]
+        new_tokens = ["<nonce{}>".format(i) for i in range(1, tokens_needed_for_task)]
         tokenizerMLM.add_tokens(new_tokens)
     if len(tokenizerTask.get_added_vocab()) < tokens_needed_for_task:
-        new_tokens = ["<nonce{}>".format(i) for i in range(1,tokens_needed_for_task)]
+        new_tokens = ["<nonce{}>".format(i) for i in range(1, tokens_needed_for_task)]
         tokenizerMLM.add_tokens(new_tokens)
 
     if model.num_new_tokens < tokens_needed_for_task:
         model.num_new_tokens = tokens_needed_for_task
 
+
 def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
     tokens_needed_for_task = len(context)
     if len(tokenizer.get_added_vocab()) < tokens_needed_for_task:
-        new_tokens = ["<nonce{}>".format(i) for i in range(1,tokens_needed_for_task)]
+        new_tokens = ["<nonce{}>".format(i) for i in range(1, tokens_needed_for_task)]
         tokenizer.add_tokens(new_tokens)
         model.resize_token_embeddings(len(tokenizer))
 
+
 def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False):
-    contexts, text, ans = process_for_eval(train_examples,ex, k_shot, use_one_example=False, no_text=True, let=let)
+    contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let)
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
-    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 30, mask_new_tokens=True, top_k=10)
+    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 30,
+                             mask_new_tokens=True, top_k=10)
     out_text = tokenizerTask.decode(gen_out[0])
     return out_text, text
+
 
 def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation):
     if not with_relation:
@@ -187,6 +201,16 @@ def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_rela
     out_text = tokenizer.decode(gen_out[0])
     return out_text, text
 
+
+def run_example_vanilla(model, tokenizer, train_examples, ex, k_shot):
+    text, ans = process_for_vanilla_cot(train_examples, ex, k_shot)
+
+    target_input = tokenizer(text, return_tensors='pt').to(model.device)
+    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=50)
+    out_text = tokenizer.decode(gen_out[0])
+    return out_text, text
+
+
 def process_baseline_answer_with_relation(ex):
     explanations, equations = get_explanations_and_equations(ex)
     answer = ex['answer']
@@ -195,6 +219,7 @@ def process_baseline_answer_with_relation(ex):
         eq_with_relation = "{} {}".format(expl, eq)
         answer = answer.replace(eq, eq_with_relation)
     return answer
+
 
 def process_for_baseline_eval(train_set, test_example, k_shot=0):
     if k_shot > 0:
@@ -213,6 +238,75 @@ def process_for_baseline_eval(train_set, test_example, k_shot=0):
     else:
         return truncated_answer, test_example['final_answer']
 
+
+def process_for_vanilla_cot(train_set, test_example, k_shot=0):
+    if k_shot > 0:
+        sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
+        answers = []
+        for ex in sampled_k_shot_examples:
+            answer = prepare_vanilla_cot(ex['answer'])
+            answers.append(answer)
+
+    truncated_answer = prepare_vanilla_cot(ex)
+    if k_shot > 0:
+        answer_text = "\n".join(answers)
+        answer_text = answer_text + "\n" + truncated_answer
+        return answer_text, test_example['final_answer']
+    else:
+        return truncated_answer, test_example['final_answer']
+
+
+
+def prepare_vanilla_cot(ex):
+    answer = ex['answer']
+    parts = answer.split("\n")
+    beginning = parts[:-2]
+    end = parts[-2]
+    idx = reverse_index(end, "<<") - 1
+
+    for i, char in enumerate(reversed(end[:idx])):
+        if char.isalpha():
+            break
+
+    new_idx = idx - i
+
+    return "\n".join(beginning) + "\n" + end[:new_idx] + " "
+
+
+def run_vanilla():
+    device = "cuda"
+    model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                             low_cpu_mem_usage=True).to(device)
+    with open("annotated_cot_for_relational.json", 'r') as fp:
+        train_examples = json.load(fp)
+
+    examples = read_jsonl("test_relation.jsonl")
+    model.eval()
+    for k_shot in [1, 2, 3, 4]:
+        outputs = []
+        bad_examples = []
+        print("{} shots...".format(k_shot))
+        for i, ex in tqdm(enumerate(examples)):
+            out_example = {}
+            tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                       use_fast=False, legacy=True)
+            # try:
+            out_text, text = run_example_vanilla(model, tokenizer, train_examples, ex, k_shot)
+            out_example['input'] = text
+            out_example['generation'] = out_text
+            out_example['k_shot'] = k_shot
+            # out_example['final_answer'] = ex['final_answer']
+            out_example['original_example'] = ex
+
+            outputs.append(out_example)
+            # except:
+            #     bad_examples.append(ex)
+
+        with open("relational_vanilla_cot_baseline_{}shot.json".format(k_shot), 'w') as fp:
+            json.dump(outputs, fp)
+
+
+
 def main(path, let=False):
     device = "cuda"
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
@@ -221,7 +315,8 @@ def main(path, let=False):
     # tokenizerMLM.add_tokens(nonces)
     # tokenizerTask.add_tokens(nonces)
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
-    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True)
     memory_config = AggregatorConfig()
 
     mask_token_id = tokenizerMLM.mask_token_id
@@ -239,7 +334,7 @@ def main(path, let=False):
         train_examples = json.load(fp)
     examples = read_jsonl("test_relation.jsonl")
 
-    for k_shot in [1,2,3,4]:
+    for k_shot in [1, 2, 3, 4]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
@@ -268,10 +363,11 @@ def main(path, let=False):
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
         #     json.dump(bad_examples, fp)
 
+
 def run_baseline(with_relation=True):
     device = "cuda"
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
-                                                low_cpu_mem_usage=True).to(device)
+                                             low_cpu_mem_usage=True).to(device)
     with open("annotated_cot_for_relational.json", 'r') as fp:
         train_examples = json.load(fp)
 
@@ -306,11 +402,10 @@ def run_baseline(with_relation=True):
 
 if __name__ == "__main__":
     # path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
-    path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_2_9000"
-    main(path, let=True)
+    # path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_2_9000"
+    # main(path, let=True)
+    run_vanilla()
     # print("running with relation=True")
     # run_baseline(True)
     # print("running with relation=False")
     # run_baseline(False)
-
-
