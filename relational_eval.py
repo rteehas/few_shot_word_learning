@@ -243,7 +243,7 @@ def main(path, let=False):
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
-        for i, ex in enumerate(examples):
+        for i, ex in tqdm(enumerate(examples)):
             if i % 100 == 0:
                 print("Processed {} examples".format(i))
             out_example = {}
