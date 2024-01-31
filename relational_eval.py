@@ -244,10 +244,10 @@ def process_for_vanilla_cot(train_set, test_example, k_shot=0):
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
         answers = []
         for ex in sampled_k_shot_examples:
-            answer = prepare_vanilla_cot(ex['answer'])
+            answer = ex['answer']
             answers.append(answer)
-
-    truncated_answer = prepare_vanilla_cot(ex)
+    # print(answers)
+    truncated_answer = prepare_vanilla_cot(test_example)
     if k_shot > 0:
         answer_text = "\n".join(answers)
         answer_text = answer_text + "\n" + truncated_answer
@@ -262,15 +262,19 @@ def prepare_vanilla_cot(ex):
     parts = answer.split("\n")
     beginning = parts[:-2]
     end = parts[-2]
-    idx = reverse_index(end, "<<") - 1
+    if "<<" in end:
+        idx = reverse_index(end, "<<") - 1
 
-    for i, char in enumerate(reversed(end[:idx])):
-        if char.isalpha():
-            break
 
-    new_idx = idx - i
+        for i, char in enumerate(reversed(end[:idx])):
+            if char.isalpha():
+                break
 
-    return "\n".join(beginning) + "\n" + end[:new_idx] + " "
+        new_idx = idx - i
+
+        return "\n".join(beginning) + "\n" + end[:new_idx] + " "
+    else:
+        return "\n".join(beginning) + "\n"
 
 
 def run_vanilla():
