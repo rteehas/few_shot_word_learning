@@ -1793,7 +1793,12 @@ def main():
 
                 if args.regression_objective:
                     # distillation_weight = 1.0 - ce_weight - args.regression_alpha
-                    loss = out.loss + out.regression_loss + out.distillation_loss
+                    if args.ablate_cosine:
+                        loss = out.loss + out.distillation_loss
+                    elif args.ablate_logits:
+                        loss = out.loss + out.regression_loss
+                    else:
+                        loss = out.loss + out.regression_loss + out.distillation_loss
                 else:
                     loss = out.loss
 
