@@ -27,7 +27,7 @@ def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with
 
     inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, temperature=1.2, top_k=10, do_sample=True, mask_new_tokens=True)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=True)
     # print(outputs)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     # print(ex['word'], generated_def)
@@ -238,7 +238,7 @@ def run_baseline_no_gd(def_task):
 
 def run_emb_gen(def_task, path):
     # config_args = extract_arguments_from_path(args.path)
-    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_temp1_2_top10_new_data_new_model"
+    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_new_data_new_model"
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
