@@ -418,7 +418,7 @@ def get_arguments():
 
 if __name__ == "__main__":
     args = get_arguments().parse_args()
-    def_task = load_from_disk("def_task_954_v2")
+    def_task = load_from_disk("def_task_954")
     # def_task = def_task.map(replace_for_llama_baseline)
     # run_baseline(def_task, args.lr)
     path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
