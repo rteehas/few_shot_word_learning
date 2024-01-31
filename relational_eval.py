@@ -79,18 +79,18 @@ def remove_answer_for_eval(answer):
     return answer.split(delimiter)[0] + delimiter
 
 
-def construct_context(mapping, example_list):
+def construct_context(mapping):
     context_mapping = OrderedDict()
-    for nonce in mapping.values():
-        #         print(nonce)
-        nonce_context = []
-        for example in example_list:
-            for sentence in example:
-                if nonce in sentence:
-                    nonce_context.append(sentence)
-        context_mapping[nonce] = nonce_context
-    return list(context_mapping.values())
+    for key, value in mapping.items():
+        nonce_seq = "{} = {}".format(value, key)
 
+        nonce_context = [nonce_seq]
+#         for example in example_list:
+#             for sentence in example:
+#                 if nonce in sentence:
+#                     nonce_context.append(sentence)
+        context_mapping[value] = nonce_context
+    return list(context_mapping.values())
 
 def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False):
     answer, mapping, processed = process_answer(ex, mapping=mapping, no_text=no_text)
@@ -111,7 +111,7 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
         answer = preamble + answer
 
     example_list = [p[0] for p in processed]
-    context = construct_context(mapping, example_list)
+    context = construct_context(mapping)
 
     if use_one_example:
         context = [[c[0]] for c in context]
