@@ -286,7 +286,7 @@ def run_vanilla():
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [1, 2, 3, 4]:
+    for k_shot in [1, 2, 4, 8]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
@@ -338,7 +338,7 @@ def main(path, let=False):
         train_examples = json.load(fp)
     examples = read_jsonl("test_relation.jsonl")
 
-    for k_shot in [1, 2, 3, 4]:
+    for k_shot in [1, 2, 4, 8]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
@@ -377,7 +377,7 @@ def run_baseline(with_relation=True):
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [1, 2, 3, 4]:
+    for k_shot in [1, 2, 4, 8]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
