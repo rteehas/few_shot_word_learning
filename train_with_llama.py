@@ -222,7 +222,8 @@ def generate_multi(model, context, input_ids, attention_mask, max_new_tokens, te
         input_embeds = F.embedding(new_input_ids, input_weights)
         outputs = model.secondLM.model(
             inputs_embeds=input_embeds,
-            attention_mask=new_attention_mask
+            attention_mask=new_attention_mask,
+            # use_cache=True
         )
         llama_outputs = model.llama_forward(labels=None, outputs=outputs, new_w=output_weights, index=None)
 
@@ -664,7 +665,6 @@ class MorphMemoryModelLLAMA(nn.Module):
         outputs = self.secondLM.model(
             inputs_embeds=input_embeds,
             attention_mask=attn,
-            use_cache=True
             # output_hidden_states=True
         )
 
