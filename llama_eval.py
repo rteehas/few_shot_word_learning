@@ -188,10 +188,7 @@ def prepare_type_1_fewshot(ex, sent_dict,with_definition=False, defs=None):
     # sentence_stem = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\n"
     # definition_stem = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\n"
     sentence_template = "Here are some sentences for a new word \"{}\":\n{}"
-    # sentence_template = "Word: {}\nExamples: {}\n"
-    # definition_template = "Word: {}\nDefinition: {}.\nExamples: {}\n"
-    # seq_template = "Sentence: {}"
-    # nonce_template = ""
+
     nonce = "<nonce>"
     base_seqs, labels = prepare_for_top_1_selection(ex)
     multi_blank_vals = ["(i)", "(ii)", "(iii)"]
@@ -203,11 +200,12 @@ def prepare_type_1_fewshot(ex, sent_dict,with_definition=False, defs=None):
 
 
     elif "(i)" in question:
-        answer_choices = list(itertools.chain(*answers))
-        answers = list(itertools.product(*answers))
-        answer_samples = {}
-        for w in answer_choices:
-            answer_samples[w] = np.random.choice(sent_dict[w], size=k, replace=False)
+        raise NotImplementedError
+        # answer_choices = list(itertools.chain(*answers))
+        # answers = list(itertools.product(*answers))
+        # answer_samples = {}
+        # for w in answer_choices:
+        #     answer_samples[w] = np.random.choice(sent_dict[w], size=k, replace=False)
 
     seqs = []
     #     print(answers)
@@ -219,64 +217,69 @@ def prepare_type_1_fewshot(ex, sent_dict,with_definition=False, defs=None):
             #             print(w)
             samples = sent_dict[w]
             samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
-            examples = [" \n".join(samples)]
+            # examples = [" \n".join(samples)]
+            final_samples.append(samples)
+
         else:
-            examples = [re.sub(r"\b({})\b".format(w), nonce, " \n".join(answer_samples[v]), flags=re.I) for v in w]
+            raise NotImplementedError
+            # examples = [re.sub(r"\b({})\b".format(w), nonce, " \n".join(answer_samples[v]), flags=re.I) for v in w]
         #             examples = [" \n".join(sample) for sample in samples]
 
 
-        if with_definition and defs is not None:
-            if type(w) == str:
-                # nonce = "<nonce>"
-                definition = defs[w]
-                def_s = "The word {} is defined as {}".format(nonce, definition)
-                formatted_examples_with_definition = []
-                for example in examples:
-                    new_example = example + "\n" + def_s
-                    formatted_examples_with_definition.append(sentence_template.format(nonce, new_example))
+        # if with_definition and defs is not None:
+        #     if type(w) == str:
+        #         # nonce = "<nonce>"
+        #         definition = defs[w]
+        #         def_s = "The word {} is defined as {}".format(nonce, definition)
+        #         formatted_examples_with_definition = []
+        #         for example in examples:
+        #             new_example = example + "\n" + def_s
+        #             formatted_examples_with_definition.append(sentence_template.format(nonce, new_example))
+        #
+        #         final_samples.append(samples + [def_s])
+        #     else:
+        #         formatted_examples_with_definition = []
+        #         for i, v in enumerate(w):
+        #             # nonce = nonce_template.format(v.lower())
+        #             definition = defs[v]
+        #             def_s = "The word {} is defined as {}".format(nonce, definition)
+        #             new_example = examples[i] + "\n" + def_s
+        #             formatted_example = sentence_template.format(nonce, "\n".join(new_example))
+        #             formatted_examples_with_definition.append(formatted_example)
+        #             converted_ans = [re.sub(r"\b({})\b".format(w), nonce, tmp_sample, flags=re.I) for tmp_sample in answer_samples[v]]
+        #             final_samples.append(converted_ans + [def_s])
+        #
+        #
+        #     seq_minus_sentence = sentence_template.format(nonce, "".join(formatted_examples_with_definition))
+        # else:
+        # if type(w) == str:
+        #     # nonce = nonce_template.format(w.lower())
+        #     formatted_examples = [sentence_template.format(nonce, ex) for ex in examples]
+        #     final_samples.append(samples)
 
-                final_samples.append(samples + [def_s])
-            else:
-                formatted_examples_with_definition = []
-                for i, v in enumerate(w):
-                    # nonce = nonce_template.format(v.lower())
-                    definition = defs[v]
-                    def_s = "The word {} is defined as {}".format(nonce, definition)
-                    new_example = examples[i] + "\n" + def_s
-                    formatted_example = sentence_template.format(nonce, "\n".join(new_example))
-                    formatted_examples_with_definition.append(formatted_example)
-                    converted_ans = [re.sub(r"\b({})\b".format(w), nonce, tmp_sample, flags=re.I) for tmp_sample in answer_samples[v]]
-                    final_samples.append(converted_ans + [def_s])
+        # else:
+            # formatted_examples = []
+            # for i, v in enumerate(w):
+            #     # nonce = nonce_template.format(v.lower())
+            #     formatted_example = sentence_template.format(nonce, examples[i])
+            #     formatted_examples.append(formatted_example)
+            #     converted_ans = [re.sub(r"\b({})\b".format(w), nonce, tmp_sample, flags=re.I) for tmp_sample in
+            #                      answer_samples[v]]
+            #     final_samples.append(converted_ans)
 
-
-            seq_minus_sentence = sentence_template.format(nonce, "".join(formatted_examples_with_definition))
-        else:
-            if type(w) == str:
-                # nonce = nonce_template.format(w.lower())
-                formatted_examples = [sentence_template.format(nonce, ex) for ex in examples]
-                final_samples.append(samples)
-
-            else:
-                formatted_examples = []
-                for i, v in enumerate(w):
-                    # nonce = nonce_template.format(v.lower())
-                    formatted_example = sentence_template.format(nonce, examples[i])
-                    formatted_examples.append(formatted_example)
-                    converted_ans = [re.sub(r"\b({})\b".format(w), nonce, tmp_sample, flags=re.I) for tmp_sample in
-                                     answer_samples[v]]
-                    final_samples.append(converted_ans)
-
-            seq_minus_sentence = sentence_template.format(nonce,"".join(formatted_examples))
+        # seq_minus_sentence = sentence_template.format(nonce,"".join(formatted_examples))
 
         if type(w) == str:
             # nonce = nonce_template.format(w.lower())
             new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
 
         else:
-            new_s = s
-            for v in w:
-                new_s = re.sub(r"\b({})\b".format(v), nonce_template.format(v), new_s)
-        seq = seq_minus_sentence + "\n" + new_s
+            raise NotImplementedError
+            # new_s = s
+            # for v in w:
+            #     new_s = re.sub(r"\b({})\b".format(v), nonce_template.format(v), new_s)
+        samples_with_task = samples + [new_s]
+        seq = sentence_template.format("<nonce>", "\n".join(samples_with_task))
         question_seqs.append(new_s)
         seqs.append(seq)
 
@@ -297,10 +300,10 @@ def prepare_for_type_2_fewshot(ex, sent_dict, with_definition=False, defs=None):
         nonce = "<nonce>"
         samples = sent_dict[w]
         samples = [re.sub(r"\b({})\b".format(w), nonce, sentence, flags=re.I) for sentence in samples]
-        if with_definition and defs is not None:
-            definition = defs[w]
-            def_s = "The word {} is defined as {}".format(nonce, definition)
-            samples.append(def_s)
+        # if with_definition and defs is not None:
+        #     definition = defs[w]
+        #     def_s = "The word {} is defined as {}".format(nonce, definition)
+        #     samples.append(def_s)
         example_string = "\n".join(samples)
 
         new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
@@ -341,15 +344,16 @@ def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None, with_prom
         if type(w) == str:
             # nonce = "<{}_new>".format(w.lower())
             nonce = "<nonce>"
+            samples = sent_dict[w]
             #print(w)
             #print(sent_dict[w])
-            if with_def and defs is not None:
-                # one less sample because we are using the def as a sample
-                samples = np.random.choice(
-                    [s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k-1,
-                    replace=False)
-            else:
-                samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
+            # if with_def and defs is not None:
+            #     # one less sample because we are using the def as a sample
+            #     samples = np.random.choice(
+            #         [s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k-1,
+            #         replace=False)
+            # else:
+            #     samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
             # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
             samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
             if with_def and defs is not None:
