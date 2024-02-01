@@ -310,7 +310,8 @@ def eval_hice(args):
     hice.device = device
     dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
     max_k = 6
-    for trial in range(3):
+    result_dict = {}
+    for trial in range(10):
         selected_sent_dict = {}
         for ex in subselection['train']:
             if True:
@@ -333,7 +334,8 @@ def eval_hice(args):
                         sent_dict[key] = samples
                 selected_sent_dict[ex["QUESTION"]] = sent_dict
 
-        for k in range(1, 7):
+        trial_results = []
+        for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
             for ex in subselection['train']:
@@ -344,7 +346,10 @@ def eval_hice(args):
                 outputs.append(
                     evaluate_hice(hice, tokenizerTask, ex, curr_sent_dict, k, dictionary, with_def=with_def, defs=defs))
             acc = sum(outputs) / len(outputs)
+            trial_results.append(acc)
             print("Accuracy for k = {} is {}".format(k, acc))
+        result_dict[trial] = trial_results
+    return result_dict
 
 
 def main():
