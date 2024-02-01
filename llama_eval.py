@@ -532,9 +532,9 @@ def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=
         probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs, t5=t5)
     else:
         samples, seqs, base_seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs, with_prompt=True)
-        print(samples)
-        print(seqs)
-        print(base_seqs)
+        # print(samples)
+        # print(seqs)
+        # print(base_seqs)
         probs = get_sentence_probs_emb_gen_with_prompt(model, tokenizerMLM, tokenizerTask, samples, seqs, base_seqs, t5=t5)
 
     if ex["ANSWER_TYPE"] == "top_1":
