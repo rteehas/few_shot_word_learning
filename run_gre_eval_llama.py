@@ -122,6 +122,7 @@ def eval_baseline(args):
     args = get_arguments().parse_args()
     path = args.path
     gre = load_from_disk("processed_kaplan_v0")
+    id = uuid.uuid4()
     subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
     if args.defs != '':
         with open(args.defs, 'r') as fp:
@@ -271,6 +272,15 @@ def eval_baseline(args):
                 print("Accuracy for step {} of GD".format(step + 1))
                 trial_vals = [scores[value][trial] for value in scores if "step = {}".format(step + 1) in value]
                 print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
+    if args.tuning:
+        fname = "baseline_with_prompt_{}_tuning_{}_lr_{}".format(args.with_prompt, args.tuning, args.lr)
+    else:
+        fname = "baseline_with_prompt_{}_tuning_{}".format(args.with_prompt, args.tuning)
+
+    fname = "{}_{}.json".format(fname, id)
+    with open(fname, 'w') as fp:
+        json.dump(scores, fp)
+        
     return scores
 
 def eval_hice(args):
