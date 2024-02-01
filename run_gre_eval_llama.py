@@ -272,7 +272,7 @@ def eval_hice(args):
             subselection = subselection.filter(partial(filter_gre, defs))
     else:
         defs = None
-        with_def = True
+        with_def = False
 
     answers = subselection['train']['ANSWERS']
     answers = list(itertools.chain(*answers))
@@ -309,18 +309,30 @@ def eval_hice(args):
     hice = HiCEBaseline(hice_path, input_linear_path, output_linear_path, secondLM).to(device)
     hice.device = device
     dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
+    max_k = 6
     for trial in range(3):
         selected_sent_dict = {}
         for ex in subselection['train']:
             if True:
                 sent_dict = sents[ex['QUESTION']]
                 for key in sent_dict:
-                    samples = np.random.choice(
-                        [s for s in sent_dict[key] if re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
-                        replace=False)
-                    sent_dict[key] = samples
+                    if with_def and defs is not None:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                             re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
+                            replace=False)
 
+                        definition = defs[key]
+                        samples = [definition] + samples
+                        sent_dict[key] = samples
+                    else:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                             re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                            replace=False)
+                        sent_dict[key] = samples
                 selected_sent_dict[ex["QUESTION"]] = sent_dict
+
         for k in range(1, 7):
             print("k = {}".format(k))
             outputs = []
@@ -330,7 +342,7 @@ def eval_hice(args):
                 for key in base_sent_dict:
                     curr_sent_dict[key] = base_sent_dict[key][:k]
                 outputs.append(
-                    evaluate_hice(hice, tokenizerTask, ex, curr_sent_dict, k, dictionary, with_def=False, defs=None))
+                    evaluate_hice(hice, tokenizerTask, ex, curr_sent_dict, k, dictionary, with_def=with_def, defs=defs))
             acc = sum(outputs) / len(outputs)
             print("Accuracy for k = {} is {}".format(k, acc))
 
@@ -405,7 +417,7 @@ def main():
         #     layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
         # else:
         layers=[-1]
-        model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None).to(device)
+        model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None, False).to(device)
         model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
         model.device = device
         model.firstLM.eval()
@@ -439,7 +451,7 @@ def main():
                             for key in sent_dict:
                                 if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
                                     sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict,k,with_def,defs)
+                        result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict, k, with_def, defs)
                         outputs.append(result)
                         if not result:
                             wrong_ans[k].append(ex["QUESTION"])
