@@ -20,7 +20,8 @@ def get_arguments():
     parser.add_argument("--init_method", type=str, default="random")
     parser.add_argument("--setting", type=str, default="emb_gen")
     parser.add_argument("--tuning", action="store_true")
-    parser.add_argument("--trials", type=int, default=3)
+    parser.add_argument("--trials", type=int, default=10)
+    parser.add_argument("--with_prompt", action="store_true")
     return parser
 
 def create_checkpoint_directories(args):
@@ -207,7 +208,7 @@ def eval_baseline(args):
             #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
     for trial in range(args.trials):
-        for k in range(1, 7):
+        for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
             for ex in subselection['train']:
@@ -217,7 +218,7 @@ def eval_baseline(args):
 
                 for key in base_sent_dict:
                     curr_sent_dict[key] = base_sent_dict[key][:k]
-                outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, curr_sent_dict, with_def, defs, args.tuning))
+                outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, curr_sent_dict, with_def, defs, args.tuning, with_prompt=args.with_prompt))
                 # except:
                 #
                 #     continue
@@ -263,7 +264,7 @@ def eval_baseline(args):
                 print("Accuracy for step {} of GD".format(step + 1))
                 trial_vals = [scores[value][trial] for value in scores if "step = {}".format(step + 1) in value]
                 print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
-
+    return scores
 
 def eval_hice(args):
     device = "cuda"
@@ -354,7 +355,7 @@ def eval_hice(args):
                 for key in base_sent_dict:
                     curr_sent_dict[key] = base_sent_dict[key][:k]
                 outputs.append(
-                    evaluate_hice(hice, tokenizerTask, ex, curr_sent_dict, k, dictionary, with_def=with_def, defs=defs))
+                    evaluate_hice(hice, tokenizerTask, ex, curr_sent_dict, k, dictionary, with_def=with_def, defs=defs, with_prompt=args.with_prompt))
             acc = sum(outputs) / len(outputs)
             trial_results.append(acc)
             print("Accuracy for k = {} is {}".format(k, acc))
@@ -448,25 +449,54 @@ def main():
         # model.secondLM.resize_token_embeddings(len(tokenizerTask))
         # model.add_new_tokens(new_token_num)
         model.eval()
-
+        max_k = 6
         with torch.no_grad():
             scores = {}
             for trial in range(args.trials):
+                selected_sent_dict = {}
+                for ex in subselection['train']:
+                    if True:
+                        sent_dict = sents[ex['QUESTION']]
+                        for key in sent_dict:
+                            if with_def and defs is not None:
+                                samples = np.random.choice(
+                                    [s for s in sent_dict[key] if
+                                     re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
+                                    replace=False)
+
+                                definition = defs[key]
+                                samples = [definition] + samples
+                                sent_dict[key] = samples
+                            else:
+                                samples = np.random.choice(
+                                    [s for s in sent_dict[key] if
+                                     re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                                    replace=False)
+                                sent_dict[key] = samples
+                        selected_sent_dict[ex["QUESTION"]] = sent_dict
+
                 wrong_ans = {}
-                for k in range(1,7):
+                for k in range(1,max_k):
                     wrong_ans[k] = []
+
+
                 for k in range(1, 7):
                     outputs = []
                     for ex in subselection['train']:
                         # try:
-                        if args.sent_version == "question":
-                            sent_dict = sents[ex['QUESTION']]
-                        elif args.sent_version == "answer":
-                            sent_dict = sents
-                            for key in sent_dict:
-                                if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
-                                    sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict, k, with_def, defs)
+                        # if args.sent_version == "question":
+                        #     sent_dict = sents[ex['QUESTION']]
+                        # elif args.sent_version == "answer":
+                        #     sent_dict = sents
+                        #     for key in sent_dict:
+                        #         if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                        #             sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+                        curr_sent_dict = {}
+                        base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+                        for key in base_sent_dict:
+                            curr_sent_dict[key] = base_sent_dict[key][:k]
+
+                        result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict, k, with_def, defs, with_prompt=args.with_prompt)
                         outputs.append(result)
                         if not result:
                             wrong_ans[k].append(ex["QUESTION"])
@@ -496,6 +526,7 @@ def main():
                 trial_vals = [scores[value][trial] for value in scores]
                 print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
 
+        return scores
 
 if __name__ == "__main__":
     main()
