@@ -190,7 +190,11 @@ def eval_baseline(args):
                          re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
                         replace=False)
 
-                    definition = defs[key]
+                    if key in defs:
+                        definition = defs[key]
+                    else:
+                        definition = defs[key.lower()]
+
                     def_s = "The word {} is defined as {}".format("<nonce>", definition)
                     samples = [def_s] + samples
                     sent_dict[key] = samples
@@ -335,7 +339,11 @@ def eval_hice(args):
                              re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
                             replace=False)
 
-                        definition = defs[key]
+                        if key in defs:
+                            definition = defs[key]
+                        else:
+                            definition = defs[key.lower()]
+
                         def_s = "The word {} is defined as {}".format("<nonce>", definition)
                         samples = [def_s] + samples
                         sent_dict[key] = samples
@@ -466,7 +474,11 @@ def main():
                                      re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
                                     replace=False)
 
-                                definition = defs[key]
+                                if key in defs:
+                                    definition = defs[key]
+                                else:
+                                    definition = defs[key.lower()]
+
                                 def_s = "The word {} is defined as {}".format("<nonce>", definition)
                                 samples = [def_s] + samples
                                 sent_dict[key] = samples
