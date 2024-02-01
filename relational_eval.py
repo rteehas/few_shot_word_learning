@@ -464,13 +464,26 @@ def run_baseline(with_relation=True, let=False):
 
         # with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
         #     json.dump(bad_examples, fp)
+def get_arguments():
+    parser = ArgumentParser()
+    # parser.add_argument("--lr", type=float, default=1e-3)
+    # parser.add_argument("--path", type=str)
+    # parser.add_argument("--model", type=str)
+    parser.add_argument("--model", type=str)
+    return parser
 
 
 if __name__ == "__main__":
     path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
     # path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_2_9000"
     # main(path, let=True)
-    run_vanilla()
+    args = get_arguments().parse_args()
+    if args.model == "vanilla":
+        run_vanilla()
+    if args.model == "baseline_relation":
+        run_baseline(with_relation=True, let=False)
+    if args.model == "let_baseline":
+        run_baseline(with_relation=False, let=True)
     # print("running with relation=True")
     # run_baseline(True)
     # print("running with relation=False")
