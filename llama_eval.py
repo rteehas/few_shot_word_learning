@@ -341,7 +341,13 @@ def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None, with_prom
             nonce = "<nonce>"
             #print(w)
             #print(sent_dict[w])
-            samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
+            if with_def and defs is not None:
+                # one less sample because we are using the def as a sample
+                samples = np.random.choice(
+                    [s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k-1,
+                    replace=False)
+            else:
+                samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
             # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
             samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
             if with_def and defs is not None:
