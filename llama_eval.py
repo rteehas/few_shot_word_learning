@@ -126,7 +126,9 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
             seqs, labels, samples = prepare_for_type_2_fewshot(ex, sents, with_definition, defs, with_prompt=False)
         else:
             raise NotImplementedError
-
+    print(samples)
+    print(seqs)
+    print(base_seqs)
     tokenizer.pad_token = tokenizer.unk_token
     orig_input_embeds = model.get_input_embeddings().weight.clone()
     orig_output_embeds = model.get_output_embeddings().weight.clone()
@@ -446,9 +448,9 @@ def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seq
             ctx = [prepare_for_t5(s, "<nonce>") for s in contexts[i]]
             context = tokenizerMLM(ctx, padding=True, truncation=True, max_length=256, return_tensors='pt')
         else:
-            context = tokenizerMLM(contexts[i], padding=True, truncation=True, max_length=256, return_tensors='pt')
+            context = tokenizerMLM(contexts[i], padding='longest', return_tensors='pt')
         # print(context)
-        toks = tokenizerTask(seq, truncation=True, max_length=256, return_tensors="pt").to(model.device)
+        toks = tokenizerTask(seq, return_tensors="pt").to(model.device)
         labels = toks['input_ids'].clone()
         batch = {
             "contexts": [context],
@@ -468,7 +470,7 @@ def get_sentence_probs_emb_gen_with_prompt(model, tokenizerMLM, tokenizerTask, c
             ctx = [prepare_for_t5(s, "<nonce>") for s in contexts[i]]
             context = tokenizerMLM(ctx, padding=True, truncation=True, max_length=256, return_tensors='pt')
         else:
-            context = tokenizerMLM(contexts[i], padding=True, truncation=True, max_length=256, return_tensors='pt')
+            context = tokenizerMLM(contexts[i], padding='longest', return_tensors='pt')
         # print(context)
         toks = tokenizerTask(seq, return_tensors="pt").to(model.device)
         labels = toks['input_ids'].clone()
