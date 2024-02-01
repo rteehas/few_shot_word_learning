@@ -498,7 +498,7 @@ def main():
                     wrong_ans[k] = []
 
 
-                for k in range(1, 6):
+                for k in range(2, 6):
                     outputs = []
                     for ex in subselection['train']:
                         # try:
