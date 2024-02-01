@@ -109,13 +109,24 @@ def evaluate_baseline_example(model, tokenizer, ex):
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
 
-def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definition=False, defs=None, tuning=False, max_steps=2):
-    if ex["ANSWER_TYPE"] == "top_1":
-        seqs, labels, base_seqs, samples = prepare_type_1_fewshot(ex, sents, with_definition, defs)
-    elif ex["ANSWER_TYPE"] == "top_2":
-        seqs, labels, base_seqs, samples = prepare_for_type_2_fewshot(ex, sents, with_definition, defs)
-    else:
+def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definition=False, defs=None, tuning=False, max_steps=2, with_prompt=True):
+    if not tuning and not with_prompt:
         raise NotImplementedError
+    if with_prompt:
+        if ex["ANSWER_TYPE"] == "top_1":
+            seqs, labels, base_seqs, samples = prepare_type_1_fewshot(ex, sents, with_definition, defs, with_prompt=True)
+        elif ex["ANSWER_TYPE"] == "top_2":
+            seqs, labels, base_seqs, samples = prepare_for_type_2_fewshot(ex, sents, with_definition, defs, with_prompt=True)
+        else:
+            raise NotImplementedError
+    else:
+        if ex["ANSWER_TYPE"] == "top_1":
+            seqs, labels, samples = prepare_type_1_fewshot(ex, sents, with_definition, defs, with_prompt=False)
+        elif ex["ANSWER_TYPE"] == "top_2":
+            seqs, labels, samples = prepare_for_type_2_fewshot(ex, sents, with_definition, defs, with_prompt=False)
+        else:
+            raise NotImplementedError
+
     tokenizer.pad_token = tokenizer.unk_token
     orig_input_embeds = model.get_input_embeddings().weight.clone()
     orig_output_embeds = model.get_output_embeddings().weight.clone()
@@ -132,30 +143,60 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
         zero_grad_indices = torch.arange(0, len(tokenizer)) != any(new_tok_indices)
 
         total_probs = []
-        for sample, seq, base_seq in zip(samples, seqs, base_seqs):
-            opt = AdamW([p for p in model.parameters() if p.requires_grad],
-                        lr=1e-3)
-            input = tokenizer(sample, truncation=True, padding='longest', return_tensors='pt')
-            per_step_probs = []
-            for step in range(max_steps):
-                model.train()
-                model.zero_grad()
-                opt.zero_grad()
-                output = model(input_ids=input['input_ids'].to(model.device),
-                               attention_mask=input['attention_mask'].to(model.device),
-                               labels=input['input_ids'].clone().to(model.device))
+        if with_prompt:
+            for sample, seq, base_seq in zip(samples, seqs, base_seqs):
+                opt = AdamW([p for p in model.parameters() if p.requires_grad],
+                            lr=1e-3)
+                input = tokenizer(sample, padding='longest', return_tensors='pt')
+                per_step_probs = []
+                for step in range(max_steps):
+                    model.train()
+                    model.zero_grad()
+                    opt.zero_grad()
+                    output = model(input_ids=input['input_ids'].to(model.device),
+                                   attention_mask=input['attention_mask'].to(model.device),
+                                   labels=input['input_ids'].clone().to(model.device))
 
-                loss = output.loss
-                loss.backward()
-                opt.step()
+                    loss = output.loss
+                    loss.backward()
+                    opt.step()
 
-                model.get_input_embeddings().weight.grad[zero_grad_indices] = 0.
-                model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
+                    model.get_input_embeddings().weight.grad[zero_grad_indices] = 0.
+                    model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
 
-                with torch.no_grad():
-                    model.eval()
-                    prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
-                    per_step_probs.append(prob[0])
+                    with torch.no_grad():
+                        model.eval()
+                        prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                        per_step_probs.append(prob[0])
+        else:
+            for sample, seq in zip(samples, seqs):
+                opt = AdamW([p for p in model.parameters() if p.requires_grad],
+                            lr=1e-3)
+                input = tokenizer(sample, padding='longest', return_tensors='pt')
+                per_step_probs = []
+                for step in range(max_steps):
+                    model.train()
+                    model.zero_grad()
+                    opt.zero_grad()
+                    output = model(input_ids=input['input_ids'].to(model.device),
+                                   attention_mask=input['attention_mask'].to(model.device),
+                                   labels=input['input_ids'].clone().to(model.device))
+
+                    loss = output.loss
+                    loss.backward()
+                    opt.step()
+
+                    model.get_input_embeddings().weight.grad[zero_grad_indices] = 0.
+                    model.get_output_embeddings().weight.grad[zero_grad_indices] = 0.
+
+                    with torch.no_grad():
+                        model.eval()
+                        toks = tokenizer(seq, return_tensors="pt").to(model.device)
+                        labels = toks['input_ids'].clone()
+                        out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
+                        # prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                        prob = -out.loss.item()
+                        per_step_probs.append(prob)
 
             total_probs.append(per_step_probs)
 
@@ -184,10 +225,11 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
                 return evaluate_type_2(probs, labels)
 
 
-def prepare_type_1_fewshot(ex, sent_dict,with_definition=False, defs=None):
+def prepare_type_1_fewshot(ex, sent_dict,with_definition=False, defs=None, with_prompt=True):
     # sentence_stem = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\n"
     # definition_stem = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\n"
-    sentence_template = "Here are some sentences for a new word \"{}\":\n{}"
+    if with_prompt:
+        sentence_template = "Here are some sentences for a new word \"{}\":\n{}"
 
     nonce = "<nonce>"
     base_seqs, labels = prepare_for_top_1_selection(ex)
@@ -279,16 +321,21 @@ def prepare_type_1_fewshot(ex, sent_dict,with_definition=False, defs=None):
             # for v in w:
             #     new_s = re.sub(r"\b({})\b".format(v), nonce_template.format(v), new_s)
         samples_with_task = samples + [new_s]
-        seq = sentence_template.format("<nonce>", "\n".join(samples_with_task))
+        if with_prompt:
+            seq = sentence_template.format("<nonce>", "\n".join(samples_with_task))
+            seqs.append(seq)
         question_seqs.append(new_s)
-        seqs.append(seq)
 
-    return seqs, labels, question_seqs, final_samples
+    if with_prompt:
+        return seqs, labels, question_seqs, final_samples
+    else:
+        return question_seqs, labels, final_samples
 
 
-def prepare_for_type_2_fewshot(ex, sent_dict, with_definition=False, defs=None):
+def prepare_for_type_2_fewshot(ex, sent_dict, with_definition=False, defs=None, with_prompt=True):
     # sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
-    sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
+    if with_prompt:
+        sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
     # definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
 
     base_seqs, labels = prepare_for_top_2_selection(ex)
@@ -307,12 +354,15 @@ def prepare_for_type_2_fewshot(ex, sent_dict, with_definition=False, defs=None):
         example_string = "\n".join(samples)
 
         new_s = re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I)
-        seq = sentence_template.format(nonce, example_string + "\n" + new_s)
-        seqs.append(seq)
+        if with_prompt:
+            seq = sentence_template.format(nonce, example_string + "\n" + new_s)
+            seqs.append(seq)
         question_seqs.append(new_s)
         final_samples.append(samples)
-
-    return seqs, labels, question_seqs, final_samples
+    if with_prompt:
+        return seqs, labels, question_seqs, final_samples
+    else:
+        return question_seqs, labels, final_samples
 
 def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None, with_prompt=False):
 
@@ -671,7 +721,7 @@ def evaluate_additive(model, tokenizerTask, ex, sents, k, dictionary, with_def=F
     else:
         samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs, with_prompt=False)
         probs = get_sentence_probs_additive(model, tokenizerTask, samples, seqs, answers, dictionary)
-        
+
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
