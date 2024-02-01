@@ -490,6 +490,8 @@ def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=
         return evaluate_type_2(probs, labels)
 
 def prepare_hice_batch(ex, sent_dict, k, with_def=False, defs=None, with_prompt=False):
+    if with_prompt:
+        sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
 
     if ex["ANSWER_TYPE"] == "top_1":
         question = ex["QUESTION"]
@@ -541,8 +543,17 @@ def prepare_hice_batch(ex, sent_dict, k, with_def=False, defs=None, with_prompt=
             task_seqs.append(re.sub(r"\b({})\b".format(w), nonce, task_s, flags=re.I))
         else:
             raise NotImplementedError
+    if with_prompt:
+        new_task_seqs = []
+        for samp, s in zip(task_samples, task_seqs):
+            new_task_seq = sentence_template.format("\n".join(samp), s)
+            new_task_seqs.append(new_task_seq)
 
-    return task_samples, task_seqs, labels, answers
+        return task_samples, new_task_seqs, task_seqs, labels, answers
+    else:
+        return task_samples, task_seqs, labels, answers
+
+    # return task_samples, task_seqs, labels, answers
 
 @torch.no_grad()
 def get_sentence_probs_hice(model, tokenizerTask, contexts, seqs, answers, dictionary):
@@ -566,9 +577,38 @@ def get_sentence_probs_hice(model, tokenizerTask, contexts, seqs, answers, dicti
         probs.append(-out.loss.item())
     return probs
 
+@torch.no_grad()
+def get_sentence_probs_hice_with_prompt(model, tokenizerTask, contexts, seqs, base_seqs, answers, dictionary):
+    probs = []
+    for i,seq, base_seq in enumerate(zip(seqs, base_seqs)):
+        b = make_hice_batch(contexts[i], answers[i], dictionary, maxlen=24, pad=0)
+        context = b['contexts'].to(model.device)
+        vocab = b['character'].to(model.device)
+        # print(context.shape)
+        # print(vocab.shape)
+        toks = tokenizerTask(seq, truncation=True, max_length=256, return_tensors="pt").to(model.device)
+        labels = toks['input_ids'].clone()
+        batch = {
+            "contexts": [context],
+            "input_ids": toks['input_ids'],
+            "attention_mask": toks['attention_mask'],
+            'labels': labels,
+            'character': [vocab]
+        }
+        out = model(batch)
+        prob = get_sentence_probs_agnostic(out.logits, tokenizerTask, seq, base_seq,
+                                           model.secondLM.config.vocab_size + 1)
+        probs.append(prob)
+    return probs
+
+
 def evaluate_hice(model, tokenizerTask, ex, sents, k, dictionary, with_def=False, defs=None, with_prompt=False):
-    samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs, with_prompt=with_prompt)
-    probs = get_sentence_probs_hice(model, tokenizerTask, samples, seqs, answers, dictionary)
+    if with_prompt:
+        samples, seqs, base_seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs, with_prompt=True)
+        probs = get_sentence_probs_hice_with_prompt(model, tokenizerTask, samples, seqs, base_seqs, answers, dictionary)
+    else:
+        samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs, with_prompt=False)
+        probs = get_sentence_probs_hice(model, tokenizerTask, samples, seqs, answers, dictionary)
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
@@ -597,10 +637,41 @@ def get_sentence_probs_additive(model, tokenizerTask, contexts, seqs, answers, d
         probs.append(-out.loss.item())
     return probs
 
+@torch.no_grad()
+def get_sentence_probs_additive_with_prompt(model, tokenizerTask, contexts, seqs, base_seqs, answers, dictionary):
+    probs = []
+    for i,seq,base_seq in enumerate(zip(seqs, base_seqs)):
+        b = make_hice_batch(contexts[i], answers[i], dictionary, maxlen=24, pad=0)
+        context = b['contexts'].to(model.device)
+        # vocab = b['character'].to(model.device)
+        # print(context.shape)
+        # print(vocab.shape)
+        toks = tokenizerTask(seq, truncation=True, max_length=256, return_tensors="pt").to(model.device)
+        labels = toks['input_ids'].clone()
+        batch = {
+            "contexts": [context],
+            "input_ids": toks['input_ids'],
+            "attention_mask": toks['attention_mask'],
+            'labels': labels,
+            # 'character': [vocab]
+        }
+        out = model(batch)
+        prob = get_sentence_probs_agnostic(out.logits, tokenizerTask, seq, base_seq,
+                                           model.secondLM.config.vocab_size + 1)
+        probs.append(prob)
+    return probs
+
+
 
 def evaluate_additive(model, tokenizerTask, ex, sents, k, dictionary, with_def=False, defs=None, with_prompt=False):
-    samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs, with_prompt=with_prompt)
-    probs = get_sentence_probs_additive(model, tokenizerTask, samples, seqs, answers, dictionary)
+    if with_prompt:
+        samples, seqs, base_seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs, with_prompt=True)
+        probs = get_sentence_probs_additive_with_prompt(model, tokenizerTask, samples, seqs, base_seqs, answers, dictionary)
+
+    else:
+        samples, seqs, labels, answers = prepare_hice_batch(ex, sents, k, with_def, defs, with_prompt=False)
+        probs = get_sentence_probs_additive(model, tokenizerTask, samples, seqs, answers, dictionary)
+        
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
