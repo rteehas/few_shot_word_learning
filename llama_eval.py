@@ -169,7 +169,7 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
                     with torch.no_grad():
                         model.eval()
                         prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
-                        print(prob)
+                        # print(prob)
                         per_step_probs.append(prob[0])
 
                 total_probs.append(per_step_probs)
@@ -215,7 +215,7 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
                 model.get_output_embeddings().weight = torch.nn.Parameter(orig_output_embeds)
 
         seq_probs_by_step = [[seq_prob[step] for seq_prob in total_probs] for step in range(max_steps)]
-        print(seq_probs_by_step)
+        # print(seq_probs_by_step)
 
         example_outputs_by_step = []
         for probs in seq_probs_by_step:
