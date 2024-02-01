@@ -9,6 +9,7 @@ from datasets import Dataset
 from run_gre_eval_llama import extract_arguments_from_path
 from w2v_baselines import HiCEBaseline, load_dictionary, make_hice_batch, generate_hice, AdditiveBaseline, \
     generate_additive
+import uuid
 
 device = "cuda"
 
@@ -27,7 +28,7 @@ def generate_definitions_emb_gen(model, ex, k, tokenizerMLM, tokenizerTask, with
 
     inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=True, temperature=1.2, top_k=10)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=True)
     # print(outputs)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     # print(ex['word'], generated_def)
@@ -159,7 +160,8 @@ def gradient_descent_tuning(model, tokenizerTask, ex, k, num_steps, lr):
 
 def run_baseline(def_task, lr):
     max_num_steps = 2
-    fname_format = "definition_task_outputs/baseline_generations_lr_{}"
+    id = uuid.uuid4()
+    fname_format = "definition_task_outputs/baseline_generations_lr_{}_{}"
     print(lr)
     all_outputs = []
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -184,7 +186,7 @@ def run_baseline(def_task, lr):
             secondLM.set_output_embeddings(orig_output_embeds)
             all_outputs += step_outputs
 
-    save_dir = fname_format.format(lr)
+    save_dir = fname_format.format(lr, id)
     keys = all_outputs[0].keys()
     data_dict = {}
     for key in keys:
@@ -194,7 +196,8 @@ def run_baseline(def_task, lr):
 
 def run_baseline_no_gd(def_task):
     max_num_steps = 2
-    fname_format = "definition_task_outputs/baseline_generations_no_lr_2"
+    id = uuid.uuid4()
+    fname_format = "definition_task_outputs/baseline_generations_no_lr_{}".format(id)
     # print(lr)
     all_outputs = []
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -238,7 +241,8 @@ def run_baseline_no_gd(def_task):
 
 def run_emb_gen(def_task, path):
     # config_args = extract_arguments_from_path(args.path)
-    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_new_data_new_model_temp1_2"
+    id = uuid.uuid4()
+    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_new_data_new_model_{}".format(id)
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
@@ -303,7 +307,8 @@ def run_emb_gen(def_task, path):
 def run_hice(def_task):
     # max_num_steps = 2
     device = "cuda"
-    fname_format = "definition_task_outputs/hice_generations"
+    id = uuid.uuid4()
+    fname_format = "definition_task_outputs/hice_generations_{}".format(id)
     # print(lr)
     all_outputs = []
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -356,7 +361,8 @@ def run_hice(def_task):
 def run_additive(def_task):
     # max_num_steps = 2
     device = "cuda"
-    fname_format = "definition_task_outputs/additive_generations"
+    id = uuid.uuid4()
+    fname_format = "definition_task_outputs/additive_generations_{}".format(id)
     # print(lr)
     all_outputs = []
     secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -413,19 +419,33 @@ def get_arguments():
     parser = ArgumentParser()
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--path", type=str)
+    parser.add_argument("--model", type=str)
     return parser
 
 
 if __name__ == "__main__":
     args = get_arguments().parse_args()
     def_task = load_from_disk("def_task_954")
+    if args.model == "hice":
+        run_hice(def_task)
+    elif args.model == "additive":
+        run_additive(def_task)
+    elif args.model == "baseline_gd":
+        run_baseline(def_task, args.lr)
+    elif args.model == "baseline_no_gd":
+        run_baseline_no_gd(def_task)
+    elif args.model == "emb_gen":
+        path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_16000"
+        run_emb_gen(def_task, path)
+    else:
+        raise NotImplementedError
     # def_task = def_task.map(replace_for_llama_baseline)
     # run_baseline(def_task, args.lr)
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_2_9000"
+    # path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_2_9000"
     # path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
 
     # path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/cls_agg/4_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_13500"
-    run_emb_gen(def_task, path)
+
     # run_baseline_no_gd(def_task)
     # print("running Hice....")
     # run_hice(def_task)
