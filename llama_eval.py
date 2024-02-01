@@ -109,7 +109,7 @@ def evaluate_baseline_example(model, tokenizer, ex):
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
 
-def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definition=False, defs=None, tuning=False, max_steps=2, with_prompt=True):
+def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definition=False, defs=None, tuning=False, max_steps=2, with_prompt=True, lr=1e-3):
     if not tuning and not with_prompt:
         raise NotImplementedError
     if with_prompt:
@@ -173,7 +173,7 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
         else:
             for sample, seq in zip(samples, seqs):
                 opt = AdamW([p for p in model.parameters() if p.requires_grad],
-                            lr=1e-3)
+                            lr=lr)
                 input = tokenizer(sample, padding='longest', return_tensors='pt')
                 per_step_probs = []
                 for step in range(max_steps):
@@ -207,7 +207,7 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
             model.get_output_embeddings().weight = torch.nn.Parameter(orig_output_embeds)
 
         seq_probs_by_step = [[seq_prob[step] for seq_prob in total_probs] for step in range(max_steps)]
-
+        print(seq_probs_by_step)
 
         example_outputs_by_step = []
         for probs in seq_probs_by_step:
