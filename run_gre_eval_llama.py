@@ -10,6 +10,7 @@ import itertools
 import re
 from init_baseline import *
 from w2v_baselines import *
+import uuid
 
 def get_arguments():
     parser = ArgumentParser()
@@ -180,39 +181,40 @@ def eval_baseline(args):
     scores = {}
     max_k = 6
     selected_sent_dict = {}
-    for ex in subselection['train']:
-        if args.sent_version == "question":
-            sent_dict = sents[ex['QUESTION']]
-            for key in sent_dict:
-                if with_def and defs is not None:
-                    samples = np.random.choice(
-                        [s for s in sent_dict[key] if
-                         re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
-                        replace=False)
-
-                    if key in defs:
-                        definition = defs[key]
-                    else:
-                        definition = defs[key.lower()]
-
-                    def_s = "The word {} is defined as {}".format("<nonce>", definition)
-                    samples = [def_s] + samples
-                    sent_dict[key] = samples
-                else:
-                    samples = np.random.choice(
-                        [s for s in sent_dict[key] if
-                         re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
-                        replace=False)
-                    sent_dict[key] = samples
-            selected_sent_dict[ex["QUESTION"]] = sent_dict
-
-        elif args.sent_version == "answer":
-            raise NotImplementedError
             # sent_dict = sents
             # for key in sent_dict:
             #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
     for trial in range(args.trials):
+        for ex in subselection['train']:
+            if args.sent_version == "question":
+                sent_dict = sents[ex['QUESTION']]
+                for key in sent_dict:
+                    if with_def and defs is not None:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                             re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
+                            replace=False)
+
+                        if key in defs:
+                            definition = defs[key]
+                        else:
+                            definition = defs[key.lower()]
+
+                        def_s = "The word {} is defined as {}".format("<nonce>", definition)
+                        samples = [def_s] + samples
+                        sent_dict[key] = samples
+                    else:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                             re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                            replace=False)
+                        sent_dict[key] = samples
+                selected_sent_dict[ex["QUESTION"]] = sent_dict
+
+            elif args.sent_version == "answer":
+                raise NotImplementedError
+
         for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
@@ -379,6 +381,7 @@ def main():
     if args.setting == "baseline":
         eval_baseline(args)
     elif args.setting == "emb_gen":
+        # id = uuid.uuid4()
         path = args.path
         gre = load_from_disk("processed_kaplan_v0")
         subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
@@ -413,7 +416,7 @@ def main():
                 with_def = True
         else:
             defs=None
-            with_def = True
+            with_def = False
 
         tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
         tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
@@ -524,11 +527,21 @@ def main():
                         scores[k].append(acc)
                     else:
                         scores[k] = [acc]
-                print("-----------Saving Wrong Answers----------")
-                with open("gre_wrong_{}.json".format(trial), 'w') as fp:
-                    json.dump(wrong_ans, fp)
 
-                print(wrong_ans)
+            if "negatives" in args.path and "regression" in args.path:
+                model_type = "negatives_and_regression"
+            elif "negatives" in args.path:
+                model_type = "negatives"
+            elif "regression" in args.path:
+                model_type = "distillation"
+
+            with open("embedding_generator_{}_prompt_{}_defs_{}.json".format(model_type, args.with_prompt, with_def), 'w') as fp:
+                json.dump(scores, fp)
+                # print("-----------Saving Wrong Answers----------")
+                # with open("gre_wrong_{}.json".format(trial), 'w') as fp:
+                #     json.dump(wrong_ans, fp)
+
+                # print(wrong_ans)
 
 
 
