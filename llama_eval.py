@@ -335,7 +335,7 @@ def prepare_type_1_fewshot(ex, sent_dict,with_definition=False, defs=None, with_
 def prepare_for_type_2_fewshot(ex, sent_dict, with_definition=False, defs=None, with_prompt=True):
     # sentence_template = "You are given a set of example sentences for a new term or terms and must assess a sentence using it.\nWord: {}\nExamples: {}\nSentence: {}"
     if with_prompt:
-        sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
+        sentence_template = "Here are some sentences for a new word \"{}\":\n{}"
     # definition_template = "You are given a set of example sentences and a definition for a new term or terms and must assess a sentence using it.\nWord: {}\nDefinition: {}.\nExamples: {}\nSentence: {}"
 
     base_seqs, labels = prepare_for_top_2_selection(ex)
@@ -367,7 +367,7 @@ def prepare_for_type_2_fewshot(ex, sent_dict, with_definition=False, defs=None, 
 def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None, with_prompt=False):
 
     if with_prompt:
-        sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
+        sentence_template = "Here are some sentences for a new word \"{}\":\n{}"
 
     if ex["ANSWER_TYPE"] == "top_1":
         question = ex["QUESTION"]
@@ -532,9 +532,9 @@ def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=
         probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs, t5=t5)
     else:
         samples, seqs, base_seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs, with_prompt=True)
-        print(samples)
-        print(seqs)
-        print(base_seqs)
+        # print(samples)
+        # print(seqs)
+        # print(base_seqs)
         probs = get_sentence_probs_emb_gen_with_prompt(model, tokenizerMLM, tokenizerTask, samples, seqs, base_seqs, t5=t5)
 
     if ex["ANSWER_TYPE"] == "top_1":
@@ -544,7 +544,7 @@ def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=
 
 def prepare_hice_batch(ex, sent_dict, k, with_def=False, defs=None, with_prompt=False):
     if with_prompt:
-        sentence_template = "Here are some sentences for a new word \"{}\"\n{}"
+        sentence_template = "Here are some sentences for a new word \"{}\":\n{}"
 
     if ex["ANSWER_TYPE"] == "top_1":
         question = ex["QUESTION"]
