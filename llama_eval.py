@@ -463,7 +463,7 @@ def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seq
 @torch.no_grad()
 def get_sentence_probs_emb_gen_with_prompt(model, tokenizerMLM, tokenizerTask, contexts, seqs, base_seqs, t5=False):
     probs = []
-    for i,seq, base_seq in enumerate(zip(seqs, base_seqs)):
+    for i,(seq, base_seq) in enumerate(zip(seqs, base_seqs)):
         if t5:
             ctx = [prepare_for_t5(s, "<nonce>") for s in contexts[i]]
             context = tokenizerMLM(ctx, padding=True, truncation=True, max_length=256, return_tensors='pt')
@@ -630,7 +630,7 @@ def get_sentence_probs_hice(model, tokenizerTask, contexts, seqs, answers, dicti
 @torch.no_grad()
 def get_sentence_probs_hice_with_prompt(model, tokenizerTask, contexts, seqs, base_seqs, answers, dictionary):
     probs = []
-    for i,seq, base_seq in enumerate(zip(seqs, base_seqs)):
+    for i,(seq, base_seq) in enumerate(zip(seqs, base_seqs)):
         b = make_hice_batch(contexts[i], answers[i], dictionary, maxlen=24, pad=0)
         context = b['contexts'].to(model.device)
         vocab = b['character'].to(model.device)
@@ -690,7 +690,7 @@ def get_sentence_probs_additive(model, tokenizerTask, contexts, seqs, answers, d
 @torch.no_grad()
 def get_sentence_probs_additive_with_prompt(model, tokenizerTask, contexts, seqs, base_seqs, answers, dictionary):
     probs = []
-    for i,seq,base_seq in enumerate(zip(seqs, base_seqs)):
+    for i,(seq,base_seq) in enumerate(zip(seqs, base_seqs)):
         b = make_hice_batch(contexts[i], answers[i], dictionary, maxlen=24, pad=0)
         context = b['contexts'].to(model.device)
         # vocab = b['character'].to(model.device)
