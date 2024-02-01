@@ -406,13 +406,13 @@ def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None, with_prom
             #     samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
             # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
             samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
-            if with_def and defs is not None:
-                if w in defs:
-                    definition = defs[w]
-                else:
-                    definition = defs[w.lower()]
-                def_s = "The word {} is defined as {}".format(nonce, definition)
-                samples.append(def_s)
+            # if with_def and defs is not None:
+            #     if w in defs:
+            #         definition = defs[w]
+            #     else:
+            #         definition = defs[w.lower()]
+            #     def_s = "The word {} is defined as {}".format(nonce, definition)
+            #     samples.append(def_s)
             # print("Samples for {}".format(w), samples)
             # new_samples = []
             # for s in samples:
@@ -532,6 +532,9 @@ def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=
         probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs, t5=t5)
     else:
         samples, seqs, base_seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs, with_prompt=True)
+        print(samples)
+        print(seqs)
+        print(base_seqs)
         probs = get_sentence_probs_emb_gen_with_prompt(model, tokenizerMLM, tokenizerTask, samples, seqs, base_seqs, t5=t5)
 
     if ex["ANSWER_TYPE"] == "top_1":
@@ -569,17 +572,18 @@ def prepare_hice_batch(ex, sent_dict, k, with_def=False, defs=None, with_prompt=
             # nonce = "<{}_new>".format(w.lower())
             nonce = "<nonce>"
             #print(w)
-            #print(sent_dict[w])
-            samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
-            # samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
-            samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
-            if with_def and defs is not None:
-                if w in defs:
-                    definition = defs[w]
-                else:
-                    definition = defs[w.lower()]
-                def_s = "The word {} is defined as {}".format(nonce, definition)
-                samples.append(def_s)
+            print(sent_dict[w])
+            samples = sent_dict[w]
+            # samples = np.random.choice([s for s in sent_dict[w] if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None], size=k, replace=False)
+            samples = [s for s in samples if re.search(r"\b({})\b".format(w), s, flags=re.I) is not None]
+            # samples = [re.sub(r"\b({})\b".format(w), nonce, s, flags=re.I) for s in samples]
+            # if with_def and defs is not None:
+            #     if w in defs:
+            #         definition = defs[w]
+            #     else:
+            #         definition = defs[w.lower()]
+            #     def_s = "The word {} is defined as {}".format(nonce, definition)
+            #     samples.append(def_s)
             # print("Samples for {}".format(w), samples)
             # new_samples = []
             # for s in samples:
