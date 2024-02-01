@@ -215,7 +215,7 @@ def get_sentence_probs_agnostic(logits, tokenizer, seq, base, vocab_size):
     ce = CrossEntropyLoss()
     toks = tokenizer(seq, return_tensors="pt").to(device)
     question_toks = tokenizer(base)
-    print(logits.shape, toks['input_ids'].shape,len(question_toks['input_ids']) )
+    # print(logits.shape, toks['input_ids'].shape,len(question_toks['input_ids']) )
     answer_length = len(question_toks['input_ids']) - 1
     labels = toks['input_ids'].clone()
     if len(logits.shape) == 2:
