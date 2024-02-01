@@ -7,6 +7,9 @@ from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, Ll
     get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig, T5EncoderModel
 from tqdm import tqdm
 import json
+from accelerate import PartialState
+import time
+import uuid
 
 
 def read_jsonl(path: str):
@@ -279,6 +282,7 @@ def prepare_vanilla_cot(ex):
 
 def run_vanilla():
     device = "cuda"
+    id = uuid.uuid4()
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                              low_cpu_mem_usage=True).to(device)
     with open("annotated_cot_for_relational.json", 'r') as fp:
@@ -306,7 +310,7 @@ def run_vanilla():
             # except:
             #     bad_examples.append(ex)
 
-        with open("relational_vanilla_cot_baseline_{}shot.json".format(k_shot), 'w') as fp:
+        with open("relational_vanilla_cot_baseline_{}shot_{}.json".format(k_shot,id), 'w') as fp:
             json.dump(outputs, fp)
 
 
@@ -366,10 +370,68 @@ def main(path, let=False):
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
         #     json.dump(bad_examples, fp)
+def main_multi(path, let=False):
+
+    distributed_state = PartialState()
+    device = distributed_state.device
+    tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
+    tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
+    nonces = list(tokenizerTask.get_added_vocab().keys())
+    # tokenizerMLM.add_tokens(nonces)
+    # tokenizerTask.add_tokens(nonces)
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True, device_map=device)
+    memory_config = AggregatorConfig()
+
+    mask_token_id = tokenizerMLM.mask_token_id
+    layers = [-1]
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None).to(
+        device)
+    model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
+    model.device = device
+    model.firstLM.eval()
+    model.secondLM.eval()
+
+    model.eval()
+    # train_examples = read_jsonl("train_relation.jsonl")
+    with open("annotated_cot_for_relational.json", 'r') as fp:
+        train_examples = json.load(fp)
+    examples = read_jsonl("test_relation.jsonl")
+    with distributed_state.split_between_processes(examples) as partial_examples:
+        for k_shot in [1, 2, 4, 8]:
+            outputs = []
+            bad_examples = []
+            print("{} shots...".format(k_shot))
+            for i, ex in tqdm(enumerate(partial_examples)):
+                if i % 100 == 0:
+                    print("Processed {} examples".format(i))
+                out_example = {}
+                model.num_new_tokens = 1
+                tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
+                tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
+                # try:
+                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let)
+                out_example['input'] = text
+                out_example['generation'] = out_text
+                out_example['k_shot'] = k_shot
+                # out_example['final_answer'] = ex['final_answer']
+                out_example['original_example'] = ex
+
+                outputs.append(out_example)
+                # except:
+                #     bad_examples.append(ex)
+
+            with open("relational_test_outputs_emb_gen_old_let_{}_{}shot_{}.json".format(let, k_shot, distributed_state.process_index), 'w') as fp:
+                json.dump(outputs, fp)
+
+        # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
+        #     json.dump(bad_examples, fp)
 
 
 def run_baseline(with_relation=True, let=False):
     device = "cuda"
+    id = uuid.uuid4()
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                              low_cpu_mem_usage=True).to(device)
     with open("annotated_cot_for_relational.json", 'r') as fp:
@@ -397,7 +459,7 @@ def run_baseline(with_relation=True, let=False):
             # except:
             #     bad_examples.append(ex)
 
-        with open("relational_test_outputs_baseline_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
+        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}.json".format(with_relation, k_shot, id), 'w') as fp:
             json.dump(outputs, fp)
 
         # with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
