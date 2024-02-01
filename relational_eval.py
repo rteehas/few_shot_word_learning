@@ -370,7 +370,7 @@ def main(path, let=False):
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
         #     json.dump(bad_examples, fp)
-def main_multi(path, let=False):
+def main_multi(path, id, let=False):
 
     distributed_state = PartialState()
     device = distributed_state.device
@@ -422,7 +422,7 @@ def main_multi(path, let=False):
                 # except:
                 #     bad_examples.append(ex)
 
-            with open("relational_test_outputs_emb_gen_old_let_{}_{}shot_{}.json".format(let, k_shot, distributed_state.process_index), 'w') as fp:
+            with open("relational_test_outputs_emb_gen_old_let_{}_{}shot_{}_id_{}.json".format(let, k_shot, distributed_state.process_index, id), 'w') as fp:
                 json.dump(outputs, fp)
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
@@ -470,11 +470,12 @@ def get_arguments():
     # parser.add_argument("--path", type=str)
     # parser.add_argument("--model", type=str)
     parser.add_argument("--model", type=str)
+    parser.add_argument("--id", type=int)
     return parser
 
 
 if __name__ == "__main__":
-    path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
+    # path="model_checkpoints/layers/no_mp/llama/input_and_output/filtered/pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_8500"
     # path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_2_9000"
     # main(path, let=True)
     args = get_arguments().parse_args()
@@ -484,6 +485,9 @@ if __name__ == "__main__":
         run_baseline(with_relation=True, let=False)
     if args.model == "let_baseline":
         run_baseline(with_relation=False, let=True)
+    if args.model == "emb_gen":
+        path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_16000"
+        main_multi(path, id=args.id, let=True)
     # print("running with relation=True")
     # run_baseline(True)
     # print("running with relation=False")
