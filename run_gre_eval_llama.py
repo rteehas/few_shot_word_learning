@@ -273,14 +273,14 @@ def eval_baseline(args):
                 trial_vals = [scores[value][trial] for value in scores if "step = {}".format(step + 1) in value]
                 print("{} ({})".format(round(np.mean(np.array(trial_vals)), 4), np.std(np.array(trial_vals))))
     if args.tuning:
-        fname = "baseline_with_prompt_{}_tuning_{}_lr_{}".format(args.with_prompt, args.tuning, args.lr)
+        fname = "baseline_with_prompt_{}_with_def_{}_tuning_{}_lr_{}".format(args.with_prompt, with_def, args.tuning, args.lr)
     else:
-        fname = "baseline_with_prompt_{}_tuning_{}".format(args.with_prompt, args.tuning)
+        fname = "baseline_with_prompt_{}_with_def_{}_tuning_{}".format(args.with_prompt, with_def, args.tuning)
 
     fname = "{}_{}.json".format(fname, id)
     with open(fname, 'w') as fp:
         json.dump(scores, fp)
-        
+
     return scores
 
 def eval_hice(args):
