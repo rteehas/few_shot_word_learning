@@ -126,9 +126,9 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
             seqs, labels, samples = prepare_for_type_2_fewshot(ex, sents, with_definition, defs, with_prompt=False)
         else:
             raise NotImplementedError
-    print(samples)
-    print(seqs)
-    print(base_seqs)
+    # print(samples)
+    # print(seqs)
+    # print(base_seqs)
     tokenizer.pad_token = tokenizer.unk_token
     orig_input_embeds = model.get_input_embeddings().weight.clone()
     orig_output_embeds = model.get_output_embeddings().weight.clone()
