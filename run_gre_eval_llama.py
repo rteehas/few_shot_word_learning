@@ -128,7 +128,7 @@ def eval_baseline(args):
             subselection = subselection.filter(partial(filter_gre, defs))
     else:
         defs = None
-        with_def = True
+        with_def = False
 
     answers = subselection['train']['ANSWERS']
     answers = list(itertools.chain(*answers))
@@ -183,11 +183,21 @@ def eval_baseline(args):
         if args.sent_version == "question":
             sent_dict = sents[ex['QUESTION']]
             for key in sent_dict:
-                samples = np.random.choice(
-                    [s for s in sent_dict[key] if re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
-                    replace=False)
-                sent_dict[key] = samples
+                if with_def and defs is not None:
+                    samples = np.random.choice(
+                        [s for s in sent_dict[key] if
+                         re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
+                        replace=False)
 
+                    definition = defs[key]
+                    samples = [definition] + samples
+                    sent_dict[key] = samples
+                else:
+                    samples = np.random.choice(
+                        [s for s in sent_dict[key] if
+                         re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                        replace=False)
+                    sent_dict[key] = samples
             selected_sent_dict[ex["QUESTION"]] = sent_dict
 
         elif args.sent_version == "answer":
