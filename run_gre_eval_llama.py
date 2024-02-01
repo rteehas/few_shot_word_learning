@@ -332,7 +332,7 @@ def eval_hice(args):
     for trial in range(10):
         selected_sent_dict = {}
         for ex in subselection['train']:
-            if True:
+            if args.sent_version == "question":
                 sent_dict = sents[ex['QUESTION']]
                 for key in sent_dict:
                     if with_def and defs is not None:
@@ -468,7 +468,7 @@ def main():
             for trial in range(args.trials):
                 selected_sent_dict = {}
                 for ex in subselection['train']:
-                    if True:
+                    if args.sent_version == "question":
                         sent_dict = sents[ex['QUESTION']]
                         for key in sent_dict:
                             if with_def and defs is not None:
@@ -498,7 +498,7 @@ def main():
                     wrong_ans[k] = []
 
 
-                for k in range(1, 7):
+                for k in range(1, 6):
                     outputs = []
                     for ex in subselection['train']:
                         # try:
@@ -514,7 +514,7 @@ def main():
                         for key in base_sent_dict:
                             curr_sent_dict[key] = base_sent_dict[key][:k]
 
-                        result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sent_dict, k, with_def, defs, with_prompt=args.with_prompt)
+                        result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, curr_sent_dict, k, with_def, defs, with_prompt=args.with_prompt)
                         outputs.append(result)
                         if not result:
                             wrong_ans[k].append(ex["QUESTION"])
