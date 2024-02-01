@@ -169,6 +169,7 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
                     with torch.no_grad():
                         model.eval()
                         prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                        print(prob)
                         per_step_probs.append(prob[0])
         else:
             for sample, seq in zip(samples, seqs):
