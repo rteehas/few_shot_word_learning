@@ -6,6 +6,8 @@ import itertools
 import re
 from train_with_llama import *
 from torch.nn import CrossEntropyLoss
+
+from twitter_eval import get_sentence_probs_agnostic
 from w2v_baselines import make_hice_batch, make_w2v_batch
 
 def prepare_for_t5(seq, nonce):
@@ -371,7 +373,15 @@ def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None, with_prom
         else:
             raise NotImplementedError
 
-    return task_samples, task_seqs, labels
+    if with_prompt:
+        new_task_seqs = []
+        for samp, s in zip(task_samples, task_seqs):
+            new_task_seq = sentence_template.format("\n".join(samp), s)
+            new_task_seqs.append(new_task_seq)
+
+        return task_samples, new_task_seqs, task_seqs, labels
+    else:
+        return task_samples, task_seqs, labels
 
 
 @torch.no_grad()
@@ -394,6 +404,30 @@ def get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, contexts, seq
         }
         out = model(batch)
         probs.append(-out.loss.item())
+    return probs
+
+@torch.no_grad()
+def get_sentence_probs_emb_gen_with_prompt(model, tokenizerMLM, tokenizerTask, contexts, seqs, base_seqs, t5=False):
+    probs = []
+    for i,seq, base_seq in enumerate(zip(seqs, base_seqs)):
+        if t5:
+            ctx = [prepare_for_t5(s, "<nonce>") for s in contexts[i]]
+            context = tokenizerMLM(ctx, padding=True, truncation=True, max_length=256, return_tensors='pt')
+        else:
+            context = tokenizerMLM(contexts[i], padding=True, truncation=True, max_length=256, return_tensors='pt')
+        # print(context)
+        toks = tokenizerTask(seq, truncation=True, max_length=256, return_tensors="pt").to(model.device)
+        labels = toks['input_ids'].clone()
+        batch = {
+            "contexts": [context],
+            "input_ids": toks['input_ids'],
+            "attention_mask": toks['attention_mask'],
+            'labels': labels
+        }
+        out = model(batch)
+        prob = get_sentence_probs_agnostic(out.logits, tokenizerTask, seq, base_seq,
+                                           model.secondLM.config.vocab_size + 1)
+        probs.append(prob)
     return probs
 
 @torch.no_grad()
@@ -437,9 +471,15 @@ def filter_gre(sents, ex):
 
     return is_valid
 
-def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=False, defs=None, t5=False):
-    samples, seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs)
-    probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs, t5=t5)
+def evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, sents, k, with_def=False, defs=None, t5=False, with_prompt=False):
+
+    if not with_prompt:
+        samples, seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs, with_prompt=False)
+        probs = get_sentence_probs_emb_gen(model, tokenizerMLM, tokenizerTask, samples, seqs, t5=t5)
+    else:
+        samples, seqs, base_seqs, labels = prepare_emb_gen_batch(ex, sents, k, with_def, defs, with_prompt=True)
+        probs = get_sentence_probs_emb_gen_with_prompt(model, tokenizerMLM, tokenizerTask, samples, seqs, base_seqs, t5=t5)
+
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
