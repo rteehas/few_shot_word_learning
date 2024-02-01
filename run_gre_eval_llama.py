@@ -191,7 +191,8 @@ def eval_baseline(args):
                         replace=False)
 
                     definition = defs[key]
-                    samples = [definition] + samples
+                    def_s = "The word {} is defined as {}".format("<nonce>", definition)
+                    samples = [def_s] + samples
                     sent_dict[key] = samples
                 else:
                     samples = np.random.choice(
@@ -335,7 +336,8 @@ def eval_hice(args):
                             replace=False)
 
                         definition = defs[key]
-                        samples = [definition] + samples
+                        def_s = "The word {} is defined as {}".format("<nonce>", definition)
+                        samples = [def_s] + samples
                         sent_dict[key] = samples
                     else:
                         samples = np.random.choice(
@@ -465,7 +467,8 @@ def main():
                                     replace=False)
 
                                 definition = defs[key]
-                                samples = [definition] + samples
+                                def_s = "The word {} is defined as {}".format("<nonce>", definition)
+                                samples = [def_s] + samples
                                 sent_dict[key] = samples
                             else:
                                 samples = np.random.choice(
