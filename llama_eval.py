@@ -192,8 +192,8 @@ def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definiti
                     with torch.no_grad():
                         model.eval()
                         toks = tokenizer(seq, return_tensors="pt").to(model.device)
-                        labels = toks['input_ids'].clone()
-                        out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=labels)
+                        label = toks['input_ids'].clone()
+                        out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=label)
                         # prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
                         prob = -out.loss.item()
                         per_step_probs.append(prob)
