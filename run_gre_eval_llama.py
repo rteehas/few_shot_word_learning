@@ -475,7 +475,7 @@ def main():
                                 samples = np.random.choice(
                                     [s for s in sent_dict[key] if
                                      re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
-                                    replace=False)
+                                    replace=False).tolist()
 
                                 if key in defs:
                                     definition = defs[key]
@@ -489,7 +489,7 @@ def main():
                                 samples = np.random.choice(
                                     [s for s in sent_dict[key] if
                                      re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
-                                    replace=False)
+                                    replace=False).tolist()
                                 sent_dict[key] = samples
                         selected_sent_dict[ex["QUESTION"]] = sent_dict
 
