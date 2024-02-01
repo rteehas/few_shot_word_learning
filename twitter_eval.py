@@ -11,7 +11,7 @@ example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe 
 def_prompt = "The definition of <nonce> is \"{}\""
 base_prompt = " \"{}\""
 
-def prepare_example(ex, k, emb_gen, hice=False):
+def prepare_example(ex, k, hice=False, with_prompt=False):
     samples = []
     seqs = []
     labels = [1,0,0,0]
@@ -32,20 +32,34 @@ def prepare_example(ex, k, emb_gen, hice=False):
         word_samples = [s.replace("BeyHive", "<nonce>") for s in word_samples]
     if word == "goblin mode":
         word_samples = [s.replace("GOBLIN mode", "<nonce>") for s in word_samples]
+    if word == "l's":
+        word_samples = [s.replace("L\'s", "<nonce>").replace("l\'s", "<nonce>") for s in word_samples]
+
     definition = ex['definition'].replace(word, "<nonce>")
-    if emb_gen:
-        word_seq = def_prompt.format(definition)
-        base_seq = base_prompt.format(definition)
-        seqs.append((word_seq, base_seq))
-    else:
+    if word == "beyhive":
+        definition = definition.replace("BeyHive", "<nonce>")
+    if word == "goblin mode":
+        definition = definition.replace("GOBLIN mode", "<nonce>")
+    if word == "l's":
+        definition = definition.replace("L\'s", "<nonce>").replace("l\'s", "<nonce>")
+
+    # if emb_gen:
+    if with_prompt:
         word_seq = example_prompt.format("\n".join(word_samples), definition)
-        base_seq = base_prompt.format(definition)
-        seqs.append((word_seq, base_seq))
+    else:
+        word_seq = def_prompt.format(definition)
+    base_seq = base_prompt.format(definition)
+    seqs.append((word_seq, base_seq))
+    # else:
+    #     word_seq = example_prompt.format("\n".join(word_samples), definition)
+    #     base_seq = base_prompt.format(definition)
+    #     seqs.append((word_seq, base_seq))
     print("word seq", word_seq)
     samples.append(word_samples)
     # new_ex['word'] = word
     for i in range(3):
         neg = ex["negative_choice_{}".format(i)]
+        neg_def = ex["negative_definition_{}".format(i)]
         if neg == "take the l":
             neg = "take the L"
         if neg == "goblin era":
@@ -56,24 +70,35 @@ def prepare_example(ex, k, emb_gen, hice=False):
             neg = "caught in 4K"
         if neg == "trade":
             neg = "trad"
-        true_words.append(neg)
-        neg_samples = np.random.choice([s.replace(neg, "<nonce>").replace(neg.lower(), "<nonce>").replace(neg.capitalize(), "<nonce>").replace(neg.upper(), "<nonce>").replace(" ".join([w.capitalize() for w in neg.split(" ")]), "<nonce>") for s in ex['negative_choice_examples_{}'.format(i)] if neg.lower() in s.lower()], size=k, replace=False).tolist()
+        true_words.append(word)
+        neg_def = re.sub(r"\b({})\b".format(neg), "<nonce>", neg_def, flags=re.I)
+        # neg_samples = np.random.choice([s.replace(neg, "<nonce>").replace(neg.lower(), "<nonce>").replace(neg.capitalize(), "<nonce>").replace(neg.upper(), "<nonce>").replace(" ".join([w.capitalize() for w in neg.split(" ")]), "<nonce>") for s in ex['negative_choice_examples_{}'.format(i)] if neg.lower() in s.lower()], size=k, replace=False).tolist()
         if neg == "beyhive":
-            neg_samples = [s.replace("BeyHive", "<nonce>") for s in neg_samples]
+            neg_def = neg_def.replace("BeyHive", "<nonce>")
+            # neg_samples = [s.replace("BeyHive", "<nonce>") for s in neg_samples]
         if neg == "goblin mode":
-            neg_samples = [s.replace("GOBLIN mode", "<nonce>") for s in neg_samples]
-        if emb_gen:
-            neg_seq = def_prompt.format(definition)
-            base_seq = base_prompt.format(definition)
-            seqs.append((neg_seq, base_seq))
+            neg_def = neg_def.replace("GOBLIN mode", "<nonce>")
+            # neg_samples = [s.replace("GOBLIN mode", "<nonce>") for s in neg_samples]
+        if neg == "l's":
+            neg_def = neg_def.replace("L\'s", "<nonce>").replace("l\'s", "<nonce>")
+        if with_prompt:
+            neg_seq = example_prompt.format("\n".join(word_samples), neg_def)
         else:
-            neg_seq = example_prompt.format("\n".join(neg_samples), definition)
-            base_seq = base_prompt.format(definition)
-            seqs.append((neg_seq, base_seq))
+            neg_seq = def_prompt.format(neg_def)
+        base_seq = base_prompt.format(neg_def)
+        seqs.append((neg_seq, base_seq))
+        # if emb_gen:
+        #     neg_seq = def_prompt.format(definition)
+        #     base_seq = base_prompt.format(definition)
+        #     seqs.append((neg_seq, base_seq))
+        # else:
+        #     neg_seq = example_prompt.format("\n".join(neg_samples), definition)
+        #     base_seq = base_prompt.format(definition)
+        #     seqs.append((neg_seq, base_seq))
 
         print("neg seq", neg_seq)
 
-        samples.append(neg_samples)
+        samples.append(word_samples)
     if hice:
         return samples, seqs, labels, true_words
     else:
