@@ -430,7 +430,7 @@ def prepare_emb_gen_batch(ex, sent_dict, k, with_def=False, defs=None, with_prom
     if with_prompt:
         new_task_seqs = []
         for samp, s in zip(task_samples, task_seqs):
-            new_task_seq = sentence_template.format("\n".join(samp), s)
+            new_task_seq = sentence_template.format("<nonce>","\n".join(samp) +"\n" + s)
             new_task_seqs.append(new_task_seq)
 
         return task_samples, new_task_seqs, task_seqs, labels
