@@ -294,7 +294,7 @@ def run_vanilla():
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [1, 2, 4, 8]:
+    for k_shot in [2]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
