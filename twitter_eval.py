@@ -11,7 +11,7 @@ from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, Ll
     get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig, T5EncoderModel
 
 from torch.nn import CrossEntropyLoss
-from w2v_baselines import make_hice_batch, HiCEBaseline, load_dictionary
+from w2v_baselines import make_hice_batch, HiCEBaseline, load_dictionary, AdditiveBaseline
 
 device = "cuda"
 example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of <nonce> is \"{}\""
@@ -571,8 +571,45 @@ if __name__ == "__main__":
         fname = "twitter_hice_with_prompt_{}_.json".format(args.with_prompt)
         with open(fname, 'w') as fp:
             json.dump(scores, fp)
-    else:
-        raise NotImplementedError
+    elif args.model == "additive":
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                    low_cpu_mem_usage=True).to(device)
+
+        tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                       legacy=True,
+                                                       use_fast=False)
+        tokenizerTask.pad_token = tokenizerTask.unk_token
+        tokenizerTask.add_tokens(["<nonce>"])
+
+        hice_path = "HiCE/save/model.pt"
+        input_linear_path = "baseline_mappings/input_linear.pt"
+        output_linear_path = "baseline_mappings/output_linear.pt"
+        w2v_dir = 'HiCE/data/base_w2v/wiki_all.sent.split.model'
+        corpus_dir = "HiCE/data/wikitext-103/"
+        dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
+        additive = AdditiveBaseline(dictionary, input_linear_path, output_linear_path, secondLM).to(device)
+        additive.device = device
+
+        for trial in range(args.trials):
+            scores = {}
+            print("Trial {}".format(trial))
+            with torch.no_grad():
+                for k in range(1, 5):
+                    outputs = []
+                    for ex in twitter_task:
+                         outputs.append(evaluate_example_additive(ex, additive, tokenizerTask, k, dictionary))
+
+                    acc = sum(outputs) / len(outputs)
+                    print("Accuracy for k = {} is {}".format(k, acc))
+                    if k in scores:
+                        scores[k].append(acc)
+                    else:
+                        scores[k] = [acc]
+        # if args.tuning:
+        fname = "twitter_additive_with_prompt_{}_.json".format(args.with_prompt)
+        with open(fname, 'w') as fp:
+            json.dump(scores, fp)
+
     # elif args.model == "additive":
 
 
