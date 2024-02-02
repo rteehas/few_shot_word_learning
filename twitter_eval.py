@@ -467,7 +467,7 @@ def evaluate_example_additive(ex, model, tokenizerTask, k, dictionary):
         b = make_hice_batch(sample,word, dictionary, maxlen=24, pad=0)
         ctx = b['contexts'].to(model.device)
         # vocab = b['character'].to(model.device)
-
+        print(ctx)
         # ctx = tokenizerMLM(sample, truncation=True, padding='longest', return_tensors='pt').to(device)
         input = tokenizerTask(seq, truncation=True, return_tensors='pt').to(device)
         batch = {
