@@ -503,7 +503,7 @@ if __name__ == "__main__":
                 for ex in twitter_task:
                      outputs.append(evaluate_example(ex, secondLM, tokenizerTask, k, args.tuning, args.lr))
 
-                acc = sum(outputs) / len(outputs)
+                # acc = sum(outputs) / len(outputs)
                 if not args.tuning:
                     acc = sum(outputs) / len(outputs)
                     print("Accuracy for k = {} is {}".format(k, acc))
