@@ -354,7 +354,7 @@ def get_def_loss_baseline(ex, model, tokenizer, k, tuning=False, lr=3e-4):
             return -prob[0]
 
 def evaluate_example_hice(ex, model, tokenizerTask, k, dictionary):
-    samples, seqs, labels, true_words = prepare_example(ex, k, False, hice=True)
+    samples, seqs, labels, true_words = prepare_example(ex, k, hice=True)
     probs = []
     for sample, seq_tup, word in zip(samples, seqs, true_words):
         seq, base = seq_tup
@@ -383,7 +383,7 @@ def evaluate_example_hice(ex, model, tokenizerTask, k, dictionary):
     return evaluate_type_1(probs, labels)
 
 def evaluate_example_additive(ex, model, tokenizerTask, k, dictionary):
-    samples, seqs, labels, true_words = prepare_example(ex, k, False, hice=True)
+    samples, seqs, labels, true_words = prepare_example(ex, k, hice=True)
     probs = []
     for sample, seq_tup, word in zip(samples, seqs, true_words):
         seq, base = seq_tup
