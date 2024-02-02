@@ -23,6 +23,7 @@ def get_arguments():
     parser.add_argument("--tuning", action="store_true")
     parser.add_argument("--trials", type=int, default=10)
     parser.add_argument("--with_prompt", action="store_true")
+    parser.add_argument("--lr", type=float, default=1e-3)
     return parser
 
 def create_checkpoint_directories(args):
@@ -226,7 +227,7 @@ def eval_baseline(args):
 
                 for key in base_sent_dict:
                     curr_sent_dict[key] = base_sent_dict[key][:k]
-                outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, curr_sent_dict, with_def, defs, args.tuning, with_prompt=args.with_prompt))
+                outputs.append(evaluate_baseline_example_fewshot(secondLM, tokenizerTask, ex, curr_sent_dict, with_def, defs, args.tuning, with_prompt=args.with_prompt, lr=args.lr))
                 # except:
                 #
                 #     continue
