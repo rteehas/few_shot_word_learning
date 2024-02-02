@@ -504,11 +504,28 @@ if __name__ == "__main__":
                      outputs.append(evaluate_example(ex, secondLM, tokenizerTask, k, args.tuning, args.lr))
 
                 acc = sum(outputs) / len(outputs)
-                print("Accuracy for k = {} is {}".format(k, acc))
-                if k in scores:
-                    scores[k].append(acc)
+                if not args.tuning:
+                    acc = sum(outputs) / len(outputs)
+                    print("Accuracy for k = {} is {}".format(k, acc))
+                    if k in scores:
+                        scores[k].append(acc)
+                    else:
+                        scores[k] = [acc]
                 else:
-                    scores[k] = [acc]
+                    step_1_results = [o[0] for o in outputs]
+                    step_2_results = [o[1] for o in outputs]
+                    step_1_acc = sum(step_1_results) / len(step_1_results)
+                    step_2_acc = sum(step_2_results) / len(step_2_results)
+                    print("Accuracy for step 1 of GD for k= {} is {}".format(k, step_1_acc))
+                    print("Accuracy for step 2 of GD for k= {} is {}".format(k, step_2_acc))
+                    key = "k = {}, step = {}"
+                    step_accs = [step_1_acc, step_2_acc]
+                    for idx in range(2):
+                        k = key.format(k, idx + 1)
+                        if k in scores:
+                            scores[k].append(step_accs[idx])
+                        else:
+                            scores[k] = [step_accs[idx]]
         if args.tuning:
             fname = "twitter_baseline_with_prompt_{}_tuning_{}_lr_{}.json".format(args.with_prompt, args.tuning, args.lr)
         else:
