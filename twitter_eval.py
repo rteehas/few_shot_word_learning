@@ -497,18 +497,18 @@ if __name__ == "__main__":
         for trial in range(args.trials):
             scores = {}
             print("Trial {}".format(trial))
-            with torch.no_grad():
-                for k in range(1, 5):
-                    outputs = []
-                    for ex in twitter_task:
-                         outputs.append(evaluate_example(ex, secondLM, tokenizerTask, k, args.tuning, args.lr))
+            # with torch.no_grad():
+            for k in range(1, 5):
+                outputs = []
+                for ex in twitter_task:
+                     outputs.append(evaluate_example(ex, secondLM, tokenizerTask, k, args.tuning, args.lr))
 
-                    acc = sum(outputs) / len(outputs)
-                    print("Accuracy for k = {} is {}".format(k, acc))
-                    if k in scores:
-                        scores[k].append(acc)
-                    else:
-                        scores[k] = [acc]
+                acc = sum(outputs) / len(outputs)
+                print("Accuracy for k = {} is {}".format(k, acc))
+                if k in scores:
+                    scores[k].append(acc)
+                else:
+                    scores[k] = [acc]
         if args.tuning:
             fname = "twitter_baseline_with_prompt_{}_tuning_{}_lr_{}.json".format(args.with_prompt, args.tuning, args.lr)
         else:
