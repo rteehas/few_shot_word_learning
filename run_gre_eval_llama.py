@@ -539,15 +539,15 @@ def main():
                     else:
                         scores[k] = [acc]
 
-            if "negatives" in args.path and "regression" in args.path:
-                model_type = "negatives_and_regression"
-            elif "negatives" in args.path:
-                model_type = "negatives"
-            elif "regression" in args.path:
-                model_type = "distillation"
+        if "negatives" in args.path and "regression" in args.path:
+            model_type = "negatives_and_regression"
+        elif "negatives" in args.path:
+            model_type = "negatives"
+        elif "regression" in args.path:
+            model_type = "distillation"
 
-            with open("embedding_generator_{}_prompt_{}_defs_{}.json".format(model_type, args.with_prompt, with_def), 'w') as fp:
-                json.dump(scores, fp)
+        with open("embedding_generator_{}_prompt_{}_defs_{}.json".format(model_type, args.with_prompt, with_def), 'w') as fp:
+            json.dump(scores, fp)
                 # print("-----------Saving Wrong Answers----------")
                 # with open("gre_wrong_{}.json".format(trial), 'w') as fp:
                 #     json.dump(wrong_ans, fp)
