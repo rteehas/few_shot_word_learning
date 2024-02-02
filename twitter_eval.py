@@ -48,7 +48,7 @@ def prepare_example(ex, k, emb_gen, hice=False, with_prompt=False):
         base_seq = base_prompt.format(definition)
         seqs.append((word_seq, base_seq))
     else:
-        word_seq = example_prompt.format("\n".join(word_samples), definition)
+        word_seq = def_prompt.format(definition)
         base_seq = base_prompt.format(definition)
         seqs.append((word_seq, base_seq))
     print("word seq", word_seq)
@@ -458,7 +458,7 @@ def evaluate_example_hice(ex, model, tokenizerTask, k, dictionary):
     return evaluate_type_1(probs, labels)
 
 def evaluate_example_additive(ex, model, tokenizerTask, k, dictionary):
-    samples, seqs, labels, true_words = prepare_example(ex, k, emb_gen=False, hice=True)
+    samples, seqs, labels, true_words = prepare_example(ex, k, emb_gen=False, hice=True, with_prompt=False)
     probs = []
     for sample, seq_tup, word in zip(samples, seqs, true_words):
         seq, base = seq_tup
