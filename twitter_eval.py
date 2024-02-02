@@ -464,8 +464,9 @@ if __name__ == "__main__":
         model.secondLM.eval()
 
         model.eval()
+        scores = {}
         for trial in range(args.trials):
-            scores = {}
+
             print("Trial {}".format(trial))
             with torch.no_grad():
                 for k in range(1, 5):
@@ -493,9 +494,9 @@ if __name__ == "__main__":
         tokenizerTask.add_tokens(["<nonce>"])
         secondLM.resize_token_embeddings(len(tokenizerTask))
         secondLM.eval()
-
+        scores = {}
         for trial in range(args.trials):
-            scores = {}
+
             print("Trial {}".format(trial))
             # with torch.no_grad():
             for k in range(1, 5):
@@ -551,9 +552,9 @@ if __name__ == "__main__":
         hice = HiCEBaseline(hice_path, input_linear_path, output_linear_path, secondLM).to(device)
         hice.device = device
         dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
-
+        scores = {}
         for trial in range(args.trials):
-            scores = {}
+
             print("Trial {}".format(trial))
             with torch.no_grad():
                 for k in range(1, 5):
@@ -589,9 +590,9 @@ if __name__ == "__main__":
         dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
         additive = AdditiveBaseline(dictionary, input_linear_path, output_linear_path, secondLM).to(device)
         additive.device = device
-
+        scores = {}
         for trial in range(args.trials):
-            scores = {}
+
             print("Trial {}".format(trial))
             with torch.no_grad():
                 for k in range(1, 5):
