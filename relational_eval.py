@@ -231,6 +231,8 @@ def process_for_baseline_eval(train_set, test_example, k_shot=0):
         answers = []
         for ex in sampled_k_shot_examples:
             answer = process_baseline_answer_with_relation(ex)
+            answer = "{}\n{}".format(ex['question'], answer)
+            answer = answer + "Final answer: {}".format(ex['final_answer'])
             answers.append(answer)
     test_answer = process_baseline_answer_with_relation(test_example)
     test_expl, test_eq = get_explanations_and_equations(test_example)
@@ -248,7 +250,7 @@ def process_for_vanilla_cot(train_set, test_example, k_shot=0):
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
         answers = []
         for ex in sampled_k_shot_examples:
-            answer = ex['answer']
+            answer = "{}\n{}".format(ex['question'], answer)
             answers.append(answer)
     # print(answers)
     truncated_answer = prepare_vanilla_cot(test_example)
@@ -311,7 +313,7 @@ def run_vanilla():
             # except:
             #     bad_examples.append(ex)
 
-        with open("relational_vanilla_cot_baseline_{}shot_{}.json".format(k_shot,id), 'w') as fp:
+        with open("relational_vanilla_cot_baseline_{}shot_{}_redo.json".format(k_shot,id), 'w') as fp:
             json.dump(outputs, fp)
 
 
@@ -460,7 +462,7 @@ def run_baseline(with_relation=True, let=False):
             # except:
             #     bad_examples.append(ex)
 
-        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_redo.json".format(with_relation, k_shot, id), 'w') as fp:
+        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_redo_redo.json".format(with_relation, k_shot, id), 'w') as fp:
             json.dump(outputs, fp)
 
         # with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
