@@ -1,11 +1,18 @@
+import json
+
+from tqdm import tqdm
+
 from train_with_llama import *
 import torch
 import numpy as np
 import itertools
 import re
+from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
+    get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig, T5EncoderModel
 
 from torch.nn import CrossEntropyLoss
-from w2v_baselines import make_hice_batch
+from w2v_baselines import make_hice_batch, HiCEBaseline, load_dictionary
+
 device = "cuda"
 example_prompt = "The following are examples using a new word <nonce>:\n{}\nThe definition of <nonce> is \"{}\""
 def_prompt = "The definition of <nonce> is \"{}\""
@@ -243,8 +250,8 @@ def get_sentence_probs_agnostic(logits, tokenizer, seq, base, vocab_size):
 #     return -loss[-1].item()
 
 
-def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k):
-    samples, seqs, labels = prepare_example(ex, k, True)
+def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k, with_prompt):
+    samples, seqs, labels = prepare_example(ex, k, hice=False, with_prompt=with_prompt)
     probs = []
     for sample, seq_tup in zip(samples, seqs):
         seq, base = seq_tup
@@ -401,5 +408,155 @@ def evaluate_example_additive(ex, model, tokenizerTask, k, dictionary):
         prob = get_sentence_probs_agnostic(outputs.logits, tokenizerTask, seq, base, model.secondLM.config.vocab_size + 1)
         # prob = -outputs.loss.item()
         probs.append(prob)
-    print(probs)
+    # print(probs)
     return evaluate_type_1(probs, labels)
+def get_arguments():
+    parser = ArgumentParser()
+    parser.add_argument("--model", type=str)
+    parser.add_argument("--path", type=str)
+    parser.add_argument("--setting", type=str, default="emb_gen")
+    parser.add_argument("--tuning", action="store_true")
+    parser.add_argument("--trials", type=int, default=3)
+    parser.add_argument("--with_prompt", action="store_true")
+    parser.add_argument("--lr", type=float, default=1e-3)
+    return parser
+
+if __name__ == "__main__":
+    device = "cuda"
+    twitter_task = load_from_disk("new_twitter_large_v2")
+    args = get_arguments().parse_args()
+    if args.model == "emb_gen":
+        path = args.path
+        tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
+        tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
+        nonces = list(tokenizerTask.get_added_vocab().keys())
+        # tokenizerMLM.add_tokens(nonces)
+        # tokenizerTask.add_tokens(nonces)
+        firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
+        # T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
+        # firstLM = T5EncoderModel.from_pretrained("t5-large", low_cpu_mem_usage=True).to(device)
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                    low_cpu_mem_usage=True)
+        # firstLM.resize_token_embeddings(len(tokenizerMLM))
+        # secondLM.resize_token_embeddings(len(tokenizerTask))
+
+        # config_args = extract_arguments_from_path(args.path)
+        # print(config_args)
+        # if config_args['memory'] == "mean":
+        memory_config = AggregatorConfig()
+        # elif config_args['memory'] == 'cls':
+        # memory_config = TransformerCLSConfig(
+        #         input_size=firstLM.config.hidden_size,
+        #         nhead=2,
+        #         num_layers=1
+        #     )
+
+        mask_token_id = tokenizerMLM.mask_token_id
+        # if 'num_feature_layers' in config_args:
+        #     layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
+        # else:
+        layers = [-1]
+        model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None,
+                                      False).to(device)
+        model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
+        model.device = device
+        model.firstLM.eval()
+        model.secondLM.eval()
+
+        model.eval()
+        for trial in range(args.trials):
+            scores = {}
+            print("Trial {}".format(trial))
+            with torch.no_grad():
+                for k in range(1, 5):
+                    outputs = []
+                    for ex in twitter_task:
+                         outputs.append(evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k, args.with_prompt))
+
+                    acc = sum(outputs) / len(outputs)
+                    print("Accuracy for k = {} is {}".format(k, acc))
+                    if k in scores:
+                        scores[k].append(acc)
+                    else:
+                        scores[k] = [acc]
+
+        fname = "twitter_emb_gen_with_prompt_{}.json".format(args.with_prompt)
+        with open(fname, 'w') as fp:
+            json.dump(scores, fp)
+
+    elif args.model == "baseline":
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                    low_cpu_mem_usage=True).to(device)
+        tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                       legacy=True,
+                                                       use_fast=False)
+        tokenizerTask.add_tokens(["<nonce>"])
+        secondLM.resize_token_embeddings(len(tokenizerTask))
+        secondLM.eval()
+
+        for trial in range(args.trials):
+            scores = {}
+            print("Trial {}".format(trial))
+            with torch.no_grad():
+                for k in range(1, 5):
+                    outputs = []
+                    for ex in twitter_task:
+                         outputs.append(evaluate_example(ex, secondLM, tokenizerTask, k, args.tuning, args.lr))
+
+                    acc = sum(outputs) / len(outputs)
+                    print("Accuracy for k = {} is {}".format(k, acc))
+                    if k in scores:
+                        scores[k].append(acc)
+                    else:
+                        scores[k] = [acc]
+        if args.tuning:
+            fname = "twitter_baseline_with_prompt_{}_tuning_{}_lr_{}.json".format(args.with_prompt, args.tuning, args.lr)
+        else:
+            fname = "twitter_baseline_with_prompt_{}_tuning_{}.json".format(args.with_prompt, args.tuning)
+        with open(fname, 'w') as fp:
+            json.dump(scores, fp)
+
+    elif args.model == "hice":
+        hice_path = "HiCE/save/model.pt"
+        input_linear_path = "baseline_mappings/input_linear.pt"
+        output_linear_path = "baseline_mappings/output_linear.pt"
+        w2v_dir = 'HiCE/data/base_w2v/wiki_all.sent.split.model'
+        corpus_dir = "HiCE/data/wikitext-103/"
+
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                    low_cpu_mem_usage=True).to(device)
+        tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                       legacy=True,
+                                                       use_fast=False)
+        tokenizerTask.add_tokens(["<nonce>"])
+        secondLM.resize_token_embeddings(len(tokenizerTask))
+        secondLM.eval()
+        hice = HiCEBaseline(hice_path, input_linear_path, output_linear_path, secondLM).to(device)
+        hice.device = device
+        dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
+
+        for trial in range(args.trials):
+            scores = {}
+            print("Trial {}".format(trial))
+            with torch.no_grad():
+                for k in range(1, 5):
+                    outputs = []
+                    for ex in twitter_task:
+                         outputs.append(evaluate_example_hice(ex, hice, tokenizerTask, k, dictionary))
+
+                    acc = sum(outputs) / len(outputs)
+                    print("Accuracy for k = {} is {}".format(k, acc))
+                    if k in scores:
+                        scores[k].append(acc)
+                    else:
+                        scores[k] = [acc]
+        # if args.tuning:
+        fname = "twitter_hice_with_prompt_{}_.json".format(args.with_prompt)
+        with open(fname, 'w') as fp:
+            json.dump(scores, fp)
+    else:
+        raise NotImplementedError
+    # elif args.model == "additive":
+
+
+
