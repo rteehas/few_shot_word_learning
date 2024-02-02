@@ -216,11 +216,12 @@ def run_example_vanilla(model, tokenizer, train_examples, ex, k_shot):
 
 def process_baseline_answer_with_relation(ex):
     explanations, equations = get_explanations_and_equations(ex)
-    answer = ex['answer']
+    answer = ''
     for i, expl in enumerate(explanations):
         eq = equations[i]
         eq_with_relation = "{} {}".format(expl, eq)
-        answer = answer.replace(eq, eq_with_relation)
+#         answer = answer.replace(eq, eq_with_relation)
+        answer += eq_with_relation + "\n"
     return answer
 
 
@@ -439,7 +440,7 @@ def run_baseline(with_relation=True, let=False):
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [1, 2, 4, 8]:
+    for k_shot in [2]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
@@ -459,7 +460,7 @@ def run_baseline(with_relation=True, let=False):
             # except:
             #     bad_examples.append(ex)
 
-        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}.json".format(with_relation, k_shot, id), 'w') as fp:
+        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_redo.json".format(with_relation, k_shot, id), 'w') as fp:
             json.dump(outputs, fp)
 
         # with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
