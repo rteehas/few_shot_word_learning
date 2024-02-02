@@ -389,6 +389,117 @@ def eval_hice():
         json.dump(result_dict, fp)
     return result_dict
 
+def eval_additive():
+    device="cuda"
+
+    args = get_arguments().parse_args()
+
+    gre = load_from_disk("processed_kaplan_v0")
+    subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
+    if args.defs != '':
+        with open(args.defs, 'r') as fp:
+            defs = json.load(fp)
+            with_def = True
+            subselection = subselection.filter(partial(filter_gre, defs))
+    else:
+        defs = None
+        with_def = False
+
+    answers = subselection['train']['ANSWERS']
+    answers = list(itertools.chain(*answers))
+    answers = list(itertools.chain(*answers))
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    with open(args.sents, 'r') as fp:
+        sents = json.load(fp)
+
+    if "pile" in args.sents:
+        for key in sents:
+            for i, example in enumerate(sents[key]):
+                split = example.split(".")
+                output = [idx for idx, element in enumerate(split) if
+                          re.search(r"\b({})\b".format(key), element, flags=re.I) is not None]
+                first_index = output[0]
+
+                new_text = ".".join(split[first_index:])
+                sents[key][i] = new_text
+
+    if args.sent_version == "answer":
+        with open("gre_examples_gpt4.json", 'r') as fp:
+            auxiliary_sents = json.load(fp)
+
+
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True).to(device)
+
+
+    tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                   legacy=True,
+                                                   use_fast=False)
+    tokenizerTask.pad_token = tokenizerTask.unk_token
+    tokenizerTask.add_tokens(["<nonce>"])
+
+    hice_path = "HiCE/save/model.pt"
+    input_linear_path = "baseline_mappings/input_linear.pt"
+    output_linear_path = "baseline_mappings/output_linear.pt"
+    w2v_dir = 'HiCE/data/base_w2v/wiki_all.sent.split.model'
+    corpus_dir = "HiCE/data/wikitext-103/"
+    dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
+    additive = AdditiveBaseline(dictionary, input_linear_path, output_linear_path, secondLM).to(device)
+    additive.device = device
+
+    max_k = 6
+    result_dict = {}
+    for trial in range(10):
+        selected_sent_dict = {}
+        for ex in subselection['train']:
+            if args.sent_version == "question":
+                sent_dict = sents[ex['QUESTION']]
+                for key in sent_dict:
+                    if with_def and defs is not None:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                             re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
+                            replace=False)
+
+                        if key in defs:
+                            definition = defs[key]
+                        else:
+                            definition = defs[key.lower()]
+
+                        def_s = "The word {} is defined as {}".format("<nonce>", definition)
+                        samples = [def_s] + samples
+                        sent_dict[key] = samples
+                    else:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                             re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                            replace=False)
+                        sent_dict[key] = samples
+                selected_sent_dict[ex["QUESTION"]] = sent_dict
+
+        trial_results = []
+        for k in range(1, max_k):
+            print("k = {}".format(k))
+            outputs = []
+            for ex in subselection['train']:
+                curr_sent_dict = {}
+                base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+                for key in base_sent_dict:
+                    curr_sent_dict[key] = base_sent_dict[key][:k]
+                outputs.append(
+                    eval_additive(additive, tokenizerTask, ex, curr_sent_dict, k, dictionary, with_def=with_def, defs=defs, with_prompt=args.with_prompt))
+            acc = sum(outputs) / len(outputs)
+            trial_results.append(acc)
+            print("Accuracy for k = {} is {}".format(k, acc))
+        result_dict[trial] = trial_results
+    fname = "additive_results_with_def_{}_with_prompt_{}.json".format(with_def, args.with_prompt)
+    with open(fname, 'w') as fp:
+        json.dump(result_dict, fp)
+    return result_dict
+
+
 
 def main():
     args = get_arguments().parse_args()
