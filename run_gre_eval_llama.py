@@ -284,7 +284,8 @@ def eval_baseline(args):
 
     return scores
 
-def eval_hice(args):
+def eval_hice():
+    args = get_arguments().parse_args()
     device = "cuda"
     hice_path = "HiCE/save/model.pt"
     input_linear_path = "baseline_mappings/input_linear.pt"
@@ -383,6 +384,9 @@ def eval_hice(args):
             trial_results.append(acc)
             print("Accuracy for k = {} is {}".format(k, acc))
         result_dict[trial] = trial_results
+    fname = "hice_results_with_def_{}_with_prompt_{}.json".format(with_def, args.with_prompt)
+    with open(fname, 'w') as fp:
+        json.dump(result_dict, fp)
     return result_dict
 
 
@@ -570,4 +574,5 @@ def main():
         return scores
 
 if __name__ == "__main__":
-    main()
+    # main()
+    eval_hice()
