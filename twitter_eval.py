@@ -257,6 +257,7 @@ def evaluate_example_emb_gen(ex, model, tokenizerMLM, tokenizerTask, k, with_pro
         seq, base = seq_tup
         print("sample", sample)
         print("seq", seq)
+        print("base", base)
 
         ctx = tokenizerMLM(sample, truncation=True, padding='longest', return_tensors='pt').to(device)
         input = tokenizerTask(seq,truncation=True, return_tensors='pt').to(device)
