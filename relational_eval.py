@@ -250,6 +250,7 @@ def process_for_vanilla_cot(train_set, test_example, k_shot=0):
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
         answers = []
         for ex in sampled_k_shot_examples:
+            answer = ex['answer']
             answer = "{}\n{}".format(ex['question'], answer)
             answers.append(answer)
     # print(answers)
