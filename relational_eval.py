@@ -95,7 +95,7 @@ def construct_context(mapping):
         context_mapping[value] = nonce_context
     return list(context_mapping.values())
 
-def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False, only_let=True):
+def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False, only_let=False):
     answer, mapping, processed = process_answer(ex, mapping=mapping, no_text=no_text)
     if let:
         first_let_str = "Let {} = {}"
@@ -134,7 +134,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
         for ex in sampled_k_shot_examples:
             context, answer, mapping = create_example(ex, mapping=mapping, use_one_example=use_one_example,
                                                       no_text=no_text, let=let)
-            answer = "{}\n{}".format(ex['question'], answer)
+            answer = "{}\n{}".format(ex['question'].strip("\n"), answer)
             answer = answer + "Final answer: {}".format(ex['final_answer'])
             contexts += context
             answers.append(answer)
