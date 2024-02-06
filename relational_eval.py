@@ -95,7 +95,7 @@ def construct_context(mapping):
         context_mapping[value] = nonce_context
     return list(context_mapping.values())
 
-def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False):
+def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False, only_let=True):
     answer, mapping, processed = process_answer(ex, mapping=mapping, no_text=no_text)
     if let:
         first_let_str = "Let {} = {}"
@@ -111,9 +111,12 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
                 lets.append(" " + second_let_str.format(k, v) + ".\n")
 
         preamble = " ".join(lets)
-        answer = preamble + answer
+        if not only_let:
+            answer = preamble + answer
+        else:
+            answer = preamble
 
-    example_list = [p[0] for p in processed]
+    #     example_list = [p[0] for p in processed]
     context = construct_context(mapping)
 
     if use_one_example:
@@ -122,7 +125,7 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
     return context, answer, mapping
 
 
-def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, no_text=False, let=False):
+def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, no_text=False, let=False, only_let=False):
     mapping = None
     if k_shot > 0:
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
@@ -138,7 +141,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
     #             print(contexts)
 
     test_context, test_answer, final_mapping = create_example(test_example, mapping=mapping,
-                                                              use_one_example=use_one_example, no_text=no_text, let=let)
+                                                              use_one_example=use_one_example, no_text=no_text, let=let, only_let=only_let)
 
     test_expl, test_eq = get_explanations_and_equations(test_example)
 
@@ -180,8 +183,8 @@ def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
         model.resize_token_embeddings(len(tokenizer))
 
 
-def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False):
-    contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let)
+def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False, only_let=False):
+    contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let=only_let)
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
@@ -374,7 +377,7 @@ def main(path, let=False):
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
         #     json.dump(bad_examples, fp)
-def main_multi(path, id, let=False):
+def main_multi(path, id, let=False, only_let=False):
 
     distributed_state = PartialState()
     device = distributed_state.device
@@ -415,7 +418,7 @@ def main_multi(path, id, let=False):
                 tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
                 tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
                 # try:
-                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let)
+                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let, only_let=only_let)
                 out_example['input'] = text
                 out_example['generation'] = out_text
                 out_example['k_shot'] = k_shot
@@ -475,6 +478,7 @@ def get_arguments():
     # parser.add_argument("--model", type=str)
     parser.add_argument("--model", type=str)
     parser.add_argument("--id", type=int)
+    parser.add_argument("--only_let", action="store_true")
     return parser
 
 
@@ -491,7 +495,7 @@ if __name__ == "__main__":
         run_baseline(with_relation=False, let=True)
     if args.model == "emb_gen":
         path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_16000"
-        main_multi(path, id=args.id, let=True)
+        main_multi(path, id=args.id, let=True, only_let=args.only_let)
     # print("running with relation=True")
     # run_baseline(True)
     # print("running with relation=False")
