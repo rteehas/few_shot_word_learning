@@ -196,7 +196,7 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
-    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 30,
+    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 60,
                              mask_new_tokens=True, top_k=10)
     out_text = tokenizerTask.decode(gen_out[0])
     return out_text, text
