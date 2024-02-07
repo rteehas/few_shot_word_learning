@@ -174,7 +174,7 @@ def verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, context):
         tokenizerMLM.add_tokens(new_tokens)
     if len(tokenizerTask.get_added_vocab()) < tokens_needed_for_task:
         new_tokens = ["<nonce{}>".format(i) for i in range(1, tokens_needed_for_task)]
-        tokenizerMLM.add_tokens(new_tokens)
+        tokenizerTask.add_tokens(new_tokens)
 
     if model.num_new_tokens < tokens_needed_for_task:
         model.num_new_tokens = tokens_needed_for_task
@@ -190,9 +190,9 @@ def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
 
 def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False, only_let=False):
     contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let=only_let)
-    print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
+    # print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
-    print("num new tokens after", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
+    # print("num new tokens after", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
