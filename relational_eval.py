@@ -179,6 +179,19 @@ def verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, context):
     if model.num_new_tokens < tokens_needed_for_task:
         model.num_new_tokens = tokens_needed_for_task
 
+def prev_verify_or_fix(model, tokenizerMLM, tokenizerTask, context):
+    tokens_needed_for_task = len(context)
+    if len(tokenizerMLM.get_added_vocab()) < tokens_needed_for_task:
+        new_tokens = ["<nonce{}>".format(i) for i in range(1, tokens_needed_for_task)]
+        tokenizerMLM.add_tokens(new_tokens)
+    if len(tokenizerTask.get_added_vocab()) < tokens_needed_for_task:
+        new_tokens = ["<nonce{}>".format(i) for i in range(1, tokens_needed_for_task)]
+        tokenizerMLM.add_tokens(new_tokens)
+
+    if model.num_new_tokens < tokens_needed_for_task:
+        model.num_new_tokens = tokens_needed_for_task
+
+
 
 def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
     tokens_needed_for_task = len(context)
@@ -192,6 +205,19 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
     contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let=only_let)
     # print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
+    # print("num new tokens after", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
+
+    ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
+    target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
+    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 60,
+                             mask_new_tokens=True, top_k=10)
+    out_text = tokenizerTask.decode(gen_out[0])
+    return out_text, text
+
+def prev_run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False, only_let=False):
+    contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let=only_let)
+    # print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
+    prev_verify_or_fix(model, tokenizerMLM, tokenizerTask, contexts)
     # print("num new tokens after", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
@@ -413,7 +439,7 @@ def main_multi(path, id, let=False, only_let=False):
         train_examples = json.load(fp)
     examples = read_jsonl("test_relation.jsonl")
     with distributed_state.split_between_processes(examples) as partial_examples:
-        for k_shot in [2,4,8]:
+        for k_shot in [1, 2,4,8]:
             outputs = []
             bad_examples = []
             print("{} shots...".format(k_shot))
@@ -441,6 +467,65 @@ def main_multi(path, id, let=False, only_let=False):
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
         #     json.dump(bad_examples, fp)
+
+def prev_multi(path, id, let=False, only_let=False):
+
+    distributed_state = PartialState()
+    device = distributed_state.device
+    tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
+    tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
+    nonces = list(tokenizerTask.get_added_vocab().keys())
+    # tokenizerMLM.add_tokens(nonces)
+    # tokenizerTask.add_tokens(nonces)
+    firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
+                                                low_cpu_mem_usage=True, device_map=device)
+    memory_config = AggregatorConfig()
+
+    mask_token_id = tokenizerMLM.mask_token_id
+    layers = [-1]
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None).to(
+        device)
+    model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
+    model.device = device
+    model.firstLM.eval()
+    model.secondLM.eval()
+
+    model.eval()
+    # train_examples = read_jsonl("train_relation.jsonl")
+    with open("annotated_cot_for_relational.json", 'r') as fp:
+        train_examples = json.load(fp)
+    examples = read_jsonl("test_relation.jsonl")
+    with distributed_state.split_between_processes(examples) as partial_examples:
+        for k_shot in [1, 2,4,8]:
+            outputs = []
+            bad_examples = []
+            print("{} shots...".format(k_shot))
+            for i, ex in tqdm(enumerate(partial_examples)):
+                if i % 100 == 0:
+                    print("Processed {} examples".format(i))
+                out_example = {}
+                model.num_new_tokens = 1
+                tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
+                tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
+                # try:
+                out_text, text = prev_run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let, only_let=only_let)
+                out_example['input'] = text
+                out_example['generation'] = out_text
+                out_example['k_shot'] = k_shot
+                # out_example['final_answer'] = ex['final_answer']
+                out_example['original_example'] = ex
+
+                outputs.append(out_example)
+                # except:
+                #     bad_examples.append(ex)
+
+            with open("relational_test_outputs_emb_gen_prev_let_{}_{}shot_{}_id_{}.json".format(let, k_shot, distributed_state.process_index, id), 'w') as fp:
+                json.dump(outputs, fp)
+
+        # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
+        #     json.dump(bad_examples, fp)
+
 
 
 def run_baseline(with_relation=True, let=False):
@@ -486,6 +571,7 @@ def get_arguments():
     parser.add_argument("--model", type=str)
     parser.add_argument("--id", type=int)
     parser.add_argument("--only_let", action="store_true")
+    parser.add_argument("--prev", action="store_true")
     return parser
 
 
@@ -502,7 +588,10 @@ if __name__ == "__main__":
         run_baseline(with_relation=False, let=True)
     if args.model == "emb_gen":
         path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_16000"
-        main_multi(path, id=args.id, let=True, only_let=args.only_let)
+        if args.prev:
+            prev_multi(path, id=args.id, let=True, only_let=args.only_let)
+        else:
+            main_multi(path, id=args.id, let=True, only_let=args.only_let)
     # print("running with relation=True")
     # run_baseline(True)
     # print("running with relation=False")
