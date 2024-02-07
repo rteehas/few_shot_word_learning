@@ -10,7 +10,7 @@ import json
 from accelerate import PartialState
 import time
 import uuid
-
+from copy import deepcopy
 
 def read_jsonl(path: str):
     """Read JSON file. Copied from gsm.py"""
@@ -96,13 +96,18 @@ def construct_context(mapping):
     return list(context_mapping.values())
 
 def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False, only_let=False):
+    previous_mapping = deepcopy(mapping)
     answer, mapping, processed = process_answer(ex, mapping=mapping, no_text=no_text)
     if let:
         first_let_str = "Let {} = {}"
         second_let_str = first_let_str.lower()
 
         lets = []
-        for i, (k, v) in enumerate(mapping.items()):
+        if previous_mapping is not None:
+            remaining_mapping = {k:v for k, v in mapping.items() if k not in previous_mapping}
+        else:
+            remaining_mapping = mapping
+        for i, (k, v) in enumerate(remaining_mapping.items()):
             if i == 0:
                 lets.append(first_let_str.format(k, v) + ",")
             elif i < len(list(mapping.keys())) - 1:
@@ -110,7 +115,7 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
             else:
                 lets.append(" " + second_let_str.format(k, v) + ".\n")
 
-        preamble = " ".join(lets)
+        preamble = " ".join(lets) + "Answer: "
         if not only_let:
             answer = preamble + answer
         else:
@@ -185,7 +190,9 @@ def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
 
 def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False, only_let=False):
     contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let=only_let)
+    print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
+    print("num new tokens after", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
@@ -406,7 +413,7 @@ def main_multi(path, id, let=False, only_let=False):
         train_examples = json.load(fp)
     examples = read_jsonl("test_relation.jsonl")
     with distributed_state.split_between_processes(examples) as partial_examples:
-        for k_shot in [1]:
+        for k_shot in [2,4,8]:
             outputs = []
             bad_examples = []
             print("{} shots...".format(k_shot))
