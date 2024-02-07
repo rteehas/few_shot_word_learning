@@ -210,7 +210,7 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
     gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 60,
-                             mask_new_tokens=True, top_k=10)
+                             mask_new_tokens=False)
     out_text = tokenizerTask.decode(gen_out[0])
     return out_text, text
 
@@ -462,7 +462,7 @@ def main_multi(path, id, let=False, only_let=False):
                 # except:
                 #     bad_examples.append(ex)
 
-            with open("relational_test_outputs_emb_gen_let_{}_{}shot_{}_id_{}.json".format(let, k_shot, distributed_state.process_index, id), 'w') as fp:
+            with open("relational_test_outputs_emb_gen_let_{}_{}shot_{}_id_{}_no_mask.json".format(let, k_shot, distributed_state.process_index, id), 'w') as fp:
                 json.dump(outputs, fp)
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
