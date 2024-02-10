@@ -1,5 +1,6 @@
 import re
 import json
+import string
 from collections import OrderedDict
 import numpy as np
 from train_with_llama import *
@@ -95,7 +96,7 @@ def construct_context(mapping):
         context_mapping[value] = nonce_context
     return list(context_mapping.values())
 
-def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False, only_let=False):
+def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False, only_let=False, var_names=False):
     previous_mapping = deepcopy(mapping)
     answer, mapping, processed = process_answer(ex, mapping=mapping, no_text=no_text)
     if let:
@@ -103,34 +104,54 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
         second_let_str = first_let_str.lower()
 
         lets = []
+        if var_names:
+            alphabet_mapping = deepcopy(mapping)
+            alphabet = string.ascii_uppercase
+            for i, (k, v) in enumerate(mapping.items()):
+                alphabet_mapping[k] = alphabet[i]
         if previous_mapping is not None:
             remaining_mapping = {k:v for k, v in mapping.items() if k not in previous_mapping}
         else:
             remaining_mapping = mapping
+#         print(remaining_mapping)
         for i, (k, v) in enumerate(remaining_mapping.items()):
             if i == 0:
-                lets.append(first_let_str.format(k, v) + ",")
+                if var_names:
+                    lets.append(first_let_str.format(k, alphabet_mapping[k]) + ",")
+                else:
+                    lets.append(first_let_str.format(k,v) + ",")
             elif i < len(list(mapping.keys())) - 1:
-                lets.append(" " + second_let_str.format(k, v) + ",")
+                if var_names:
+                    lets.append(" " + second_let_str.format(k, alphabet_mapping[k]) + ",")
+                else:
+                    lets.append(" " + second_let_str.format(k, v) + ",")
             else:
-                lets.append(" " + second_let_str.format(k, v) + ".\n")
+                if var_names:
+                    lets.append(" " + second_let_str.format(k, alphabet_mapping[k]) + ".\n")
+                else:
+                    lets.append(" " + second_let_str.format(k, v) + ".\n")
 
         preamble = " ".join(lets) + "Answer: "
+        if var_names:
+            for k, v in mapping.items():
+                answer = answer.replace(v, alphabet_mapping[k])
         if not only_let:
             answer = preamble + answer
         else:
             answer = preamble
 
     #     example_list = [p[0] for p in processed]
-    context = construct_context(mapping)
+    if var_names:
+        context = construct_context(alphabet_mapping)
+    else:
+        context = construct_context(mapping)
 
     if use_one_example:
         context = [[c[0]] for c in context]
 
     return context, answer, mapping
 
-
-def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, no_text=False, let=False, only_let=False):
+def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, no_text=False, let=False, only_let=False, var_names=False):
     mapping = None
     if k_shot > 0:
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
@@ -138,7 +159,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
         answers = []
         for ex in sampled_k_shot_examples:
             context, answer, mapping = create_example(ex, mapping=mapping, use_one_example=use_one_example,
-                                                      no_text=no_text, let=let)
+                                                      no_text=no_text, let=let, var_names=var_names)
             answer = "{}\n{}".format(ex['question'].strip("\n"), answer)
             answer = answer + "Final answer: {}".format(ex['final_answer'])
             contexts += context
@@ -146,7 +167,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
     #             print(contexts)
 
     test_context, test_answer, final_mapping = create_example(test_example, mapping=mapping,
-                                                              use_one_example=use_one_example, no_text=no_text, let=let, only_let=only_let)
+                                                              use_one_example=use_one_example, no_text=no_text, let=let, only_let=only_let, var_names=var_names)
 
     test_expl, test_eq = get_explanations_and_equations(test_example)
 
@@ -228,9 +249,9 @@ def prev_run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_s
     return out_text, text
 
 
-def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let):
+def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let, var_names=False):
     if not with_relation:
-        contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let)
+        contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, var_names=var_names)
         verify_or_fix_baseline_num_tokens(model, tokenizer, contexts)
     else:
         text, ans = process_for_baseline_eval(train_examples, ex, k_shot)
@@ -528,7 +549,7 @@ def prev_multi(path, id, let=False, only_let=False):
 
 
 
-def run_baseline(with_relation=True, let=False):
+def run_baseline(with_relation=True, let=False, var_names=False):
     device = "cuda"
     id = uuid.uuid4()
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -547,7 +568,7 @@ def run_baseline(with_relation=True, let=False):
             tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                        use_fast=False, legacy=True)
             # try:
-            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let=let)
+            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let=let, var_names=var_names)
             out_example['input'] = text
             out_example['generation'] = out_text
             out_example['k_shot'] = k_shot
@@ -558,7 +579,7 @@ def run_baseline(with_relation=True, let=False):
             # except:
             #     bad_examples.append(ex)
 
-        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_redo_redo.json".format(with_relation, k_shot, id), 'w') as fp:
+        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_let_{}_alphabet_{}.json".format(with_relation, k_shot, id, let, var_names), 'w') as fp:
             json.dump(outputs, fp)
 
         # with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
@@ -592,6 +613,8 @@ if __name__ == "__main__":
             prev_multi(path, id=args.id, let=True, only_let=args.only_let)
         else:
             main_multi(path, id=args.id, let=True, only_let=args.only_let)
+    if args.model == "alphabet":
+        run_baseline(with_relation=False, let=True, var_names=True)
     # print("running with relation=True")
     # run_baseline(True)
     # print("running with relation=False")
