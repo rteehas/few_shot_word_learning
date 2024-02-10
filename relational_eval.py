@@ -108,7 +108,11 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
             alphabet_mapping = deepcopy(mapping)
             alphabet = string.ascii_uppercase
             for i, (k, v) in enumerate(mapping.items()):
-                alphabet_mapping[k] = alphabet[i]
+                if i <= len(alphabet) - 1:
+                    alphabet_mapping[k] = alphabet[i]
+                else:
+                    new_idx = i % (len(alphabet) - 1)
+                    alphabet_mapping[k] = alphabet[i] + str(new_idx)
         if previous_mapping is not None:
             remaining_mapping = {k:v for k, v in mapping.items() if k not in previous_mapping}
         else:
@@ -559,7 +563,7 @@ def run_baseline(with_relation=True, let=False, var_names=False):
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [2]:
+    for k_shot in [1,2,4,8]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
