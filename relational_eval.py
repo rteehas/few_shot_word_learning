@@ -112,7 +112,8 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
                     alphabet_mapping[k] = alphabet[i]
                 else:
                     new_idx = i % (len(alphabet) - 1)
-                    alphabet_mapping[k] = alphabet[i] + str(new_idx)
+                    num_iters = i // (len(alphabet) - 1)
+                    alphabet_mapping[k] = alphabet[new_idx] + str(num_iters)
         if previous_mapping is not None:
             remaining_mapping = {k:v for k, v in mapping.items() if k not in previous_mapping}
         else:
