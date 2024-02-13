@@ -254,9 +254,9 @@ def prev_run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_s
     return out_text, text
 
 
-def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let, var_names=False):
+def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let, var_names=False, only_let=False):
     if not with_relation:
-        contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, var_names=var_names)
+        contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let= only_let, var_names=var_names)
         verify_or_fix_baseline_num_tokens(model, tokenizer, contexts)
     else:
         text, ans = process_for_baseline_eval(train_examples, ex, k_shot)
@@ -554,7 +554,7 @@ def prev_multi(path, id, let=False, only_let=False):
 
 
 
-def run_baseline(with_relation=True, let=False, var_names=False):
+def run_baseline(with_relation=True, let=False, only_let= False, var_names=False):
     device = "cuda"
     id = uuid.uuid4()
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -573,7 +573,7 @@ def run_baseline(with_relation=True, let=False, var_names=False):
             tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                        use_fast=False, legacy=True)
             # try:
-            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let=let, var_names=var_names)
+            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let=let, only_let=only_let, var_names=var_names)
             out_example['input'] = text
             out_example['generation'] = out_text
             out_example['k_shot'] = k_shot
@@ -584,7 +584,7 @@ def run_baseline(with_relation=True, let=False, var_names=False):
             # except:
             #     bad_examples.append(ex)
 
-        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_let_{}_alphabet_{}.json".format(with_relation, k_shot, id, let, var_names), 'w') as fp:
+        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_let_{}_only_let_{}_alphabet_{}.json".format(with_relation, k_shot, id, let, only_let, var_names), 'w') as fp:
             json.dump(outputs, fp)
 
         # with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
@@ -619,7 +619,7 @@ if __name__ == "__main__":
         else:
             main_multi(path, id=args.id, let=True, only_let=args.only_let)
     if args.model == "alphabet":
-        run_baseline(with_relation=False, let=True, var_names=True)
+        run_baseline(with_relation=False, let=True, only_let=args.only_let, var_names=True)
     # print("running with relation=True")
     # run_baseline(True)
     # print("running with relation=False")
