@@ -488,7 +488,7 @@ def main_multi(path, id, let=False, only_let=False):
                 # except:
                 #     bad_examples.append(ex)
 
-            with open("relational_test_outputs_emb_gen_let_{}_{}shot_{}_id_{}_no_mask.json".format(let, k_shot, distributed_state.process_index, id), 'w') as fp:
+            with open("relational_test_outputs_emb_gen_let_{}_onlt_let_{}_{}shot_{}_id_{}_no_mask.json".format(let, only_let, k_shot, distributed_state.process_index, id), 'w') as fp:
                 json.dump(outputs, fp)
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
