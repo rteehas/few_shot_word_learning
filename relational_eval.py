@@ -262,7 +262,7 @@ def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
         model.resize_token_embeddings(len(tokenizer))
 
 
-def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False, only_let=False, interleaved=False):
+def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False, only_let=False, interleaved=False, mask_new_tokens=False):
     contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let=only_let, interleaved=interleaved)
     # print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
@@ -271,7 +271,7 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
     gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 60,
-                             mask_new_tokens=False)
+                             mask_new_tokens=mask_new_tokens)
     out_text = tokenizerTask.decode(gen_out[0])
     return out_text, text
 
@@ -475,7 +475,7 @@ def main(path, let=False):
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
         #     json.dump(bad_examples, fp)
-def main_multi(path, id, let=False, only_let=False, interleaved=False):
+def main_multi(path, id, let=False, only_let=False, interleaved=False, mask_new_tokens=False):
 
     distributed_state = PartialState()
     device = distributed_state.device
@@ -516,7 +516,7 @@ def main_multi(path, id, let=False, only_let=False, interleaved=False):
                 tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
                 tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
                 # try:
-                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let, only_let=only_let, interleaved=interleaved)
+                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let, only_let=only_let, interleaved=interleaved, mask_new_tokens=mask_new_tokens)
                 out_example['input'] = text
                 out_example['generation'] = out_text
                 out_example['k_shot'] = k_shot
@@ -527,7 +527,7 @@ def main_multi(path, id, let=False, only_let=False, interleaved=False):
                 # except:
                 #     bad_examples.append(ex)
 
-            with open("relational_test_outputs_emb_gen_let_{}_onlt_let_{}_interleaved_{}_{}shot_{}_id_{}_no_mask.json".format(let, only_let, interleaved, k_shot, distributed_state.process_index, id), 'w') as fp:
+            with open("relational_test_outputs_emb_gen_let_{}_onlt_let_{}_interleaved_{}_{}shot_{}_id_{}_mask_{}.json".format(let, only_let, interleaved, k_shot, distributed_state.process_index, id, mask_new_tokens), 'w') as fp:
                 json.dump(outputs, fp)
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
@@ -639,6 +639,7 @@ def get_arguments():
     parser.add_argument("--prev", action="store_true")
     parser.add_argument("--remove_relation_for_test", action="store_true")
     parser.add_argument("--interleaved", action="store_true")
+    parser.add_argument("--mask_new_tokens", action="store_true")
     return parser
 
 
@@ -658,7 +659,7 @@ if __name__ == "__main__":
         if args.prev:
             prev_multi(path, id=args.id, let=True, only_let=args.only_let)
         else:
-            main_multi(path, id=args.id, let=True, only_let=args.only_let, interleaved=args.interleaved)
+            main_multi(path, id=args.id, let=True, only_let=args.only_let, interleaved=args.interleaved, mask_new_tokens=args.mask_new_tokens)
     if args.model == "alphabet":
         run_baseline(with_relation=False, let=True, only_let=args.only_let, var_names=True)
     # print("running with relation=True")
