@@ -297,7 +297,7 @@ def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_rela
         text, ans = process_for_baseline_eval(train_examples, ex, k_shot, remove_relation_for_test=remove_relation_for_test)
 
     target_input = tokenizer(text, return_tensors='pt').to(model.device)
-    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=50)
+    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=100)
     out_text = tokenizer.decode(gen_out[0])
     return out_text, text
 
@@ -603,7 +603,7 @@ def run_baseline(with_relation=True, let=False, only_let= False, var_names=False
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [1,2,4,8]:
+    for k_shot in [4]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
