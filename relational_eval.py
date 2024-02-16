@@ -96,9 +96,12 @@ def construct_context(mapping):
         context_mapping[value] = nonce_context
     return list(context_mapping.values())
 
-def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False, only_let=False, var_names=False):
+
+def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=False, only_let=False, var_names=False,
+                   interleaved=False):
     previous_mapping = deepcopy(mapping)
     answer, mapping, processed = process_answer(ex, mapping=mapping, no_text=no_text)
+    #     print(answer.split("\n"))
     if let:
         first_let_str = "Let {} = {}"
         second_let_str = first_let_str.lower()
@@ -108,42 +111,68 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
             alphabet_mapping = deepcopy(mapping)
             alphabet = string.ascii_uppercase
             for i, (k, v) in enumerate(mapping.items()):
-                if i <= len(alphabet) - 1:
-                    alphabet_mapping[k] = alphabet[i]
-                else:
-                    new_idx = i % (len(alphabet) - 1)
-                    num_iters = i // (len(alphabet) - 1)
-                    alphabet_mapping[k] = alphabet[new_idx] + str(num_iters)
+                alphabet_mapping[k] = alphabet[i]
         if previous_mapping is not None:
-            remaining_mapping = {k:v for k, v in mapping.items() if k not in previous_mapping}
+            remaining_mapping = {k: v for k, v in mapping.items() if k not in previous_mapping}
         else:
             remaining_mapping = mapping
-#         print(remaining_mapping)
-        for i, (k, v) in enumerate(remaining_mapping.items()):
-            if i == 0:
-                if var_names:
-                    lets.append(first_let_str.format(k, alphabet_mapping[k]) + ",")
+        #         print(remaining_mapping)
+        if not interleaved:
+            for i, (k, v) in enumerate(remaining_mapping.items()):
+                if i == 0:
+                    if var_names:
+                        lets.append(first_let_str.format(k, alphabet_mapping[k]) + ",")
+                    else:
+                        lets.append(first_let_str.format(k, v) + ",")
+                elif i < len(list(mapping.keys())) - 1:
+                    if var_names:
+                        lets.append(" " + second_let_str.format(k, alphabet_mapping[k]) + ",")
+                    else:
+                        lets.append(" " + second_let_str.format(k, v) + ",")
                 else:
-                    lets.append(first_let_str.format(k,v) + ",")
-            elif i < len(list(mapping.keys())) - 1:
-                if var_names:
-                    lets.append(" " + second_let_str.format(k, alphabet_mapping[k]) + ",")
-                else:
-                    lets.append(" " + second_let_str.format(k, v) + ",")
-            else:
-                if var_names:
-                    lets.append(" " + second_let_str.format(k, alphabet_mapping[k]) + ".\n")
-                else:
-                    lets.append(" " + second_let_str.format(k, v) + ".\n")
+                    if var_names:
+                        lets.append(" " + second_let_str.format(k, alphabet_mapping[k]) + ".\n")
+                    else:
+                        lets.append(" " + second_let_str.format(k, v) + ".\n")
 
-        preamble = " ".join(lets) + "Answer: "
-        if var_names:
-            for k, v in mapping.items():
-                answer = answer.replace(v, alphabet_mapping[k])
-        if not only_let:
-            answer = preamble + answer
+            preamble = " ".join(lets) + "Answer: "
+            if var_names:
+                for k, v in mapping.items():
+                    answer = answer.replace(v, alphabet_mapping[k])
+            if not only_let:
+                answer = preamble + answer
+            else:
+                answer = preamble
         else:
-            answer = preamble
+            split_answer = answer.split("\n")
+            split_answer = [s for s in split_answer if s != ""]
+            ans_str = ""
+            for s in split_answer:
+                for i, (k, v) in enumerate(remaining_mapping.items()):
+                    if v in s:
+                        #                         print("here")
+                        if i == 0:
+                            if var_names:
+                                ans_str += first_let_str.format(k, alphabet_mapping[k]) + ","
+                            else:
+                                ans_str += first_let_str.format(k, v) + ","
+                        elif i < len(list(mapping.keys())) - 1:
+                            if var_names:
+                                ans_str += " " + second_let_str.format(k, alphabet_mapping[k]) + ","
+                            else:
+                                ans_str += " " + second_let_str.format(k, v) + ","
+                        else:
+                            if var_names:
+                                ans_str += " " + second_let_str.format(k, alphabet_mapping[k]) + ".\n"
+                            else:
+                                ans_str += " " + second_let_str.format(k, v) + ".\n"
+
+                ans_str += " " + s + "\n"
+                if var_names:
+                    for k, v in mapping.items():
+                        ans_str = ans_str.replace(v, alphabet_mapping[k])
+    if interleaved:
+        answer = ans_str
 
     #     example_list = [p[0] for p in processed]
     if var_names:
@@ -156,7 +185,8 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
 
     return context, answer, mapping
 
-def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, no_text=False, let=False, only_let=False, var_names=False):
+
+def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, no_text=False, let=False, only_let=False, var_names=False, interleaved=False):
     mapping = None
     if k_shot > 0:
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
@@ -172,7 +202,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
     #             print(contexts)
 
     test_context, test_answer, final_mapping = create_example(test_example, mapping=mapping,
-                                                              use_one_example=use_one_example, no_text=no_text, let=let, only_let=only_let, var_names=var_names)
+                                                              use_one_example=use_one_example, no_text=no_text, let=let, only_let=only_let, var_names=var_names, interleaved=interleaved)
 
     test_expl, test_eq = get_explanations_and_equations(test_example)
 
@@ -227,8 +257,8 @@ def verify_or_fix_baseline_num_tokens(model, tokenizer, context):
         model.resize_token_embeddings(len(tokenizer))
 
 
-def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False, only_let=False):
-    contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let=only_let)
+def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=False, only_let=False, interleaved=False):
+    contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let=only_let, interleaved=interleaved)
     # print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
     # print("num new tokens after", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
@@ -440,7 +470,7 @@ def main(path, let=False):
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
         #     json.dump(bad_examples, fp)
-def main_multi(path, id, let=False, only_let=False):
+def main_multi(path, id, let=False, only_let=False, interleaved=False):
 
     distributed_state = PartialState()
     device = distributed_state.device
@@ -481,7 +511,7 @@ def main_multi(path, id, let=False, only_let=False):
                 tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
                 tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
                 # try:
-                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let, only_let=only_let)
+                out_text, text = run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, let=let, only_let=only_let, interleaved=interleaved)
                 out_example['input'] = text
                 out_example['generation'] = out_text
                 out_example['k_shot'] = k_shot
@@ -603,6 +633,7 @@ def get_arguments():
     parser.add_argument("--only_let", action="store_true")
     parser.add_argument("--prev", action="store_true")
     parser.add_argument("--remove_relation_for_test", action="store_true")
+    parser.add_argument("--interleaved", action="store_true")
     return parser
 
 
@@ -622,7 +653,7 @@ if __name__ == "__main__":
         if args.prev:
             prev_multi(path, id=args.id, let=True, only_let=args.only_let)
         else:
-            main_multi(path, id=args.id, let=True, only_let=args.only_let)
+            main_multi(path, id=args.id, let=True, only_let=args.only_let, interleaved=args.interleaved)
     if args.model == "alphabet":
         run_baseline(with_relation=False, let=True, only_let=args.only_let, var_names=True)
     # print("running with relation=True")
