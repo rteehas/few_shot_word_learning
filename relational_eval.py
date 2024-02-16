@@ -254,12 +254,12 @@ def prev_run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_s
     return out_text, text
 
 
-def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let, var_names=False, only_let=False):
+def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let, var_names=False, only_let=False, remove_relation_for_test=False):
     if not with_relation:
         contexts, text, ans = process_for_eval(train_examples, ex, k_shot, use_one_example=False, no_text=True, let=let, only_let= only_let, var_names=var_names)
         verify_or_fix_baseline_num_tokens(model, tokenizer, contexts)
     else:
-        text, ans = process_for_baseline_eval(train_examples, ex, k_shot)
+        text, ans = process_for_baseline_eval(train_examples, ex, k_shot, remove_relation_for_test=remove_relation_for_test)
 
     target_input = tokenizer(text, return_tensors='pt').to(model.device)
     gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=50)
@@ -287,7 +287,7 @@ def process_baseline_answer_with_relation(ex):
     return answer
 
 
-def process_for_baseline_eval(train_set, test_example, k_shot=0):
+def process_for_baseline_eval(train_set, test_example, k_shot=0, remove_relation_for_test=False):
     if k_shot > 0:
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
         answers = []
@@ -299,9 +299,13 @@ def process_for_baseline_eval(train_set, test_example, k_shot=0):
     test_answer = process_baseline_answer_with_relation(test_example)
     test_expl, test_eq = get_explanations_and_equations(test_example)
     truncated_answer = test_answer.split(test_eq[-1])[0]
+#     print(truncated_answer)
     if k_shot > 0:
         answer_text = "\n".join(answers)
-        answer_text = answer_text + "\n" + truncated_answer
+        if not remove_relation_for_test:
+            answer_text = answer_text + "\n" + "{}\n{}".format(test_example['question'], truncated_answer)
+        else:
+            answer_text = answer_text + "\n" + test_example['question'] + "\n"
         return answer_text, test_example['final_answer']
     else:
         return truncated_answer, test_example['final_answer']
@@ -554,7 +558,7 @@ def prev_multi(path, id, let=False, only_let=False):
 
 
 
-def run_baseline(with_relation=True, let=False, only_let= False, var_names=False):
+def run_baseline(with_relation=True, let=False, only_let= False, var_names=False, remove_relation_for_test=False):
     device = "cuda"
     id = uuid.uuid4()
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -573,7 +577,7 @@ def run_baseline(with_relation=True, let=False, only_let= False, var_names=False
             tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                        use_fast=False, legacy=True)
             # try:
-            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let=let, only_let=only_let, var_names=var_names)
+            out_text, text = run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_relation, let=let, only_let=only_let, var_names=var_names, remove_relation_for_test = remove_relation_for_test)
             out_example['input'] = text
             out_example['generation'] = out_text
             out_example['k_shot'] = k_shot
@@ -598,6 +602,7 @@ def get_arguments():
     parser.add_argument("--id", type=int)
     parser.add_argument("--only_let", action="store_true")
     parser.add_argument("--prev", action="store_true")
+    parser.add_argument("--remove_relation_for_test", action="store_true")
     return parser
 
 
@@ -609,7 +614,7 @@ if __name__ == "__main__":
     if args.model == "vanilla":
         run_vanilla()
     if args.model == "baseline_relation":
-        run_baseline(with_relation=True, let=False)
+        run_baseline(with_relation=True, let=False, remove_relation_for_test=args.remove_relation_for_test)
     if args.model == "let_baseline":
         run_baseline(with_relation=False, let=True)
     if args.model == "emb_gen":
