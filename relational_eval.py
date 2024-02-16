@@ -302,11 +302,11 @@ def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_rela
     return out_text, text
 
 
-def run_example_vanilla(model, tokenizer, train_examples, ex, k_shot):
-    text, ans = process_for_vanilla_cot(train_examples, ex, k_shot)
+def run_example_vanilla(model, tokenizer, train_examples, ex, k_shot, remove_relation_for_test=False):
+    text, ans = process_for_vanilla_cot(train_examples, ex, k_shot,remove_relation_for_test=remove_relation_for_test)
 
     target_input = tokenizer(text, return_tensors='pt').to(model.device)
-    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=50)
+    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=100)
     out_text = tokenizer.decode(gen_out[0])
     return out_text, text
 
@@ -346,7 +346,7 @@ def process_for_baseline_eval(train_set, test_example, k_shot=0, remove_relation
         return truncated_answer, test_example['final_answer']
 
 
-def process_for_vanilla_cot(train_set, test_example, k_shot=0):
+def process_for_vanilla_cot(train_set, test_example, k_shot=0, remove_relation_for_test=False):
     if k_shot > 0:
         sampled_k_shot_examples = np.random.choice(train_set, size=k_shot, replace=False)
         answers = []
@@ -358,7 +358,11 @@ def process_for_vanilla_cot(train_set, test_example, k_shot=0):
     truncated_answer = prepare_vanilla_cot(test_example)
     if k_shot > 0:
         answer_text = "\n".join(answers)
-        answer_text = answer_text + "\n" + truncated_answer
+        if not remove_relation_for_test:
+            answer_text = answer_text + "\n" + "{}\n{}".format(test_example['question'], truncated_answer)
+        else:
+            answer_text = answer_text + "\n" + test_example['question'] + "\n"
+        # answer_text = answer_text + "\n" + truncated_answer
         return answer_text, test_example['final_answer']
     else:
         return truncated_answer, test_example['final_answer']
@@ -385,7 +389,7 @@ def prepare_vanilla_cot(ex):
         return "\n".join(beginning) + "\n"
 
 
-def run_vanilla():
+def run_vanilla(remove_relation_for_test=False):
     device = "cuda"
     id = uuid.uuid4()
     model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
@@ -395,7 +399,7 @@ def run_vanilla():
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [2]:
+    for k_shot in [4]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
@@ -404,7 +408,7 @@ def run_vanilla():
             tokenizer = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf",
                                                        use_fast=False, legacy=True)
             # try:
-            out_text, text = run_example_vanilla(model, tokenizer, train_examples, ex, k_shot)
+            out_text, text = run_example_vanilla(model, tokenizer, train_examples, ex, k_shot, remove_relation_for_test=remove_relation_for_test)
             out_example['input'] = text
             out_example['generation'] = out_text
             out_example['k_shot'] = k_shot
@@ -649,11 +653,11 @@ if __name__ == "__main__":
     # main(path, let=True)
     args = get_arguments().parse_args()
     if args.model == "vanilla":
-        run_vanilla()
+        run_vanilla(remove_relation_for_test=args.remove_relation_for_test)
     if args.model == "baseline_relation":
         run_baseline(with_relation=True, let=False, remove_relation_for_test=args.remove_relation_for_test)
     if args.model == "let_baseline":
-        run_baseline(with_relation=False, let=True)
+        run_baseline(with_relation=False, let=True, only_let=args.only_let)
     if args.model == "emb_gen":
         path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_16000"
         if args.prev:
