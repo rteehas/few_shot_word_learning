@@ -139,8 +139,10 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
                         lets.append(" " + second_let_str.format(k, alphabet_mapping[k]) + ".\n")
                     else:
                         lets.append(" " + second_let_str.format(k, v) + ".\n")
-
-            preamble = " ".join(lets) + "Answer: "
+            if only_let:
+                preamble = " ".join(lets) + "Answer: "
+            else:
+                preamble = " ".join(lets)
             if var_names:
                 for k, v in mapping.items():
                     answer = answer.replace(v, alphabet_mapping[k])
@@ -399,7 +401,7 @@ def run_vanilla(remove_relation_for_test=False):
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [4]:
+    for k_shot in [8]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
@@ -607,7 +609,7 @@ def run_baseline(with_relation=True, let=False, only_let= False, var_names=False
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [4]:
+    for k_shot in [8]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
