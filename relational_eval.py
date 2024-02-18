@@ -129,7 +129,7 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
                         lets.append(first_let_str.format(k, alphabet_mapping[k]) + ",")
                     else:
                         lets.append(first_let_str.format(k, v) + ",")
-                elif i < len(list(mapping.keys())) - 1:
+                elif i < len(list(remaining_mapping.keys())) - 1:
                     if var_names:
                         lets.append(" " + second_let_str.format(k, alphabet_mapping[k]) + ",")
                     else:
