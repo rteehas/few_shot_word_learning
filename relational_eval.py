@@ -40,8 +40,8 @@ def process_explanation(explanation, nonce_mapping=None):
                 nonce = "<nonce{}>".format(len(nonce_mapping))
         else:
             nonce = nonce_mapping[comp]
-        final_relation = final_relation.replace(comp, nonce)
-        masked_examples.append(explanation.replace(comp, nonce))
+        final_relation = final_relation.replace(comp, nonce, 1)
+        masked_examples.append(explanation.replace(comp, nonce, 1))
         if comp not in nonce_mapping:
             nonce_mapping[comp] = nonce
     return masked_examples, final_relation, nonce_mapping
