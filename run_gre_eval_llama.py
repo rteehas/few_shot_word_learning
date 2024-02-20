@@ -685,5 +685,5 @@ def main():
         return scores
 
 if __name__ == "__main__":
-    # main()
-    eval_hice()
+    main()
+    # eval_hice()
