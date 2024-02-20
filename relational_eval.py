@@ -485,6 +485,7 @@ def main_multi(path, id, let=False, only_let=False, interleaved=False, mask_new_
 
     distributed_state = PartialState()
     device = distributed_state.device
+    checkpt_name = path.split("/")[-1]
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
@@ -533,7 +534,7 @@ def main_multi(path, id, let=False, only_let=False, interleaved=False, mask_new_
                 # except:
                 #     bad_examples.append(ex)
 
-            with open("relational_test_outputs_emb_gen_let_{}_onlt_let_{}_interleaved_{}_{}shot_{}_id_{}_mask_{}.json".format(let, only_let, interleaved, k_shot, distributed_state.process_index, id, mask_new_tokens), 'w') as fp:
+            with open("relational_test_outputs_emb_gen_{}_let_{}_onlt_let_{}_interleaved_{}_{}shot_{}_id_{}_mask_{}.json".format(checkpt_name,let, only_let, interleaved, k_shot, distributed_state.process_index, id, mask_new_tokens), 'w') as fp:
                 json.dump(outputs, fp)
 
         # with open("relational_error_examples_let_{}_{}shot.json".format(let, k_shot), 'w') as fp:
@@ -661,7 +662,7 @@ if __name__ == "__main__":
     if args.model == "let_baseline":
         run_baseline(with_relation=False, let=True, only_let=args.only_let)
     if args.model == "emb_gen":
-        path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_16000"
+        path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_28000"
         if args.prev:
             prev_multi(path, id=args.id, let=True, only_let=args.only_let)
         else:
