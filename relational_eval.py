@@ -659,18 +659,20 @@ if __name__ == "__main__":
     args = get_arguments().parse_args()
     if args.model == "vanilla":
         run_vanilla(remove_relation_for_test=args.remove_relation_for_test)
-    if args.model == "baseline_relation":
+    elif args.model == "baseline_relation":
         run_baseline(with_relation=True, let=False, remove_relation_for_test=args.remove_relation_for_test)
-    if args.model == "let_baseline":
+    elif args.model == "let_baseline":
         run_baseline(with_relation=False, let=True, only_let=args.only_let)
-    if args.model == "emb_gen":
+    elif args.model == "emb_gen":
         path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_28000"
         if args.prev:
             prev_multi(path, id=args.id, let=True, only_let=args.only_let)
         else:
             main_multi(path, id=args.id, let=True, only_let=args.only_let, interleaved=args.interleaved, mask_new_tokens=args.mask_new_tokens)
-    if args.model == "alphabet":
+    elif args.model == "alphabet":
         run_baseline(with_relation=False, let=True, only_let=args.only_let, var_names=True)
+    else:
+        raise NotImplementedError
     # print("running with relation=True")
     # run_baseline(True)
     # print("running with relation=False")
