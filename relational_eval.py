@@ -403,7 +403,7 @@ def run_vanilla(remove_relation_for_test=False):
     model.eval()
     print("here")
     print(len(examples))
-    for k_shot in [2,8]:
+    for k_shot in [4]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
@@ -612,7 +612,7 @@ def run_baseline(with_relation=True, let=False, only_let= False, var_names=False
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [2]:
+    for k_shot in [2,4,8]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
