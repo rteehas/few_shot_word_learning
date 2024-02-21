@@ -516,7 +516,7 @@ def main_multi(path, id, let=False, only_let=False, interleaved=False, mask_new_
         train_examples = json.load(fp)
     examples = read_jsonl("test_relation.jsonl")
     with distributed_state.split_between_processes(examples) as partial_examples:
-        for k_shot in [1, 2,4,8]:
+        for k_shot in [2,4,8]:
             outputs = []
             bad_examples = []
             print("{} shots...".format(k_shot))
