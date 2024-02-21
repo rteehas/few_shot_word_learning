@@ -308,7 +308,7 @@ def run_example_vanilla(model, tokenizer, train_examples, ex, k_shot, remove_rel
     text, ans = process_for_vanilla_cot(train_examples, ex, k_shot,remove_relation_for_test=remove_relation_for_test)
 
     target_input = tokenizer(text, return_tensors='pt').to(model.device)
-    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=100)
+    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=400)
     out_text = tokenizer.decode(gen_out[0])
     return out_text, text
 
@@ -401,7 +401,7 @@ def run_vanilla(remove_relation_for_test=False):
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [8]:
+    for k_shot in [2,8]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
