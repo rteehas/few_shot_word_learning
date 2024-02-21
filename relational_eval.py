@@ -632,7 +632,7 @@ def run_baseline(with_relation=True, let=False, only_let= False, var_names=False
             # except:
             #     bad_examples.append(ex)
 
-        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_let_{}_only_let_{}_alphabet_{}.json".format(with_relation, k_shot, id, let, only_let, var_names), 'w') as fp:
+        with open("relational_test_outputs_baseline_relation_{}_{}shot_{}_let_{}_only_let_{}_alphabet_{}_remove_relation_{}.json".format(with_relation, k_shot, id, let, only_let, var_names, remove_relation_for_test), 'w') as fp:
             json.dump(outputs, fp)
 
         # with open("relational_error_examples_relation_{}_{}shot.json".format(with_relation, k_shot), 'w') as fp:
