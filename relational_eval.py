@@ -401,6 +401,8 @@ def run_vanilla(remove_relation_for_test=False):
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
+    print("here")
+    print(len(examples))
     for k_shot in [2,8]:
         outputs = []
         bad_examples = []
