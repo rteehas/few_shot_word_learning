@@ -140,7 +140,7 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
                     else:
                         lets.append(" " + second_let_str.format(k, v) + ".\n")
             if only_let:
-                preamble = " ".join(lets) + "Answer: "
+                preamble = " ".join(lets)
             else:
                 preamble = " ".join(lets)
             if var_names:
@@ -163,7 +163,7 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
                                 ans_str += first_let_str.format(k, alphabet_mapping[k]) + ","
                             else:
                                 ans_str += first_let_str.format(k, v) + ","
-                        elif i < len(list(mapping.keys())) - 1:
+                        elif i < len(list(remaining_mapping.keys())) - 1:
                             if var_names:
                                 ans_str += " " + second_let_str.format(k, alphabet_mapping[k]) + ","
                             else:
@@ -173,8 +173,11 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
                                 ans_str += " " + second_let_str.format(k, alphabet_mapping[k]) + ".\n"
                             else:
                                 ans_str += " " + second_let_str.format(k, v) + ".\n"
-
-                ans_str += " " + s + "\n"
+                if not only_let:
+                    ans_str += " " + s + "\n"
+                else:
+                    ans_str += "\n"
+                    break
                 if var_names:
                     for k, v in mapping.items():
                         ans_str = ans_str.replace(v, alphabet_mapping[k])
@@ -272,7 +275,7 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
 
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
-    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 60,
+    gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 200,
                              mask_new_tokens=mask_new_tokens)
     out_text = tokenizerTask.decode(gen_out[0])
     return out_text, text
