@@ -428,8 +428,8 @@ def get_def_loss_baseline(ex, model, tokenizer, k, tuning=False, lr=3e-4):
             prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
             return -prob[0]
 
-def evaluate_example_hice(ex, model, tokenizerTask, k, dictionary):
-    samples, seqs, labels, true_words = prepare_example(ex, k, emb_gen=False, hice=True)
+def evaluate_example_hice(ex, model, tokenizerTask, k, dictionary, with_prompt):
+    samples, seqs, labels, true_words = prepare_example(ex, k, emb_gen=False, hice=True, with_prompt=with_prompt)
     probs = []
     for sample, seq_tup, word in zip(samples, seqs, true_words):
         seq, base = seq_tup
@@ -625,6 +625,7 @@ if __name__ == "__main__":
         secondLM.resize_token_embeddings(len(tokenizerTask))
         secondLM.eval()
         hice = HiCEBaseline(hice_path, input_linear_path, output_linear_path, secondLM).to(device)
+        hice.eval()
         hice.device = device
         dictionary = load_dictionary(w2v_dir, corpus_dir, 24)
         scores = {}
