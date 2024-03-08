@@ -188,7 +188,10 @@ def create_example(ex, mapping=None, use_one_example=False, no_text=False, let=F
     if var_names:
         context = construct_context(alphabet_mapping)
     else:
-        context = construct_context(mapping)
+        if let:
+            context = construct_context(remaining_mapping)
+        else:
+            context = construct_context(mapping)
 
     if use_one_example:
         context = [[c[0]] for c in context]
@@ -209,7 +212,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
             answer = answer + "Final answer: {}".format(ex['final_answer'])
             contexts += context
             answers.append(answer)
-    #             print(contexts)
+            print("in for",contexts)
 
     test_context, test_answer, final_mapping = create_example(test_example, mapping=mapping,
                                                               use_one_example=use_one_example, no_text=no_text, let=let, only_let=only_let, var_names=var_names, interleaved=interleaved)
@@ -220,7 +223,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
     # test_answer = test_example['question']
     # truncated_answer = remove_answer_for_eval(test_answer)
     truncated_answer = test_answer.split(test_eq[-1])[0]
-
+    print("before joining", contexts, test_context)
     truncated_answer = "{}\n{}".format(test_example['question'], truncated_answer)
     # print(test_answer, test_eq[-1], truncated_answer)
     if k_shot > 0:
@@ -228,6 +231,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
         answer_text = answer_text + "\n" + truncated_answer
         contexts += test_context
         contexts = [c for c in contexts if c != []]  # empty ones are added for the few shot example nonces, remove them
+        print("after joining", contexts)
         return contexts, answer_text, test_example['final_answer']
     else:
         return test_context, truncated_answer, test_example['final_answer']
@@ -272,8 +276,9 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
     # print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
     # print("num new tokens after", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
-
+    print('contexts',contexts)
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
+    print('ctx', ctx)
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
     gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 200,
                              mask_new_tokens=mask_new_tokens)
@@ -302,7 +307,7 @@ def run_example_baseline(model, tokenizer, train_examples, ex, k_shot, with_rela
         text, ans = process_for_baseline_eval(train_examples, ex, k_shot, remove_relation_for_test=remove_relation_for_test)
 
     target_input = tokenizer(text, return_tensors='pt').to(model.device)
-    gen_out = model.generate(**target_input, use_cache=True, top_k=10, max_new_tokens=400)
+    gen_out = model.generate(**target_input, use_cache=True, max_new_tokens=200, do_sample=False)
     out_text = tokenizer.decode(gen_out[0])
     return out_text, text
 
@@ -516,7 +521,7 @@ def main_multi(path, id, let=False, only_let=False, interleaved=False, mask_new_
         train_examples = json.load(fp)
     examples = read_jsonl("test_relation.jsonl")
     with distributed_state.split_between_processes(examples) as partial_examples:
-        for k_shot in [2,4,8]:
+        for k_shot in [2]:
             outputs = []
             bad_examples = []
             print("{} shots...".format(k_shot))
@@ -615,7 +620,7 @@ def run_baseline(with_relation=True, let=False, only_let= False, var_names=False
 
     examples = read_jsonl("test_relation.jsonl")
     model.eval()
-    for k_shot in [2,4,8]:
+    for k_shot in [2]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
@@ -668,7 +673,7 @@ if __name__ == "__main__":
     elif args.model == "let_baseline":
         run_baseline(with_relation=False, let=True, only_let=args.only_let)
     elif args.model == "emb_gen":
-        path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_28000"
+        path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_4_16000"
         if args.prev:
             prev_multi(path, id=args.id, let=True, only_let=args.only_let)
         else:
