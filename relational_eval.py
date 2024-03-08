@@ -212,7 +212,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
             answer = answer + "Final answer: {}".format(ex['final_answer'])
             contexts += context
             answers.append(answer)
-            print("in for",contexts)
+            # print("in for",contexts)
 
     test_context, test_answer, final_mapping = create_example(test_example, mapping=mapping,
                                                               use_one_example=use_one_example, no_text=no_text, let=let, only_let=only_let, var_names=var_names, interleaved=interleaved)
@@ -223,7 +223,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
     # test_answer = test_example['question']
     # truncated_answer = remove_answer_for_eval(test_answer)
     truncated_answer = test_answer.split(test_eq[-1])[0]
-    print("before joining", contexts, test_context)
+    # print("before joining", contexts, test_context)
     truncated_answer = "{}\n{}".format(test_example['question'], truncated_answer)
     # print(test_answer, test_eq[-1], truncated_answer)
     if k_shot > 0:
@@ -231,7 +231,7 @@ def process_for_eval(train_set, test_example, k_shot=0, use_one_example=False, n
         answer_text = answer_text + "\n" + truncated_answer
         contexts += test_context
         contexts = [c for c in contexts if c != []]  # empty ones are added for the few shot example nonces, remove them
-        print("after joining", contexts)
+        # print("after joining", contexts)
         return contexts, answer_text, test_example['final_answer']
     else:
         return test_context, truncated_answer, test_example['final_answer']
