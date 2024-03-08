@@ -636,7 +636,7 @@ if __name__ == "__main__":
                 for k in range(1, 5):
                     outputs = []
                     for ex in twitter_task:
-                         outputs.append(evaluate_example_hice(ex, hice, tokenizerTask, k, dictionary))
+                         outputs.append(evaluate_example_hice(ex, hice, tokenizerTask, k, dictionary, with_prompt=args.with_prompt))
 
                     acc = sum(outputs) / len(outputs)
                     print("Accuracy for k = {} is {}".format(k, acc))
