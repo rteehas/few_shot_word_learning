@@ -360,10 +360,17 @@ def make_w2v_batch(contexts, pad=0):
     return data
 
 def get_w2v_ctx_prediction(oov_cxt, dictionary, pad=0):
-    try:
-        pred = [torch.mean(torch.stack([torch.tensor(dictionary.idx2vec[pi], device="cuda") for pi in pp if pi != pad]), dim=0, keepdim=True) for pp in oov_cxt.reshape(oov_cxt.shape[0], -1)]
-    except:
-        pred = torch.zeros_like(torch.tensor(dictionary.idx2vec[10], device="cuda"))
+    pred = []
+    for pp in oov_cxt.reshape(oov_cxt.shape[0], -1):
+        tensors = [torch.tensor(dictionary.idx2vec[pi], device="cuda") for pi in pp if pi != pad]
+        if len(tensors) > 0:
+            pred.append(torch.mean(torch.stack(tensors)))
+        else:
+            pred.append(torch.zeros_like(torch.tensor(dictionary.idx2vec[10], device="cuda")))
+    # try:
+    #     pred = [torch.mean(torch.stack([torch.tensor(dictionary.idx2vec[pi], device="cuda") for pi in pp if pi != pad]), dim=0, keepdim=True) for pp in oov_cxt.reshape(oov_cxt.shape[0], -1)]
+    # except:
+    #     pred = torch.zeros_like(torch.tensor(dictionary.idx2vec[10], device="cuda"))
     return pred
 
 @torch.no_grad
