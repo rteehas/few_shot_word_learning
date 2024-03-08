@@ -276,9 +276,9 @@ def run_example(model, tokenizerMLM, tokenizerTask, train_examples, ex, k_shot, 
     # print("num new tokens before", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
     verify_or_fix_num_tokens(model, tokenizerMLM, tokenizerTask, contexts)
     # print("num new tokens after", len(tokenizerMLM.get_added_vocab()), len(tokenizerTask.get_added_vocab()))
-    print('contexts',contexts)
+    # print('contexts',contexts)
     ctx = [tokenizerMLM(c, padding="longest", truncation=True, return_tensors='pt').to(model.device) for c in contexts]
-    print('ctx', ctx)
+    # print('ctx', ctx)
     target_input = tokenizerTask(text, return_tensors='pt').to(model.device)
     gen_out = generate_multi(model, ctx, target_input['input_ids'], target_input['attention_mask'], 200,
                              mask_new_tokens=mask_new_tokens)
@@ -411,7 +411,7 @@ def run_vanilla(remove_relation_for_test=False):
     model.eval()
     print("here")
     print(len(examples))
-    for k_shot in [4]:
+    for k_shot in [2]:
         outputs = []
         bad_examples = []
         print("{} shots...".format(k_shot))
