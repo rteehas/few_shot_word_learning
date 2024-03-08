@@ -196,6 +196,7 @@ class AdditiveBaseline(nn.Module):
 
 
             pred_embed = get_w2v_ctx_prediction(c, self.dictionary, pad=0)[0]
+            print(pred_embed)
             tok_input_embed = self.input_linear(pred_embed)
             tok_output_embed = self.output_linear(pred_embed)
             new_w = self.get_new_input_weights(tok_input_embed)
