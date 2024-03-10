@@ -194,8 +194,8 @@ def prepare_example(ex, k, emb_gen, hice=False, with_prompt=False):
 def prepare_prompt(examples, definition):
     return example_prompt.format("\n".join(examples), definition)
 
-def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4):
-    samples, seqs, labels = prepare_example(ex, k, False)
+def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4, with_prompt=False):
+    samples, seqs, labels = prepare_example(ex, k, hice=False, with_prompt=with_prompt)
 
 
     tokenizer.pad_token = tokenizer.unk_token
@@ -583,7 +583,7 @@ if __name__ == "__main__":
             for k in range(1, 5):
                 outputs = []
                 for ex in twitter_task:
-                     outputs.append(evaluate_example(ex, secondLM, tokenizerTask, k, args.tuning, args.lr))
+                     outputs.append(evaluate_example(ex, secondLM, tokenizerTask, k, args.tuning, args.lr, with_prompt=args.with_prompt))
 
                 # acc = sum(outputs) / len(outputs)
                 if not args.tuning:
