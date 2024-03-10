@@ -48,7 +48,10 @@ def prepare_example(ex, k, emb_gen, hice=False, with_prompt=False):
         base_seq = base_prompt.format(definition)
         seqs.append((word_seq, base_seq))
     else:
-        word_seq = def_prompt.format(definition)
+        if with_prompt:
+            word_seq = example_prompt.format("\n".join(word_samples), definition)
+        else:
+            word_seq = def_prompt.format(definition)
         base_seq = base_prompt.format(definition)
         seqs.append((word_seq, base_seq))
     print("word seq", word_seq)
@@ -80,7 +83,10 @@ def prepare_example(ex, k, emb_gen, hice=False, with_prompt=False):
             base_seq = base_prompt.format(definition)
             seqs.append((neg_seq, base_seq))
         else:
-            neg_seq = example_prompt.format("\n".join(neg_samples), definition)
+            if with_prompt:
+                neg_seq = example_prompt.format("\n".join(neg_samples), definition)
+            else:
+                neg_seq = def_prompt.format(definition)
             base_seq = base_prompt.format(definition)
             seqs.append((neg_seq, base_seq))
 
@@ -457,8 +463,8 @@ def evaluate_example_hice(ex, model, tokenizerTask, k, dictionary, with_prompt):
     print(probs)
     return evaluate_type_1(probs, labels)
 
-def evaluate_example_additive(ex, model, tokenizerTask, k, dictionary):
-    samples, seqs, labels, true_words = prepare_example(ex, k, emb_gen=False, hice=True, with_prompt=False)
+def evaluate_example_additive(ex, model, tokenizerTask, k, dictionary, with_prompt):
+    samples, seqs, labels, true_words = prepare_example(ex, k, emb_gen=False, hice=True, with_prompt=with_prompt)
     probs = []
     for sample, seq_tup, word in zip(samples, seqs, true_words):
         seq, base = seq_tup
@@ -674,7 +680,7 @@ if __name__ == "__main__":
                 for k in range(1, 5):
                     outputs = []
                     for ex in twitter_task:
-                         outputs.append(evaluate_example_additive(ex, additive, tokenizerTask, k, dictionary))
+                         outputs.append(evaluate_example_additive(ex, additive, tokenizerTask, k, dictionary, with_prompt=args.with_prompt))
 
                     acc = sum(outputs) / len(outputs)
                     print("Accuracy for k = {} is {}".format(k, acc))
