@@ -367,7 +367,7 @@ def get_w2v_ctx_prediction(oov_cxt, dictionary, pad=0):
         if len(tensors) > 0:
             pred.append(torch.mean(torch.stack(tensors), dim=0, keepdim=True))
         else:
-            pred.append(torch.zeros_like(torch.tensor(dictionary.idx2vec[10], device="cuda")))
+            pred.append(torch.zeros_like(torch.tensor(dictionary.idx2vec[10], device="cuda")).unsqueeze(0))
     # try:
     #     pred = [torch.mean(torch.stack([torch.tensor(dictionary.idx2vec[pi], device="cuda") for pi in pp if pi != pad]), dim=0, keepdim=True) for pp in oov_cxt.reshape(oov_cxt.shape[0], -1)]
     # except:
