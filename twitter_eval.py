@@ -195,7 +195,7 @@ def prepare_prompt(examples, definition):
     return example_prompt.format("\n".join(examples), definition)
 
 def evaluate_example(ex, model, tokenizer, k, tuning=False, lr=3e-4, with_prompt=False):
-    samples, seqs, labels = prepare_example(ex, k, hice=False, with_prompt=with_prompt)
+    samples, seqs, labels = prepare_example(ex, k, emb_gen=False, hice=False, with_prompt=with_prompt)
 
 
     tokenizer.pad_token = tokenizer.unk_token
