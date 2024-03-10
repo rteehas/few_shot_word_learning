@@ -498,7 +498,7 @@ def get_arguments():
 
 if __name__ == "__main__":
     device = "cuda"
-    twitter_task = load_from_disk("new_twitter_large_v2")
+    twitter_task = load_from_disk("new_twitter_large_v3")
     args = get_arguments().parse_args()
     if args.model == "emb_gen":
         path = args.path
