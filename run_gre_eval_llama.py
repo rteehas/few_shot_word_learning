@@ -278,7 +278,7 @@ def eval_baseline(args):
     else:
         fname = "baseline_with_prompt_{}_with_def_{}_tuning_{}".format(args.with_prompt, with_def, args.tuning)
 
-    fname = "{}_{}.json".format(fname, id)
+    fname = "{}_{}_2.json".format(fname, id)
     with open(fname, 'w') as fp:
         json.dump(scores, fp)
 
