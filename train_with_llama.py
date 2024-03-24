@@ -209,10 +209,13 @@ def generate_multi(model, context, input_ids, attention_mask, max_new_tokens, te
     sorted_toks = sorted(list(initial_outputs.memories[0]['output_memory'].memory.keys()))
     for tok in sorted_toks:
         outp_embed.append(initial_outputs.memories[0]['output_memory'].retrieve(tok))
-
+    # print("context in generate multi", context)
+    # print("out_embeds", outp_embed)
+    # print("in embeds", inp_embed)
     input_weights = model.get_new_input_weights_multi(inp_embed)
     output_weights = model.get_new_output_weights_multi(outp_embed)
-
+    # print("tail of inp",input_weights[-len(inp_embed):,:])
+    # print("tail of out", output_weights[-len(inp_embed):, :])
     first_token = decoding_step(initial_outputs.logits, temperature, top_k, do_sample=do_sample, mask_new_tokens=mask_new_tokens)
     new_input_ids = torch.cat([input_ids, first_token], dim=1)
     last_element = attention_mask[:, -1].unsqueeze(1)
@@ -1202,6 +1205,11 @@ def create_checkpoint_directories(args):
 
     if args.use_pos:
         path = path + "positional_encoding/"
+
+    if args.ablate_cosine:
+        path = path + "ablate_cosine/"
+    if args.ablate_logits:
+        path = path + "ablate_logits/"
 
 
     suffix = "checkpoints/"
