@@ -663,6 +663,11 @@ def main():
         elif "vanilla" in args.path:
             model_type="vanilla"
 
+        if "ablate_cosine" in args.path:
+            model_type = model_type + "_ablate_cosine"
+        elif "ablate_logits" in args.path:
+            model_type = model_type + "_ablate_logits"
+
         with open("embedding_generator_{}_prompt_{}_defs_{}.json".format(model_type, args.with_prompt, with_def), 'w') as fp:
             json.dump(scores, fp)
                 # print("-----------Saving Wrong Answers----------")
