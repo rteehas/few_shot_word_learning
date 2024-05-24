@@ -41,10 +41,7 @@ TIME_FORMAT_STR = "%b_%d_%H_%M_%S"
 
 from torch.autograd.profiler import record_function
 
-# os.environ["TORCH_CPP_LOG_LEVEL"]="INFO"
 os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
-# os.environ['WANDB_DISABLED'] = 'true'
-# os.environ['WANDB_MODE']='disabled'
 
 def trace_handler(prof: torch.profiler.profile):
    # Prefix for file names.
@@ -59,32 +56,6 @@ def trace_handler(prof: torch.profiler.profile):
    # Construct the memory timeline file.
    prof.export_memory_timeline(f"{file_prefix}.html", device="cuda:0")
 
-# def get_matching_indices(A, B):
-#     used_indices_B = []
-#     positions_A_in_B_unique = []
-#     for a_item in A:
-#         matched_indices = torch.where((B == a_item) & (~torch.tensor([i in used_indices_B for i in range(len(B))], device=B.device)))[0]
-#         if len(matched_indices) > 0:
-#             positions_A_in_B_unique.append(matched_indices[0].item())
-#             used_indices_B.append(matched_indices[0].item())
-#         else:
-#             positions_A_in_B_unique.append(None)
-#
-#     used_indices_A = []
-#     positions_B_in_A_unique = []
-#     for b_item in B:
-#         matched_indices = torch.where((A == b_item) & (~torch.tensor([i in used_indices_A for i in range(len(A))], device=A.device)))[0]
-#         if len(matched_indices) > 0:
-#             positions_B_in_A_unique.append(matched_indices[0].item())
-#             used_indices_A.append(matched_indices[0].item())
-#         else:
-#             positions_B_in_A_unique.append(None)
-#
-#     ordered_a = order_and_select_indices(positions_A_in_B_unique)
-#     ordered_b = order_and_select_indices(positions_B_in_A_unique)
-#
-#     assert len(ordered_a) == len(ordered_b), "Matching indices must be of the same lengthi, A={}\nB={}".format(ordered_a, ordered_b)
-#     return ordered_a, ordered_b
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2 ** 32
     np.random.seed(worker_seed)
@@ -134,16 +105,10 @@ def decoding_step(logits, temperature, top_k=None, do_sample=False, new_token_id
         scaled_logits[scaled_logits < v[:, [-1]]] = -float('Inf')
 
     probs = F.softmax(scaled_logits, dim=-1)
-    # print(probs.shape)
-    # print("before probs", probs)
-    # print("mask tokens is", mask_new_tokens)
     if mask_new_tokens:
-        # print("here")
         probs[:,new_token_idx:] = 0.0
-        # print("after zeros probs", probs)
-        # print("sum", probs.sum())
         probs = probs / probs.sum() #renormalize
-        # print("after renormalize probs", probs)
+
     if do_sample:
         idx_next = torch.multinomial(probs, num_samples=1)
     else:
@@ -171,7 +136,6 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
     new_input_ids = torch.cat([input_ids, first_token], dim=1)
     last_element = attention_mask[:, -1].unsqueeze(1)
     new_attention_mask = torch.cat([attention_mask, last_element], dim=1)
-    # print("mask tokens is", mask_new_tokens)
     for i in range(1, max_new_tokens):
         input_embeds = F.embedding(new_input_ids, input_weights)
         outputs = model.secondLM.model(
@@ -204,29 +168,26 @@ def generate_multi(model, context, input_ids, attention_mask, max_new_tokens, te
     sorted_toks = sorted(list(initial_outputs.memories[0]['input_memory'].memory.keys()))
     for tok in sorted_toks:
         inp_embed.append(initial_outputs.memories[0]['input_memory'].retrieve(tok))
-    # inp_embed = initial_outputs.memories[0]['input_memory'].retrieve(new_tok_id)
+
     outp_embed = []
     sorted_toks = sorted(list(initial_outputs.memories[0]['output_memory'].memory.keys()))
     for tok in sorted_toks:
         outp_embed.append(initial_outputs.memories[0]['output_memory'].retrieve(tok))
-    # print("context in generate multi", context)
-    # print("out_embeds", outp_embed)
-    # print("in embeds", inp_embed)
+
     input_weights = model.get_new_input_weights_multi(inp_embed)
     output_weights = model.get_new_output_weights_multi(outp_embed)
-    # print("tail of inp",input_weights[-len(inp_embed):,:])
-    # print("tail of out", output_weights[-len(inp_embed):, :])
+
     first_token = decoding_step(initial_outputs.logits, temperature, top_k, do_sample=do_sample, mask_new_tokens=mask_new_tokens)
     new_input_ids = torch.cat([input_ids, first_token], dim=1)
     last_element = attention_mask[:, -1].unsqueeze(1)
     new_attention_mask = torch.cat([attention_mask, last_element], dim=1)
-    # print("mask tokens is", mask_new_tokens)
+
     for i in range(1, max_new_tokens):
         input_embeds = F.embedding(new_input_ids, input_weights)
         outputs = model.secondLM.model(
             inputs_embeds=input_embeds,
             attention_mask=new_attention_mask,
-            # use_cache=True
+
         )
         llama_outputs = model.llama_forward(labels=None, outputs=outputs, new_w=output_weights, index=None)
 
@@ -423,7 +384,6 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.firstLM = firstLM
         self.secondLM = secondLM
         self.memory_config = memory_config
-        # self.memory = OnlineProtoNet(memory_config)
         self.num_new_tokens = num_new_tokens
         self.num_layers = num_layers
         self.distillation_temp = distillation_temp
@@ -432,25 +392,15 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
 
-        #self.dropout = nn.Dropout(0.2)
-
         with torch.no_grad():
-            # firstLM_mean_embed = torch.mean(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
+
             output_mean_embed = torch.mean(
                 self.secondLM.get_output_embeddings().weight.norm(dim=1))
-            # firstLM_std = torch.std(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
+
             input_mean_embed = torch.mean(
                 self.secondLM.get_input_embeddings().weight.norm(dim=1))
 
             self.emb_gen.init_weights(input_mean_embed, output_mean_embed)
-
-        #     torch.register_buffer("firstLM_mean_embed", self.firstLM_mean_embed)
-        #     torch.register_buffer("secondLM_mean_embed", self.secondLM_mean_embed)
-
-        # with torch.no_grad():
-        #     self.firstLM.get_input_embeddings().weight.data[self.first_list, :] = 0.
-        #     self.secondLM.get_input_embeddings().weight[self.second_list, :] = 0.
-        #     self.secondLM.get_output_embeddings().weight[self.second_list] = 0.
 
         self.freeze()
 
@@ -471,14 +421,6 @@ class MorphMemoryModelLLAMA(nn.Module):
     @property
     def initial_second_ind(self):
         return self.secondLM.config.vocab_size
-
-    # def add_new_tokens(self, num_new_tokens):
-    #
-    #     self.num_new_tokens += num_new_tokens
-    #     with torch.no_grad():
-    #         self.firstLM.get_input_embeddings().weight[self.first_list, :] = 0.
-    #         self.secondLM.get_input_embeddings().weight[self.second_list, :] = 0.
-    #         self.secondLM.get_output_embeddings().weight[self.second_list] = 0.
 
     def freeze(self):
         for parameter in self.firstLM.parameters():
@@ -505,6 +447,9 @@ class MorphMemoryModelLLAMA(nn.Module):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
+    def load_emb_gen(self, path_to_emb_gen):
+        self.emb_gen.load_state_dict(path_to_emb_gen + "/pytorch_model.bin")
+
     def swap_with_mask(self, inputs):
         inp = inputs.clone()
         for nonce in self.first_list:
@@ -513,20 +458,8 @@ class MorphMemoryModelLLAMA(nn.Module):
 
     def get_new_output_weights(self, new_embed):
         w = self.secondLM.lm_head.weight
-        # n, hidden = w.shape
-        # w.requires_grad=True
-        # msk = torch.zeros_like(w, device=w.device)
-        # # msk2 = torch.zeros_like(w, device=w.device)
-        # token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
-        # for key in memory.memory:
-        #     msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden),
-        #                       memory.retrieve(key))
-        #     # msk2[token_mapping[key], :] = 1.
 
-        # return w + msk
         return torch.cat([w, new_embed])
-
-
 
     def get_new_weights(self, task, new_embed):
 
@@ -539,25 +472,12 @@ class MorphMemoryModelLLAMA(nn.Module):
             raise NotImplementedError
 
         w = ref_model.get_input_embeddings().weight
-        # n, hidden = w.shape
-        # if not ref_model.get_input_embeddings().weight.requires_grad:
-        #     w.requires_grad = True
-        #
-        # msk = torch.zeros_like(w, device=w.device)
-        # # msk2 = torch.zeros_like(w, device=w.device)
-        # token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
-        # for key in memory.memory:
-        #     msk = msk.scatter(0, torch.tensor([token_mapping[key]], device=w.device).expand(1, hidden),
-        #                       memory.retrieve(key))
-        #     # msk2[token_mapping[key], :] = 1.
-        #
-        # return w + msk
+
         return torch.cat([w, new_embed])
 
     def get_new_weights_definition_input(self, new_input_embed, def_input_embed):
 
         input_w = self.secondLM.get_input_embeddings().weight
-        # output_w = self.secondLM.get_output_embeddings().weight
 
         return torch.cat([input_w, new_input_embed, def_input_embed])
 
@@ -584,8 +504,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         else:
             logits = F.linear(hidden_states, new_w, bias=self.secondLM.lm_head.bias)
         logits = logits.float()
-        # print(logits.shape, "logits")
-        # print(self.secondLM.lm_head.weight.shape, "lm_logits")
+
         loss = None
         if labels is not None:
             # Shift so that tokens < n predict n
@@ -698,10 +617,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 input_weights.append(input_memory.retrieve(tok))
 
             new_w = self.get_new_input_weights_multi(input_weights)
-            # output_weights = self.get_new_output_weights(new_embed=out_embs)
 
-            # with record_function("## LLAMA MODEL NONCE ##"):
-            #     print(task_ids[i])
             input_embeds = F.embedding(task_ids[i], new_w)
             embeds.append(input_embeds)
             mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
@@ -711,7 +627,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         outputs = self.secondLM.model(
             inputs_embeds=input_embeds,
             attention_mask=attn,
-            # output_hidden_states=True
+
         )
 
         outs = []
@@ -760,9 +676,6 @@ class MorphMemoryModelLLAMA(nn.Module):
         else:
             base_ids, base_attn_mask, base_labels = None, None, None
 
-        # if 'labels' in batch:
-        #   task_labels = task_labels.reshape((b_task * k_task, l_task))
-
         task_labels = batch['labels']
         outs = []
         assert len(contexts) == b_task
@@ -774,8 +687,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         distillation_outputs = []
         # definition_outputs = []
         for i in range(b_task):
-            # print("Context {}".format(i))
-            # with record_function("## MLM STEP ##"):
+
             c = contexts[i].to(self.firstLM.device)
             #             print('before', c['input_ids'])
 
@@ -792,13 +704,12 @@ class MorphMemoryModelLLAMA(nn.Module):
             else:
                 new_token = torch.tensor(self.first_list, device=c['input_ids'].device).unique()[0].item()
                 mlm_ids = c['input_ids']
-            #             print('after', c['input_ids'])
-            #             print("after mlm ids", mlm_ids)
+
             with torch.no_grad():
                 first_out = self.firstLM(input_ids=mlm_ids, attention_mask=c['attention_mask'],
                                          output_hidden_states=True)
 
-        # with record_function("## COMBINED ##"):
+
             first_hidden = first_out.hidden_states
             combined = combine_layers(first_hidden, self.layers)
 
@@ -808,45 +719,22 @@ class MorphMemoryModelLLAMA(nn.Module):
             attn = c['attention_mask']
             embed_inputs = combined
 
-        # with record_function("## EMBED GEN FORWARD ##"):
+
             inp_embs, out_embs = self.emb_gen(embed_inputs, attn)
 
             input_memory.store(new_token, inp_embs)
             output_memory.store(new_token, out_embs)
 
             new_w = self.get_new_weights(task="Task", new_embed=inp_embs)
-            # output_weights = self.get_new_output_weights(new_embed=out_embs)
 
-        # with record_function("## LLAMA MODEL NONCE ##"):
-        #     print(task_ids[i])
             input_embeds = F.embedding(task_ids[i], new_w)
             embeds.append(input_embeds)
             mem_embeds.append(dict(input_memory=input_memory, output_memory=output_memory))
-            # sys.exit(0)
 
-            # outputs = self.secondLM.model(
-            #     inputs_embeds=input_embeds.unsqueeze(0),
-            #     attention_mask=task_attn[i].unsqueeze(0),
-            #     # output_hidden_states=True
-            # )
-            # # print(task_labels[i].shape, "label_shape")
-            # # print(outputs[0].shape)
-            #
-            # llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights, new_token_loss=True)
-        #             with torch.no_grad():
-        #     new_tok_loss = get_new_token_loss_labels_llama(task_labels[i].unsqueeze(0), llama_outputs.logits,
-        #                                                    self.secondLM.lm_head.weight.shape[0] + self.num_new_tokens,
-        #                                                    torch.tensor(self.second_list,
-        #                                                                 device=llama_outputs.logits.device).unique())
-        # with record_function("## NEGATIVES ##"):
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-                # print("negative id shape in model", negative_ids[i].shape)
+
                 negative_embeds = F.embedding(negative_ids[i], new_w)
-                    # if len(negative_embeds.shape) == 2:
-                    #     negative_embeds = negative_embeds.unsqueeze(0)
-                    #     n_attn_mask = negative_attn_mask[i].unsqueeze(0)
-                    # else:
-                    #     n_attn_mask = negative_attn_mask[i]
+
                 neg_embeds.append(negative_embeds)
 
         if (base_ids, base_attn_mask, base_labels) != (None, None, None):
@@ -867,7 +755,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         outputs = self.secondLM.model(
             inputs_embeds=input_embeds,
             attention_mask=attn,
-            output_hidden_states=output_hidden_states
+            # output_hidden_states=True
         )
         loss = []
         new_token_loss = []
@@ -877,8 +765,6 @@ class MorphMemoryModelLLAMA(nn.Module):
             output_weights = self.get_new_output_weights(new_embed=out_embs)
             llama_outputs, new_tok_loss = self.llama_forward(task_labels[i], outputs, output_weights,
                                                              i, new_token_loss=True)
-            # loss.append(llama_outputs.loss)
-            # new_token_loss.append(new_tok_loss)
 
             if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
                 negative_llama_outputs = self.llama_forward(negative_labels[i], outputs, output_weights,
@@ -952,27 +838,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                     memories=[mem]
                 )
             outs.append(out_vals)
-        # print("before mem forward")
-            #             print(new_token, new_tok_loss)
-            # token_mapping = {k: v for k, v in zip(self.first_list, self.second_list)}
-            #             print("output", output_weights[token_mapping[new_token], :])
-            #             print("input", new_w[token_mapping[new_token], :])
-            # else:
-            #     out_vals = CausalLMOutputWithNewToken(
-            #         loss=llama_outputs.loss,
-            #         logits=None,
-            #         past_key_values=None,
-            #         hidden_states=None,
-            #         attentions=None,
-            #         new_token_loss=new_tok_loss,
-            #         memories=[dict(input_memory=input_memory, output_memory=output_memory)]
-            #     )
-            # # print("after mem forward")
-            # outs.append(out_vals)
-            # memories.append(memory)
 
-        #         print(outs, "output list")
-        # with record_function("## POST PROCESSING ##"):
         final_loss = torch.stack([o.loss for o in outs]).mean()
         final_new_token_loss = [o.new_token_loss for o in outs if o.new_token_loss is not None]
         final_hiddens = [o.hidden_states for o in outs]
@@ -986,16 +852,14 @@ class MorphMemoryModelLLAMA(nn.Module):
         final_memories = [o.memories[0] for o in outs]  # list of the dictionaries
 
         if (negative_ids, negative_attn_mask, negative_labels) != (None, None, None):
-            #print("positive losses", torch.stack([o.positive_loss for o in outs]))
-            #print("negative losses", torch.stack([o.negative_loss for o in outs]))
+
             final_positive_loss = torch.stack([o.positive_loss for o in outs]).mean()
             final_negative_loss = torch.stack([o.negative_loss for o in outs]).mean()
-            # final_positive_logits = torch.stack([o.positive_logits for o in outs])
-            # final_negative_logits = torch.stack([o.negative_logits for o in outs])
+
 
         if (base_ids, base_attn_mask, base_labels) != (None, None, None):
             final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
-            # final_base_logits = torch.stack([o.base_logits for o in outs])
+
             final_base_hiddens = [o.base_hidden_states for o in outs]
             final_distillation_loss = torch.stack([o.distillation_loss for o in outs]).mean()
 
@@ -1029,10 +893,7 @@ class MorphMemoryModelLLAMA(nn.Module):
                 memories=final_memories
             )
         elif (base_ids, base_attn_mask, base_labels) != (None, None, None):
-            # final_regression_loss = torch.stack([o.regression_loss for o in outs]).mean()
-            # final_base_logits = torch.stack([o.base_logits for o in outs])
-            # final_logits = torch.stack([o.logits for o in outs])
-            # final_base_hiddens = [o.base_hidden_states for o in outs]
+
             return CausalLMOutputWithRegressionLoss(
                 loss=final_loss,
                 logits=None,
@@ -1057,123 +918,9 @@ class MorphMemoryModelLLAMA(nn.Module):
             )
 
 
-
-        # print("before return")
-
-        # task_embeds = torch.stack(mem_embeds)
-        # outputs = self.secondLM.model(
-        #     inputs_embeds=task_embeds,
-        #     attention_mask=task_attn,
-        #     output_hidden_states=True
-        # )
-        #
-        # return self.secondLM(
-        #     inputs_embeds=task_embeds,
-        #     attention_mask=task_attn,
-        #     labels=task_labels,
-        #     output_hidden_states=True
-        # )
-        # return self.llama_forward(task_labels, outputs)
-
-
-# class FewShotLlamaDataset(Dataset):
-#     def __init__(self, tokenized_dataset, data_collator):
-#         self.tokenized_dataset = tokenized_dataset
-#         self.data_collator = data_collator
-#
-#
-#     def __getitem__(self, item):
-#         tokenized_input = self.tokenized_dataset[item]
-#         return tokenized_input
-#
-#     def collate(self, batch):
-#         out_batch = []
-#         out_batch.append([b[0] for b in batch])
-#
-#         out_batch.append(self.data_collator([b[1] for b in batch]))
-#
-#         return out_batch
-
-
-# class ConstantLengthDataset(IterableDataset):
-#     """
-#     Iterable dataset that returns constant length chunks of tokens from stream of text files.
-#         Args:
-#             tokenizer (Tokenizer): The processor used for proccessing the data.
-#             dataset (dataset.Dataset): Dataset with text files.
-#             infinite (bool): If True the iterator is reset after dataset reaches end else stops.
-#             seq_length (int): Length of token sequences to return.
-#             num_of_sequences (int): Number of token sequences to keep in buffer.
-#             chars_per_token (int): Number of characters per token used to estimate number of tokens in text buffer.
-#             tokenized (bool): If true we use a pretokenized dataset.
-#     """
-#
-#     def __init__(
-#         self,
-#         tokenizer,
-#         dataset,
-#         infinite=False,
-#         seq_length=1024,
-#         num_of_sequences=1024,
-#         chars_per_token=3.6,
-#         tokenized=False,
-#     ):
-#         self.tokenizer = tokenizer
-#         self.concat_token_id = tokenizer.bos_token_id
-#         self.dataset = dataset
-#         self.seq_length = seq_length
-#         self.epoch = 0
-#         self.infinite = infinite
-#         self.current_size = 0
-#         self.tokenized = tokenized
-#
-#         if self.tokenized:
-#             self.max_buffer_size = seq_length * num_of_sequences
-#             self.content_field = "input_ids"
-#         else:
-#             self.max_buffer_size = seq_length * chars_per_token * num_of_sequences
-#             self.content_field = "content"
-#
-#     def __iter__(self):
-#         iterator = iter(self.dataset)
-#         more_examples = True
-#         while more_examples:
-#             buffer, buffer_len = [], 0
-#             while True:
-#                 if buffer_len >= self.max_buffer_size:
-#                     break
-#                 try:
-#                     buffer.append(next(iterator)[self.content_field])
-#                     buffer_len += len(buffer[-1])
-#                 except StopIteration:
-#                     if self.infinite:
-#                         iterator = iter(self.dataset)
-#                         self.epoch += 1
-#                         # logger.info(f"Dataset epoch: {self.epoch}")
-#                     else:
-#                         more_examples = False
-#                         break
-#             if self.tokenized:
-#                 tokenized_inputs = buffer
-#             else:
-#                 tokenized_inputs = self.tokenizer(buffer, truncation=False)["input_ids"]
-#             all_token_ids = []
-#             for tokenized_input in tokenized_inputs:
-#                 all_token_ids.extend(tokenized_input + [self.concat_token_id])
-#             for i in range(0, len(all_token_ids), self.seq_length):
-#                 input_ids = all_token_ids[i : i + self.seq_length]
-#                 if len(input_ids) == self.seq_length:
-#                     self.current_size += 1
-#                     yield torch.tensor(input_ids)
-#
-#     def shuffle(self, buffer_size=1000):
-#         return ShufflerIterDataPipe(self, buffer_size=buffer_size)
-
-
 def get_arguments():
     parser = ArgumentParser()
     parser.add_argument("--lr", type=float, default=1e-6)
-    # parser.add_argument("--warmup", type=int, default=1e2)
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--data_path", type=str, default="")
     parser.add_argument("--memory", type=str, default="mean")
@@ -1193,7 +940,6 @@ def get_arguments():
     parser.add_argument("--regression_objective", action="store_true")
     parser.add_argument("--regression_alpha", type=float, default=1.0)
     parser.add_argument("--distillation_temp", type=int, default=1.0)
-    # parser.add_argument("--max_steps", type=int, required=True)
     parser.add_argument("--logging_step", type=int, required=True)
     parser.add_argument("--num_eval_steps", type=int, default=1000)
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
@@ -1257,8 +1003,7 @@ def create_checkpoint_directories(args):
 
 
     suffix = "checkpoints/"
-    # if os.path.isdir(path + suffix):
-    #     suffix = "checkpoints2/"
+
     path = path + suffix
     os.makedirs(path, exist_ok=True)
 
@@ -1299,7 +1044,7 @@ def main():
         return row
 
     def regression_collate(max_num_examples, batch, t5=False, k=None):
-        # print(batch[0].keys())
+
         if k is None:
             num_examples = np.random.choice(max_num_examples) + 1
         else:
@@ -1333,8 +1078,7 @@ def main():
             num_examples = k
         contexts = [sample_context(num_examples, b, t5=t5) for b in batch]
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
-        #for b  in batch:
-          #  print("sequence", tokenizerTask.decode(b['input_ids']))
+
         input_collate = data_collator(input_batch)
         final_collate = {}
         for k in input_collate:
@@ -1346,7 +1090,7 @@ def main():
     def sample_context(k, ex, t5=False):
         assert len(ex['sentences']) >= k
         sentences = np.random.choice(ex['sentences'], size=k, replace=False).tolist()
-        #print(sentences)
+
         if t5:
             sentences = [prepare_for_t5(s, "<nonce>") for s in sentences]
 
@@ -1357,97 +1101,6 @@ def main():
 
         return ctx
 
-    def check_example(ex):
-        found = False
-        if re.search(r"\b({})\b".format("|".join(words)), ex['text'], flags=re.I):
-            found = True
-
-        return found
-
-    def create_base_and_nonce(ex):
-        # contained_words = [w for w in words if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None]
-
-        # to_replace = np.random.choice(contained_words)
-        for w in words:
-            if re.search(r"\b({})\b".format(w), ex['text'], flags=re.I) is not None:
-                to_replace = w
-                break
-        # print("to replace", to_replace)
-        original_text = ex['text']
-
-        split = ex['text'].split(".")
-        output = [idx for idx, element in enumerate(split) if
-                  re.search(r"\b({})\b".format(to_replace), element, flags=re.I) is not None]
-        # print("output index", output)
-        first_index = output[0]
-
-        new_text = ".".join(split[first_index:])
-        # print("replacements and text:")
-        # print(to_replace, new_text)
-
-        nonce = "<{}_new>".format(to_replace.lower())
-
-        modified_text = re.sub(r"\b({})\b".format(to_replace), nonce, new_text, flags=re.I)
-        # print("modified = {}".format(modified_text))
-        # print("modified", modified_text)
-        # print("base", new_text)
-        ex['base text'] = new_text
-        ex['text'] = modified_text
-
-        return ex
-
-    def batched_process(batch):
-
-        new_texts = []
-        base_texts = []
-        for text in batch['text']:
-            if re.search(r"\b({})\b".format("|".join(words)), text, flags=re.I):
-                contained_words = [w for w in words if re.search(r"\b({})\b".format(w), text, flags=re.I) is not None]
-                to_replace = np.random.choice(contained_words)
-                split = text.split(".")
-                output = [idx for idx, element in enumerate(split) if
-                          re.search(r"\b({})\b".format(to_replace), element, flags=re.I) is not None]
-                first_index = output[0]
-                new_text = ".".join(split[first_index:])
-                nonce = "<{}_new>".format(to_replace.lower())
-                modified_text = re.sub(r"\b({})\b".format(to_replace), nonce, new_text, flags=re.I)
-                new_texts.append(modified_text)
-                base_texts.append(text)
-
-        return {'base text': base_texts, 'text': new_texts}
-
-    def get_examples(nonces, ex):
-
-        new_ex = {}
-        for n in nonces:
-            if n in ex['text']:
-                new_ex['word'] = n
-                new_ex['example'] = ex['text']
-
-        return new_ex
-
-    def get_examples_single_sentence(nonces, ex):
-        new_ex = {}
-        for n in nonces:
-            if n in ex['text']:
-                sentences = ex['text'].split(".")
-                example_sentences = [s + "." for s in sentences if n in s]
-                new_ex['word'] = n
-                new_ex['example'] = example_sentences
-
-        return new_ex
-
-    def fill_buffer(buffer, ex):
-        n = tokenizerMLM.convert_tokens_to_ids(ex['word'])
-        if type(ex['example']) == str:
-            buffer.buffer[n].appendleft(ex['example'])
-        elif type(ex['example']) == list:
-            for example in ex['example']:
-                example_toks = tokenizerMLM(example, truncation=True, max_length=256, return_tensors='pt')
-                if n in example_toks['input_ids']:
-                    buffer.buffer[n].appendleft(example)
-
-
     g = torch.Generator()
     g.manual_seed(0)
     torch.manual_seed(0)
@@ -1457,7 +1110,7 @@ def main():
 
     t5_flag = "t5" in args.first_lm
 
-    # assert not (args.negative_examples and args.regression_objective), "Regression for Negative Examples is not supported"
+
     if args.negative_examples:
         assert args.negative_data_path != "", "There must be a negative data set for negative examples"
 
@@ -1479,7 +1132,7 @@ def main():
     tokenizerTask = LlamaTokenizer.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", legacy=True,
                                                    use_fast=False)
     tokenizerTask.add_bos_token = True
-    # tokenizerTask.add_eos_token = True
+
 
     tokenizerTask.pad_token = tokenizerTask.unk_token
     if args.word_path != '':
@@ -1494,18 +1147,14 @@ def main():
             nonces.append("<def>")
 
         
-    # print("Nonces = {}".format(nonces))
+
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
     if not t5_flag:
         mask_token_id = tokenizerMLM.mask_token_id
     else:
         mask_token_id = None
-    #accelerator.wait_for_everyone()
 
-    # torch.cuda.memory._record_memory_history(
-    #     max_entries=200000
-    # )
     with accelerator.main_process_first():
         if "t5" in args.first_lm:
             T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
@@ -1519,11 +1168,11 @@ def main():
                                                 low_cpu_mem_usage=True, device_map=accelerator.device)
 
     firstLM.eval()
-    # secondLM.eval()
+
     print("init memory")
     if args.memory == "mean":
         memory_config = AggregatorConfig()
-        # weight_decay = 0.05
+
     elif args.memory == "cls":
         memory_config = TransformerCLSConfig(
             input_size=firstLM.config.hidden_size,
@@ -1531,11 +1180,7 @@ def main():
             num_layers=1
         )
 
-    # elif args.memory == "rnn":
-    #     memory_config = RNNAggConfig()
-    #     # weight_decay = 0.015
-    # elif args.memory == "cls":
-    #     memory_config = TransformerCLSConfig()
+
     else:
         raise NotImplementedError("This memory aggregation is not implemented")
 
@@ -1567,17 +1212,16 @@ def main():
         },
     ]
     print("dataset")
-    # with accelerator.main_process_first():
+
     dataset = load_from_disk(args.data_path)
-    # dataset = dataset.filter(check_example)
-    # dataset = dataset.map(create_base_and_nonce, num_proc=2)
+
     print("tokenizing")
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizerTask, mlm=False, return_tensors="pt")
     if args.regression_objective:
         tokenized_train = dataset['train'].map(tokenize_regression,
                                                remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
                                                num_proc=2).with_format("torch")
-        # tokenized_train = tokenized_train.shuffle(buffer_size=10000).with_format("torch")
+
         if args.progressive_training:
             k = args.num_examples
         else:
@@ -1590,7 +1234,7 @@ def main():
         tokenized_test = dataset['test'].map(tokenize_regression,
                                              remove_columns=[name for name in dataset['test'].column_names if name != "sentences"],
                                              num_proc=2).with_format("torch")
-        # tokenized_test = tokenized_test.shuffle(buffer_size=2000).with_format("torch")
+
         test_dl = DataLoader(tokenized_test, batch_size=args.batch_size,
                              collate_fn=partial(regression_collate, args.num_examples, t5=t5_flag, k=None), shuffle=True, drop_last=True,
                              worker_init_fn=seed_worker, pin_memory=True)
@@ -1599,7 +1243,7 @@ def main():
         tokenized_train = dataset['train'].map(tokenize,
                                                remove_columns=[name for name in dataset['train'].column_names if name != "sentences"],
                                                num_proc=2).with_format("torch")
-        # tokenized_train = tokenized_train.shuffle(buffer_size=10_000).with_format("torch")
+
         if args.progressive_training:
             k = args.num_examples
         else:
@@ -1634,14 +1278,14 @@ def main():
                                                                  remove_columns=negative_dataset[
                                                                      'train'].column_names,
                                                                  num_proc=2).with_format("torch")
-        # negative_train_tokenized = negative_train_tokenized.shuffle(buffer_size=5000).with_format("torch")
+
 
         negative_test_tokenized = negative_test.map(tokenize,
                                                                remove_columns=negative_dataset[
                                                                    'train'].column_names, num_proc=2).with_format(
             "torch")
 
-        # negative_test_tokenized = negative_test_tokenized.shuffle(buffer_size=5000)
+
         negative_train_dl = DataLoader(negative_train_tokenized,
                                        batch_size=args.batch_size, collate_fn=data_collator, shuffle=True,
                                        drop_last=True,
@@ -1653,7 +1297,7 @@ def main():
     eval_ind = args.logging_step
 
     opt = AdamW(optimizer_grouped_parameters,
-                # betas=(0.85,0.95),
+
                 eps=epsilon,
                 lr=lr,
                 weight_decay=args.weight_decay
@@ -1687,10 +1331,7 @@ def main():
                 "alpha": args.regression_alpha,
                 },
     )
-    # if args.regression_objective and args.negative_examples:
-        # use for weighting the cross entropy, distillation, and regression
-        # distillation_weight = args.regression_alpha
-        # ce_weight = 1.0 - (args.regression_alpha + distillation_weight)
+
 
     global_step = 0
 
@@ -1700,7 +1341,7 @@ def main():
         num1, num2 = matches.groups()
         base_epoch = int(num1)
         step = int(num2)  # correct for 0 first step
-        # assert step % args.gradient_accumulation_steps == 0, "Choose a checkpoint corresponding to a gradient update"
+
         print("base epoch", base_epoch)
         #todo: implement for second epoch
         if base_epoch != 0:
@@ -1708,14 +1349,12 @@ def main():
             within_batch_step = args.gradient_accumulation_steps * (curr_global_step - ((base_epoch) * len(train_dl)) + 1)
             print("Within batch step {}".format(within_batch_step))
             print("Training DL len = {}".format(len(train_dl)))
-            # curr_global_step = (step // (base_epoch * len(train_dl))) // args.gradient_accumulation_steps
-            # curr_neg_step = (step // (base_epoch * len(negative_train_dl))) // args.gradient_accumulation_steps
+
         else:
             curr_global_step = step
             curr_neg_step = step
             within_batch_step = curr_global_step
-            # curr_global_step = step // args.gradient_accumulation_steps
-            # curr_neg_step = step // args.gradient_accumulation_steps
+
 
         active_train_dl = accelerator.skip_first_batches(train_dl, within_batch_step)
         if args.negative_examples:
@@ -1732,19 +1371,6 @@ def main():
     best_test_loss = 10000000
     best_new_token_loss = 10000000
     print("training")
-
-
-    # with torch.profiler.profile(
-    #         activities=[
-    #             torch.profiler.ProfilerActivity.CPU,
-    #             # torch.profiler.ProfilerActivity.CUDA,
-    #         ],
-    #         schedule=torch.profiler.schedule(wait=0, warmup=0, active=10, repeat=1),
-    #         # record_shapes=True,
-    #         # profile_memory=True,
-    #         # with_stack=True,
-    #         on_trace_ready=trace_handler,
-    # ) as prof:
 
     for epoch in range(base_epoch, epochs):
         print("epoch", epoch)
@@ -1768,8 +1394,7 @@ def main():
             active_train_dl = accelerator.prepare(train_dl)
             if args.resume_from_checkpoint is not None:
                 active_train_dl = accelerator.skip_first_batches(active_train_dl, curr_global_step)
-        train_new_token_losses = []
-        train_losses = []
+
         total_loss = 0
         total_new_token_loss = 0
         total_positive_loss = 0
@@ -1777,18 +1402,6 @@ def main():
         total_regression_loss = 0
         total_distillation_loss = 0
         for i, batch in enumerate(active_train_dl):
-            #if global_step==3:
-             #   break
-            # prof.step()
-            # print("Context is {} sentences".format(batch['contexts'][0]['input_ids'].shape))
-            # if i == 3:
-            #     try:
-            #         torch.cuda.memory._dump_snapshot("memsnap3.pickle")
-            #     except Exception as e:
-            #         print(f"Failed to capture memory snapshot {e}")
-            #     torch.cuda.memory._record_memory_history(enabled=None)
-            #     #prof.export_memory_timeline(f"memsnap3.html", device="cuda:0")
-            #     break
 
             with accelerator.accumulate(model):
                 log_dict = {}
@@ -1796,57 +1409,22 @@ def main():
                 model.train()
                 try:
                     model.module.firstLM.eval()
-                    # model.module.secondLM.eval()
+
                 except:
                     model.firstLM.eval()
-                    # model.secondLM.eval()
-                # model.zero_grad()
 
-                # contexts = []
-                # for j in range(batch['input_ids'].shape[0]):
-                #     to_sample = list(set([n for n in buffer.nonces if token_mapping[n] in batch['input_ids'][j]]))
-                #     # print("base", tokenizerTask.decode(batch['base_input_ids'][j,:]))
-                #     # print(batch['input_ids'].shape[0], "shape")
-                #     assert (len(to_sample) == 1), "Nonces to Sample are {} Should be 1, inputs = {}".format(to_sample,
-                #                                                                                             tokenizerTask.decode(
-                #                                                                                                 batch[
-                #                                                                                                     'input_ids'][
-                #                                                                                                 j, :]))
-                #     n = to_sample[0]
-                #     if n in buffer.buffer:
-                #         sample = buffer.retrieve(n, batch)
-                #         if sample is not None:
-                #             contexts.append(sample)
-                #         else:
-                #             print("Null context for {}".format(n))
-                    # else:
-                    #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
-                    #                             clean_up_tokenization_spaces=True)
-                    #     sample = tokenizerMLM([seq],
-                    #                           max_length=tokenizerMLM.model_max_length,
-                    #                           truncation=True,
-                    #                           padding='longest',
-                    #                           return_tensors='pt')
-                    #     contexts.append(sample)
-
-                # assert len(contexts) == batch['input_ids'].shape[
-                #     0], "Context has {} elements when it should have {}".format(len(contexts),
-                #                                                                 batch['input_ids'].shape[0])
-                # batch['contexts'] = contexts
                 if args.negative_examples:
                     neg_train_batch = next(iter(active_negative_train_dl))
-                    # print("negative ids shape out of model", neg_train_batch['input_ids'].shape)
+
                     batch['negative_input_ids'] = neg_train_batch['input_ids']
                     batch['negative_attention_mask'] = neg_train_batch['attention_mask']
                     batch['negative_labels'] = neg_train_batch['labels']
 
-                # print(batch['input_ids'].shape[0])
-                # with record_function("forward + loss"):
 
                 out = model(batch)
 
                 if args.regression_objective:
-                    # distillation_weight = 1.0 - ce_weight - args.regression_alpha
+
                     if args.ablate_cosine:
                         loss = out.loss + out.distillation_loss
                     elif args.ablate_logits:
@@ -1876,12 +1454,7 @@ def main():
 
                     loss = loss + l2_loss
 
-                # print(loss)
 
-                # train_new_token = accelerator.gather(out.new_token_loss)
-                # train_losses.append(loss.item())
-                # train_new_token_losses.append(out.new_token_loss.detach().item())
-                # with record_function("## backward ##"):
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
                     accelerator.clip_grad_norm_(model.parameters(), 1.0)
@@ -1893,7 +1466,7 @@ def main():
                                 raise Exception("Nan Gradient for {}".format(name))
                         if param.requires_grad and param.grad is None:
                             print(name)
-                # with record_function("## opt ##"):
+
                 opt.step()
                 scheduler.step()
                 opt.zero_grad()
@@ -1908,20 +1481,14 @@ def main():
                     total_distillation_loss += out.distillation_loss.detach().float()
 
             if accelerator.sync_gradients:
-                # accelerator.clip_grad_norm_(filter(lambda p: p.requires_grad, model.parameters()), 1.0)
 
-                # for name, param in model.named_parameters():
-                #     if param.grad is not None and param.requires_grad:
-                #         log_dict["gradients/post_{}_grad_norm".format(name)] = torch.norm(param.grad.view(-1)).item()
-                #         if torch.isnan(torch.norm(param.grad.view(-1))):
-                #             raise Exception("Nan Gradient for {}".format(name))
                 global_step += 1
                 log_dict['global step'] = global_step
                 log_dict['train loss'] = accelerator.gather(total_loss).mean().item() / args.gradient_accumulation_steps
 
                 log_dict['train new token loss'] = accelerator.gather(
                     total_new_token_loss).mean().item() / args.gradient_accumulation_steps
-                # log_dict['num_words_seen'] = len(buffer.buffer)
+
                 total_loss = 0
                 total_new_token_loss = 0
                 if args.negative_examples:
@@ -1935,7 +1502,7 @@ def main():
                 if args.regression_objective:
                     log_dict['regression loss without weight'] = accelerator.gather(
                         total_regression_loss).mean().item() / args.gradient_accumulation_steps
-                    # log_dict['regression loss with alpha'] = (args.regression_alpha * accelerator.gather(total_regression_loss)).mean().item() / args.gradient_accumulation_steps
+
                     log_dict['distillation loss without weight'] = accelerator.gather(
                         total_distillation_loss).mean().item() / args.gradient_accumulation_steps
                     total_regression_loss = 0
@@ -1962,9 +1529,7 @@ def main():
                             norms).mean().detach().item()
 
                 accelerator.log(log_dict)
-                # print(log_dict)
-                # buffer.store_task(batch)
-                # buffer.cleanup()
+
 
             if (global_step != 0 and global_step % eval_ind == 0 and i % args.gradient_accumulation_steps == 0 and i != 0) \
                     or (i % len(active_train_dl) ==0 and i != 0 and epoch != 0):
@@ -1983,29 +1548,7 @@ def main():
                         ct += 1
                         if ct >= args.num_eval_steps:
                             break
-                        # contexts = []
-                        # for j in range(b['input_ids'].shape[0]):
-                        #     to_sample = list(
-                        #         set([n for n in test_buffer.nonces if token_mapping[n] in b['input_ids'][j]]))
-                        #     assert (len(to_sample) == 1)
-                        #     n = to_sample[0]
-                        #     if n in test_buffer.buffer:
-                        #         sample = test_buffer.retrieve(n, b)
-                        #         if sample is not None:
-                        #             contexts.append(sample)
-                        #     # else:
-                        #     #     seq = tokenizerTask.decode(b['input_ids'][j,:])
-                        #     #     sample = tokenizerMLM([seq],
-                        #     #               max_length=tokenizerMLM.model_max_length,
-                        #     #               truncation=True,
-                        #     #               padding='longest',
-                        #     #               return_tensors='pt')
-                        #     #     contexts.append(sample)
-                        #
-                        # assert len(contexts) == b['input_ids'].shape[
-                        #     0], "Context has {} elements when it should have {}".format(len(contexts),
-                        #                                                                 b['input_ids'].shape[0])
-                        # b['contexts'] = contexts
+
 
                         if args.negative_examples:
                             neg_test_batch = next(iter(negative_test_dl))
@@ -2014,14 +1557,14 @@ def main():
                             b['negative_labels'] = neg_test_batch['labels']
 
                         t_out = model(b)
-                        # all_losses = accelerator.gather(t_out.loss)
+
                         if args.regression_objective:
-                            # distillation_weight = 1.0 - ce_weight - args.regression_alpha
+
                             total_test_loss += t_out.loss + t_out.regression_loss.detach().float() + t_out.distillation_loss.detach().float()
                         else:
                             total_test_loss += t_out.loss.detach().float()
 
-                        # all_new_tokens = accelerator.gather(t_out.new_token_loss)
+
                         total_test_nonce_loss += t_out.new_token_loss.detach()
                         if args.negative_examples:
                             total_test_positive_loss += t_out.positive_loss.detach().float()
@@ -2031,8 +1574,7 @@ def main():
                             total_test_regression_loss += t_out.regression_loss.detach().float()
                             total_test_distillation_loss += t_out.distillation_loss.detach().float()
 
-                        # test_buffer.store_task(b)
-                        # test_buffer.cleanup()
+
 
                     avg_test = accelerator.gather(total_test_loss).mean().item() / args.num_eval_steps
                     avg_new_tok = accelerator.gather(total_test_nonce_loss).mean().item() / args.num_eval_steps

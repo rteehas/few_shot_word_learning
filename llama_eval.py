@@ -102,12 +102,21 @@ def evaluate_baseline_example(model, tokenizer, ex):
     else:
         raise NotImplementedError
 
-    probs = get_sentence_probs(model, tokenizer, seqs)
+    probs = get_sentence_probs_baseline(model, tokenizer, seqs)
 
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
         return evaluate_type_2(probs, labels)
+
+def get_sentence_probs_baseline(model, tokenizer, seqs):
+    probs = []
+    with torch.no_grad():
+        for s in seqs:
+            inputs = tokenizer(s, truncation=True, return_tensors='pt').to(model.device)
+            out = model(input_ids = inputs['input_ids'], attention_mask = inputs['attention_mask'], labels = inputs['input_ids'].clone())
+            probs.append(-out.loss.item())
+    return probs
 
 def evaluate_baseline_example_fewshot(model, tokenizer, ex, sents, with_definition=False, defs=None, tuning=False, max_steps=2, with_prompt=True, lr=1e-3):
     if not tuning and not with_prompt:
