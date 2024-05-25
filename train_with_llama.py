@@ -10,7 +10,6 @@ from torch import nn
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss, MSELoss
 from torch.utils.data import Dataset, DataLoader, TensorDataset, IterableDataset
-# from torch.utils.data.datapipes.iter.combinatorics import ShufflerIterDataPipe
 from torch.utils.data.dataloader import default_collate
 
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer, \
@@ -60,7 +59,6 @@ def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2 ** 32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
-
 
 def get_matching_indices(original, modified):
     corresponding_indices = []
@@ -146,8 +144,7 @@ def generate(model, context, input_ids, attention_mask, max_new_tokens, temperat
 
         next_token = decoding_step(llama_outputs.logits, temperature, top_k, do_sample, mask_new_tokens=mask_new_tokens)
 
-        #         print(next_token.shape)
-        #         print(new_input_ids.shape)
+
         new_input_ids = torch.cat([new_input_ids, next_token], dim=1)
         last_element = new_attention_mask[:, -1].unsqueeze(1)
         new_attention_mask = torch.cat([new_attention_mask, last_element], dim=1)
