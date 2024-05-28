@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 def generate_oxford_def_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt):
     examples = [ex['replaced_examples']]
-    context = tokenizerMLM(examples.tolist(), truncation=True, padding='longest', return_tensors='pt')
+    context = tokenizerMLM(examples, truncation=True, padding='longest', return_tensors='pt')
     # nonce = "<{}_new>".format(ex['word'].lower())
     nonce = "<nonce>"
     if with_prompt:
