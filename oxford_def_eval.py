@@ -53,7 +53,7 @@ def run_emb_gen(def_task, path):
     for ex in tqdm(def_task):
         # print(ex)
         step_output_with_prompt = generate_oxford_def_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt=True)
-        step_output_without_prompt = generate_definitions_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt=False)
+        step_output_without_prompt = generate_oxford_def_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt=False)
         all_outputs.append(step_output_with_prompt)
         all_outputs.append(step_output_without_prompt)
 
