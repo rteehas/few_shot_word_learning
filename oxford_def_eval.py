@@ -72,6 +72,7 @@ if __name__ == "__main__":
     args = get_arguments().parse_args()
     # def_task = pd.read_csv("merged_oxford_test_set.csv")
     def_task = load_dataset("csv", data_files="merged_oxford_test_set.csv")
+    def_task = def_task['train']
     # if args.model == "hice":
     #     run_hice(def_task)
     # elif args.model == "additive":
