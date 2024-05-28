@@ -56,7 +56,8 @@ def run_emb_gen(def_task, path):
         step_output_without_prompt = generate_oxford_def_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt=False)
         all_outputs.append(step_output_with_prompt)
         all_outputs.append(step_output_without_prompt)
-        print(step_output_with_prompt, flush=True)
+        print("with prompt", step_output_with_prompt, flush=True)
+        print("without prompt", step_output_without_prompt, flush=True)
 
     # save_dir = fname_format.format(lr)
     keys = all_outputs[0].keys()
