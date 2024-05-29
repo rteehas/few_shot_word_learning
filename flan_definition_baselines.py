@@ -137,7 +137,7 @@ def run_oxford(flan_model, task_instructions, setting):
     pd.merge(merged_data, tmp, on="word", how="inner").drop(
         ["definition", "sentence", "replaced_examples", "tag", "source", "Unnamed: 0"],
         axis=1,
-    ).to_csv("oxford_task_outputs/flan_{}".format(flan_model))
+    ).to_csv("oxford_task_outputs/flan_{}_{}".format(flan_model, setting))
 
     return data
 
