@@ -282,7 +282,7 @@ if __name__ == "__main__":
 
     setting = args.setting
     if args.dataset == "oxford":
-        results = run_oxford(args.model, task_instructions)
+        results = run_oxford(args.model, task_instructions, setting)
     elif args.dataset == "def_task":
         results = run_def_task(args.model, task_instructions, setting)
     else:
