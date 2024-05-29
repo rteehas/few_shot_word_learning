@@ -8,6 +8,9 @@ from os import path
 import json
 from datasets import load_from_disk
 import numpy as np
+import re
+
+
 
 def load_data(path_to_data, split="test"):
     if "oxford" not in path_to_data and "wordnet" not in path_to_data:
@@ -83,18 +86,36 @@ def define(in_prompts, lm, cur_tokenizer, arguments, targets, filter_target=Fals
     print(f"Generating definitions finished")
     return definitions
 
-def run_oxford(flan_model, task_instructions):
+def run_oxford(flan_model, task_instructions, setting):
     device = "cuda"
     data = load_data("data/oxford")
     tokenizer = AutoTokenizer.from_pretrained("ltg/flan-t5-definition-en-{}".format(flan_model))
     model = AutoModelForSeq2SeqLM.from_pretrained("ltg/flan-t5-definition-en-{}".format(flan_model))
+    if setting == "new_token":
+        tokenizer.add_tokens(["<nonce>"])
+        model.resize_token_embeddings(len(tokenizer))
     model = model.to(device)
-
+    placeholder = "bax"
     for task_prefix in task_instructions:
         print(f"Generating with the task instruction {task_prefix}...", flush=True)
         identifier = "_".join(task_prefix).lower().replace(" ", "_")
         input_sentences = []
-        for target, context in zip(data.Targets, data.Real_Contexts):
+        for tg, ctx in zip(data.Targets, data.Real_Contexts):
+            if setting == "original_word":
+                target = tg
+                context = ctx
+
+            elif setting == "new_token":
+                target = "<nonce>"
+                forms = get_word_forms(tg, ctx)
+                context = replace_example(ctx, forms)
+            
+            elif setting == "placeholder_word":
+                forms = get_word_forms(tg, ctx)
+                context = replace_example(ctx, forms)
+                context = context.replace("<nonce>", placeholder)
+                target = placeholder
+
             if task_prefix[1] == "pre":
                 prompt = " ".join([task_prefix[0].replace("<TRG>", target), context])
             else:
@@ -126,6 +147,10 @@ def run_def_task(flan_model, task_instructions, setting):
     tokenizer = AutoTokenizer.from_pretrained("ltg/flan-t5-definition-en-{}".format(flan_model))
     model = AutoModelForSeq2SeqLM.from_pretrained("ltg/flan-t5-definition-en-{}".format(flan_model))
     model = model.to(device)
+    if setting == "new_token":
+        tokenizer.add_tokens(["<nonce>"])
+        model.resize_token_embeddings(len(tokenizer))
+
     placeholder = "bax"
     for trial in range(5):
         for task_prefix in task_instructions:
@@ -168,6 +193,60 @@ def run_def_task(flan_model, task_instructions, setting):
             def_task.add_column("prompt", input_sentences)
             def_task.save_to_disk("definition_task_outputs/flan_{}_{}_definitions_{}".format(flan_model, setting, trial))
 
+def tokenize(sentence):
+    """Tokenize the sentence, including hyphenated words."""
+    return re.findall(r'\b\w+(?:-\w+)*\b', sentence)
+
+def character_overlap(word1, word2):
+    """Calculate character overlap between two words."""
+    return sum(min(word1.count(c), word2.count(c)) for c in set(word1))
+
+def find_highest_overlap(target_word, sentences):
+    """Find the word with the highest character overlap in each sentence."""
+    results = []
+    for sentence in sentences:
+        words = tokenize(sentence)
+        overlaps = [(word, longest_common_substring(target_word, word.replace("-", ""))) for word in words]
+        overlap_ratios = [(x[0], x[1] / len(target_word), x[1] / len(x[0])) for x in overlaps]
+        selected_words = [x[0] for x in overlap_ratios if x[1] > 0.75 and len(x[0]) >= len(target_word) and len(x[0]) < 2*len(target_word)]
+        for w in selected_words:
+            results.append(w)
+    return results
+
+def longest_common_substring(s1, s2):
+    """Find the longest common substring between two strings."""
+    m = [[0] * (1 + len(s2)) for i in range(1 + len(s1))]
+    longest, x_longest = 0, 0
+    for x in range(1, 1 + len(s1)):
+        for y in range(1, 1 + len(s2)):
+            if s1[x - 1] == s2[y - 1]:
+                m[x][y] = m[x - 1][y - 1] + 1
+                if m[x][y] > longest:
+                    longest = m[x][y]
+                    x_longest = x
+            else:
+                m[x][y] = 0
+    return len(s1[x_longest - longest: x_longest])
+
+def get_word_forms(target, context):
+    
+    target_word = target
+    sentences = [context]
+    results = find_highest_overlap(target_word, sentences)
+    return results
+
+def get_word(ex):
+    return ex['word'].split("%")[0]
+    
+def replace_example(context, forms):
+
+    new_sentence = context
+    nonce = "<nonce>"
+    for form in forms:
+        new_sentence = re.sub(r"\b({})\b".format(form), nonce, new_sentence, flags=re.I)
+
+    return new_sentence
+
 
 def get_arguments():
     parser = ArgumentParser()
@@ -209,4 +288,3 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError
 
-    
