@@ -143,7 +143,7 @@ def run_oxford(flan_model, task_instructions, setting):
 
 def run_def_task(flan_model, task_instructions, setting):
     device = "cuda"
-    def_task = load_from_disk("def_task_954")
+    
     tokenizer = AutoTokenizer.from_pretrained("ltg/flan-t5-definition-en-{}".format(flan_model))
     model = AutoModelForSeq2SeqLM.from_pretrained("ltg/flan-t5-definition-en-{}".format(flan_model))
     model = model.to(device)
@@ -153,6 +153,7 @@ def run_def_task(flan_model, task_instructions, setting):
 
     placeholder = "bax"
     for trial in range(5):
+        def_task = load_from_disk("def_task_954")
         for task_prefix in task_instructions:
             print(f"Generating with the task instruction {task_prefix}...")
             identifier = "_".join(task_prefix).lower().replace(" ", "_")
