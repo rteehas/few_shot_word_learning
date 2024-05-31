@@ -1144,6 +1144,7 @@ def get_arguments():
     parser.add_argument("--weight_decay", type=float, default=0.02)
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1)
     parser.add_argument("--num_layers", type=int, default=1)
+    parser.add_argument("--layer", type=int, default=1)
     parser.add_argument("--negative_examples", action="store_true")
     parser.add_argument("--negative_data_path", type=str, default="")
     parser.add_argument("--regression_objective", action="store_true")
@@ -1184,8 +1185,8 @@ def create_checkpoint_directories(args):
     else:
         dataset_name= "pile"
 
-    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}/layernorm/{}/{}_layers/last_{}/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
-    path = path.format(dataset_name, args.first_lm, args.num_layers, args.num_feature_layers,
+    path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/{}/layernorm/{}/{}_layers/layer_{}/last_{}/{}_batch_size/{}_agg/{}_examples/lr_{}/weight_decay_{}/{}/"
+    path = path.format(dataset_name, args.first_lm, args.num_layers, args.num_feature_layers, args.layer,
                        args.batch_size * args.gradient_accumulation_steps * torch.cuda.device_count(), args.memory,
                        args.num_examples, args.lr, args.weight_decay, neg_string)
 
@@ -1497,7 +1498,8 @@ def main():
 
     print("init model")
     accelerator.wait_for_everyone()
-    layers = [-1 * (x + 1) for x in range(args.num_feature_layers)]
+    # layers = [-1 * (x + 1) for x in range(args.num_feature_layers)]
+    layers = [-args.layer]
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, args.num_layers,
                                   args.distillation_temp, use_pos=args.use_pos).to(accelerator.device)
     print("first list", model.first_list)
