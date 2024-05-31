@@ -189,8 +189,8 @@ def run_def_task(flan_model, task_instructions, setting):
             
             # data["Generated_Definition"] = answers
             # id = uuid.uuid4()
-            def_task.add_column("generated definition", answers)
-            def_task.add_column("prompt", input_sentences)
+            def_task = def_task.add_column("generated definition", answers)
+            def_task = def_task.add_column("prompt", input_sentences)
             def_task.save_to_disk("definition_task_outputs/flan_{}_{}_definitions_{}".format(flan_model, setting, trial))
 
 def tokenize(sentence):
