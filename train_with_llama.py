@@ -1991,8 +1991,8 @@ def main():
                         # test_buffer.store_task(b)
                         # test_buffer.cleanup()
 
-                    avg_test = accelerator.gather(total_test_loss).sum().item() / args.num_eval_steps
-                    avg_new_tok = accelerator.gather(total_test_nonce_loss).sum().item() / args.num_eval_steps
+                    avg_test = accelerator.gather(total_test_loss).mean().item() / args.num_eval_steps
+                    avg_new_tok = accelerator.gather(total_test_nonce_loss).mean().item() / args.num_eval_steps
                     test_log['average test loss'] = avg_test
                     test_log['average test loss on new tokens'] = avg_new_tok
                     test_log['epoch'] = epoch
@@ -2000,15 +2000,15 @@ def main():
 
                     if args.negative_examples:
                         test_log['average test loss on positive examples'] = accelerator.gather(
-                            total_test_positive_loss).sum().item() / args.num_eval_steps
+                            total_test_positive_loss).mean().item() / args.num_eval_steps
                         test_log['average test loss on negative examples'] = accelerator.gather(
-                            total_test_negative_loss).sum().item() / args.num_eval_steps
+                            total_test_negative_loss).mean().item() / args.num_eval_steps
 
                     if args.regression_objective:
                         test_log['average regression test loss'] = accelerator.gather(
-                            total_test_regression_loss).sum().item() / args.num_eval_steps
+                            total_test_regression_loss).mean().item() / args.num_eval_steps
                         test_log['average distillation test loss'] = accelerator.gather(
-                            total_test_distillation_loss).sum().item() / args.num_eval_steps
+                            total_test_distillation_loss).mean().item() / args.num_eval_steps
 
                     accelerator.log(test_log)
 
