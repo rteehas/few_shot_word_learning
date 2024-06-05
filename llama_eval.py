@@ -91,7 +91,7 @@ def evaluate_type_2(probs, labels):
     idx = np.argsort(probs, axis=0)[-2:]
     lab_ids = [i for i, v in enumerate(labels) if v == 1]
 
-    return set(idx) == set(lab_ids)
+    return set(idx.tolist()) == set(lab_ids)
 
 
 def evaluate_baseline_example(model, tokenizer, ex):
