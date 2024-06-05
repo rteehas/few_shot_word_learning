@@ -140,7 +140,7 @@ if __name__ == "__main__":
     train_folder = Path('wic/wic_tsv/data/en/Training')
     contexts, target_inds, hypernyms, definitions, labels = dp.read_wic_tsv(wic_tsv_folder=train_folder)
 
-    for i, (context, target_id, definition) in zip(contexts, target_inds, definitions):
+    for i, (context, target_id, definition) in enumerate(zip(contexts, target_inds, definitions)):
         word = context.split()[target_id]
         
         contexts[i] = re.sub(r"\b({})\b".format(word), "<nonce>", context, flags=re.I)
