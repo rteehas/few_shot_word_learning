@@ -3,7 +3,7 @@ import itertools
 from EasyEdit.easyeditor import BaseEditor
 from EasyEdit.easyeditor import IKEHyperParams
 from EasyEdit.easyeditor.models.ike.util import encode_ike_facts
-from EasyEdit.sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer
 import torch
 import uuid
 from datasets import load_from_disk
@@ -16,7 +16,7 @@ import os
 
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
-from few_shot_repo.llama_eval import prepare_type_1_fewshot, prepare_for_type_2_fewshot, get_sentence_probs, evaluate_type_1, evaluate_type_2, filter_gre
+from llama_eval import prepare_type_1_fewshot, prepare_for_type_2_fewshot, get_sentence_probs, evaluate_type_1, evaluate_type_2, filter_gre
 
 
 def add_new_token(editor):
