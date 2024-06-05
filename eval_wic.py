@@ -12,7 +12,6 @@ class CoLLEGeEmbeddingModel(nn.Module):
         self.layers = layers
         self.mask_token_id = mask_token_id
         self.firstLM = firstLM
-        self.secondLM = secondLM
         self.memory_config = memory_config
 
         self.num_new_tokens = num_new_tokens
