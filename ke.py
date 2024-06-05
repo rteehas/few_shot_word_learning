@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
 import itertools
-from easyeditor import BaseEditor
-from easyeditor import IKEHyperParams
-from easyeditor.models.ike.util import encode_ike_facts
-from sentence_transformers import SentenceTransformer
+from EasyEdit.easyeditor import BaseEditor
+from EasyEdit.easyeditor import IKEHyperParams
+from EasyEdit.easyeditor.models.ike.util import encode_ike_facts
+from EasyEdit.sentence_transformers import SentenceTransformer
 import torch
 import uuid
 from datasets import load_from_disk
@@ -112,7 +112,7 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
 def run_ke_baseline():
     args = get_arguments().parse_args()
     path = args.path
-    gre = load_from_disk("../processed_kaplan_v0")
+    gre = load_from_disk("processed_kaplan_v0")
     id = uuid.uuid4()
     subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
     if args.defs != '':
@@ -210,8 +210,8 @@ def run_ke_baseline():
 
 def get_arguments():
     parser = ArgumentParser()
-    parser.add_argument("--sents", type=str, default='../gre_examples_gpt4_v2.json')
-    parser.add_argument("--defs", type=str, default='../gre_definitions_all.json')
+    parser.add_argument("--sents", type=str, default='gre_examples_gpt4_v2.json')
+    parser.add_argument("--defs", type=str, default='gre_definitions_all.json')
     parser.add_argument("--sent_version", type=str)
     parser.add_argument("--trials", type=int, default=1)
     parser.add_argument("--with_prompt", action="store_true")
