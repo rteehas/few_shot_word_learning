@@ -177,10 +177,10 @@ if __name__ == "__main__":
         recalls = []
 
         for i in range(len(thresholds)):
-            true_pos = emb_results['true pos']
-            true_neg = emb_results['true neg']
-            false_pos = emb_results['false pos']
-            false_neg = emb_results['false neg']
+            true_pos = emb_results['true pos'][i]
+            true_neg = emb_results['true neg'][i]
+            false_pos = emb_results['false pos'][i]
+            false_neg = emb_results['false neg'][i]
 
             precision = true_pos / (true_pos + false_pos)
             recall = true_pos / (true_pos + false_neg)
