@@ -124,7 +124,7 @@ if __name__ == "__main__":
     )
 
     model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
-
+    model = model.to(device)
     tokenizerMLM.add_tokens(["<nonce>"])
     model.eval()
 
