@@ -144,7 +144,10 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
         return evaluate_type_1(total_probs, labels)
     elif ex["ANSWER_TYPE"] == "top_2":
         print(total_probs)
-        return evaluate_type_2([t[0] for t in total_probs], labels)
+        if type(total_probs[0]) == list:
+            return evaluate_type_2([t[0] for t in total_probs], labels)
+        else:
+            return evaluate_type_2(total_probs, labels)
 
 def run_ke_baseline():
     args = get_arguments().parse_args()
