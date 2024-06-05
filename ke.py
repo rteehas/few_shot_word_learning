@@ -79,8 +79,11 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
     if not with_definition:
         seqs = seqs[1:]
         labels = labels[1:]
-        base_seqs = base_seqs[1:]
         samples = samples[1:]
+
+        if with_prompt:
+            base_seqs = base_seqs[1:]
+
 
     print("target definitions", target_definitions)
     
