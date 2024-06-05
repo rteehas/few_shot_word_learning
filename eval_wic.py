@@ -160,13 +160,13 @@ if __name__ == "__main__":
                     if label == 1:
                         results[e]["true pos"][j] += 1
                     elif label == 0:
-                        results[e]["false pos"][j] += 1
+                        results[e]["true neg"][j] += 1
                 
                 else:
                     if label == 1:
-                        results[e]["false neg"][j] += 1
+                        results[e]["false pos"][j] += 1
                     elif label == 0:
-                        results[e]["true neg"][j] += 1
+                        results[e]["false neg"][j] += 1
     
     for key in results:
         print("Results for {} Embeddings".format(key.upper()))
