@@ -97,7 +97,7 @@ def mend_edit(editor, ground_truth, target_definition):
     # print(metrics)
     return edited_model, editor.tok, weights_copy
 
-def get_hparams_and_editor(method="IKE"):
+def get_hparams_and_editor(method):
     if method == "IKE":
         hparams = IKEHyperParams.from_hparams('EasyEdit/hparams/IKE/llama-7b.yaml')
         editor = BaseEditor.from_hparams(hparams)
@@ -111,7 +111,7 @@ def get_hparams_and_editor(method="IKE"):
         editor = BaseEditor.from_hparams(hparams)
         editor = add_new_token(editor)
     else:
-        raise NotImplementedError
+        raise NotImplementedError, "the method {} is not implemented".format(method)
     return hparams, editor
 
 
@@ -219,6 +219,7 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
 
 def run_ke_baseline():
     args = get_arguments().parse_args()
+    print(args)
     gre = load_from_disk("processed_kaplan_v0")
     id = uuid.uuid4()
     subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
