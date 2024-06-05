@@ -74,8 +74,8 @@ def rome_edit(editor, target_definition):
         ground_truth=None,
         target_new=target_new,
         subject=subject,
-        keep_original_weight=False,
-        return_orig_weights=True
+        keep_original_weight=True,
+        # return_orig_weights=True
     )
     # print(metrics)
     return edited_model, editor.tok, weights_copy
