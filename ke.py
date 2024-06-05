@@ -77,12 +77,9 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
         
     target_definitions = [s[0] for s in samples]
     if not with_definition:
-        seqs = seqs[1:]
-        labels = labels[1:]
-        samples = samples[1:]
+        samples = [s[1:] for s in samples]
+        print([len(s) for s in samples])
 
-        if with_prompt:
-            base_seqs = base_seqs[1:]
 
 
     print("target definitions", target_definitions)
