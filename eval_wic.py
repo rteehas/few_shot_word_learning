@@ -18,7 +18,7 @@ class CoLLEGeEmbeddingModel(nn.Module):
         self.num_layers = num_layers
         self.distillation_temp = distillation_temp
 
-        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers, config=self.memory_config, use_pos=use_pos)
+        self.emb_gen = EmbeddingGenerator(self.firstLM, 4096, num_layers, config=self.memory_config, use_pos=use_pos)
         
         with torch.no_grad():
             # firstLM_mean_embed = torch.mean(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
