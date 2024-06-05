@@ -4,7 +4,6 @@ from easyeditor import BaseEditor
 from easyeditor import IKEHyperParams
 from easyeditor.models.ike.util import encode_ike_facts
 from sentence_transformers import SentenceTransformer
-from ..llama_eval import prepare_type_1_fewshot, prepare_for_type_2_fewshot, get_sentence_probs, evaluate_type_1, evaluate_type_2, filter_gre
 import torch
 import uuid
 from datasets import load_from_disk
@@ -12,6 +11,13 @@ import json
 from functools import partial
 import numpy as np
 import re
+import sys
+import os
+
+# SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# sys.path.append(os.path.dirname(SCRIPT_DIR))
+from few_shot_repo.llama_eval import prepare_type_1_fewshot, prepare_for_type_2_fewshot, get_sentence_probs, evaluate_type_1, evaluate_type_2, filter_gre
+
 
 def add_new_token(editor):
     editor.tok.add_tokens(['<nonce>'])
