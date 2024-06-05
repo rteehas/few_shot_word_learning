@@ -43,7 +43,7 @@ def ike_edit(ground_truth, target_definition):
     ]
 
     encode_ike_facts(sentence_model, train_ds, hparams)
-    metrics, edited_model, _ = editor.edit(
+    metrics, edited_model, icl = editor.edit(
         prompts=[definition_prompt],
         ground_truth=[ground_truth],
         rephrase_prompts=[rephrased_definition_prompt],  # new para
@@ -55,7 +55,7 @@ def ike_edit(ground_truth, target_definition):
         keep_original_weight=True,
     )
     # print(metrics)
-    return edited_model, editor.tok
+    return edited_model, editor.tok, icl
 
 def rome_edit(target_definition):
     prompts = ["The word <nonce> is defined as"]
@@ -228,12 +228,12 @@ def run_ke_baseline():
                                                 with_definition=with_def, 
                                                 with_prompt=with_prompt))
 
-                acc = sum(outputs) / len(outputs)
-                print("Accuracy for k = {} is {}".format(k, acc))
-                if k in scores:
-                    scores[k].append(acc)
-                else:
-                    scores[k] = [acc]
+            acc = sum(outputs) / len(outputs)
+            print("Accuracy for k = {} is {}".format(k, acc))
+            if k in scores:
+                scores[k].append(acc)
+            else:
+                scores[k] = [acc]
 
     print("Across Trials Results")
     for value in scores:
