@@ -78,7 +78,8 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
     target_definitions = [s[0] for s in samples]
     if not with_definition:
         samples = [s[1:] for s in samples]
-        print([len(s) for s in samples])
+        print(samples)
+        print("k = ", [len(s) for s in samples])
 
 
 
