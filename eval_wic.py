@@ -126,6 +126,7 @@ if __name__ == "__main__":
     model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
     model = model.to(device)
     tokenizerMLM.add_tokens(["<nonce>"])
+    print(model.first_list)
     model.eval()
 
     results = {}
@@ -147,6 +148,7 @@ if __name__ == "__main__":
         definitions[i] = re.sub(r"\b({})\b".format(word), "<nonce>", definition, flags=re.I)
 
     for context, definition, label in tqdm(zip(contexts, definitions, labels), total=len(contexts)):
+        print(context, definition)
         sims = predict_example(context, definition, model, tokenizerMLM)
 
         ex_results = []
