@@ -170,7 +170,7 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
             if method in ["ROME", "MEND"]:
                 assert weights_copy != {}, "weights copy must not be empty"
                 print("modified weights = ", list(weights_copy.keys()))
-                editor.model.load_state_dict(weights_copy)
+                editor.model.load_state_dict(weights_copy, strict=False)
     else:
         for sample, seq, target_definition in zip(samples, seqs, target_definitions):
             if method == "IKE":
@@ -205,7 +205,7 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
             if method in ["ROME", "MEND"]:
                 assert weights_copy != {}, "weights copy must not be empty"
                 print("modified weights = ", list(weights_copy.keys()))
-                editor.model.load_state_dict(weights_copy)
+                editor.model.load_state_dict(weights_copy, strict=False)
 
 
     if ex["ANSWER_TYPE"] == "top_1":
