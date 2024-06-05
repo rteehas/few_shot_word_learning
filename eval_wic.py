@@ -2,6 +2,7 @@ from train_with_llama import *
 from wic.wic_tsv.read_wic_tsv import *
 import json
 from tqdm import tqdm
+import torch.nn as nn
 
 class CoLLEGeEmbeddingModel(nn.Module):
     def __init__(self, firstLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers,
@@ -90,8 +91,15 @@ class CoLLEGeEmbeddingModel(nn.Module):
 
 
 def predict_example(context, definition, model, tokenizer):
-    
-    pass
+    ctx_tok = tokenizer([context], return_tensors = 'pt').to("cuda")
+    def_tok = tokenizer([definition], return_tensors = 'pt').to("cuda")
+    input_embeds, output_embeds, college_embeds = model.get_college_embeddings([ctx_tok, def_tok])
+    cos = nn.CosineSimilarity()
+    input_cos = cos(input_embeds[0], input_embeds[1])
+    output_cos = cos(output_embeds[0], output_embeds[1])
+    college_cos = cos(college_embeds[0], college_embeds[1])
+
+    return input_cos, output_cos, college_cos
 
 
 if __name__ == "__main__":
@@ -145,7 +153,7 @@ if __name__ == "__main__":
         ex_results = []
         for j, threshold in enumerate(thresholds):
             for i, e in enumerate(["input", "output", "college"]):
-                pred = int(sims[i].item() <= threshold)
+                pred = int(sims[i].item() >= threshold)
                 if pred == label:
                     if label == 1:
                         results[e]["true pos"][j] += 1
