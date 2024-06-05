@@ -303,10 +303,10 @@ class PositionalEncoder(nn.Module):
 
 class EmbeddingGenerator(nn.Module):
 
-    def __init__(self, firstLM, secondLM, num_layers, config, use_pos=False):
+    def __init__(self, firstLM, secondLM_hidden_size, num_layers, config, use_pos=False):
         super().__init__()
         self.input_hidden_size = firstLM.config.hidden_size
-        self.output_hidden_size = secondLM.config.hidden_size
+        self.output_hidden_size = secondLM_hidden_size
         self.num_attention_heads = firstLM.config.num_attention_heads
         encoder_layer = nn.TransformerEncoderLayer(d_model=self.input_hidden_size,
                                                    nhead=self.num_attention_heads,
@@ -367,6 +367,28 @@ class EmbeddingGenerator(nn.Module):
         out_embeds = self.output_emb_head(out)
 
         return inp_embeds, out_embeds
+    
+    @torch.no_grad
+    def get_embeds(self, inputs, attn_mask):
+        if self.use_pos:
+            out = self.pe(inputs)
+            out = self.encoder(out, src_key_padding_mask=~attn_mask.bool())
+        else:
+            out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
+        out = self.norm(out)
+
+        out = torch.sum(out * attn_mask.unsqueeze(-1), dim=1) / torch.sum(attn_mask, dim=-1, keepdim=True)
+
+        if self.agg_method == "CLS":
+            out = self.agg(out)
+        else:
+            out = torch.mean(out, dim=0, keepdim=True)
+
+        inp_embeds = self.input_emb_head(out)
+        out_embeds = self.output_emb_head(out)
+
+        return inp_embeds, out_embeds, out
+
 
 
 class MorphMemoryModelLLAMA(nn.Module):
@@ -385,7 +407,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         self.num_layers = num_layers
         self.distillation_temp = distillation_temp
 
-        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM, num_layers, config=self.memory_config, use_pos=use_pos)
+        self.emb_gen = EmbeddingGenerator(self.firstLM, self.secondLM.config.hidden_size, num_layers, config=self.memory_config, use_pos=use_pos)
 
         self.model_name = "{}_{}".format(self.secondLM.config.model_type, memory_config.agg_method)
 
@@ -1498,8 +1520,8 @@ def main():
 
     print("init model")
     accelerator.wait_for_everyone()
-    # layers = [-1 * (x + 1) for x in range(args.num_feature_layers)]
-    layers = [-args.layer]
+    layers = [-x for x in range(args.layer, args.layer + args.num_feature_layers)]
+    # layers = [-args.layer]
     model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, args.num_layers,
                                   args.distillation_temp, use_pos=args.use_pos).to(accelerator.device)
     print("first list", model.first_list)
