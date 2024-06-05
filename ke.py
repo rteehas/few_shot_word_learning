@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 import itertools
 from EasyEdit.easyeditor import BaseEditor
-from EasyEdit.easyeditor import IKEHyperParams
+from EasyEdit.easyeditor import IKEHyperParams, ROMEHyperParams, MENDHyperParams
 from EasyEdit.easyeditor.models.ike.util import encode_ike_facts
 from sentence_transformers import SentenceTransformer
 import torch
@@ -54,8 +54,43 @@ def ike_edit(ground_truth, target_definition):
         return_orig_weights=True,
         keep_original_weight=True,
     )
-    print(metrics)
+    # print(metrics)
     return edited_model, editor.tok
+
+def rome_edit(target_definition):
+    prompts = ["The word <nonce> is defined as"]
+    target_new = [target_definition]
+    subject = ['<nonce>']
+    hparams = ROMEHyperParams.from_hparams('EasyEdit/hparams/ROME/llama-7b.yaml')
+    editor = BaseEditor.from_hparams(hparams)
+    editor = add_new_token(editor)
+
+    metrics, edited_model, _ = editor.edit(
+        prompts=prompts,
+        ground_truth=None,
+        target_new=target_new,
+        subject=subject,
+        keep_original_weight=False
+    )
+    # print(metrics)
+    return edited_model, editor.tok
+
+def mend_edit(ground_truth, target_definition):
+    prompts = ["The word <nonce> is defined as"]
+    target_new = [target_definition]
+    hparams = MENDHyperParams.from_hparams('EasyEdit/hparams/MEND/llama-7b.yaml')
+    editor = BaseEditor.from_hparams(hparams)
+    editor = add_new_token(editor)
+
+    metrics, edited_model, _ = editor.edit(
+        prompts=prompts,
+        ground_truth=[ground_truth],
+        target_new=target_new,
+        sequential_edit=False
+    )
+    # print(metrics)
+    return edited_model, editor.tok
+
 
 
 def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
@@ -216,6 +251,7 @@ def get_arguments():
     parser.add_argument("--trials", type=int, default=1)
     parser.add_argument("--with_prompt", action="store_true")
     parser.add_argument("--with_def", action="store_true")
+    parser.add_argument("--ke_method", type=str)
     return parser
 
 if __name__ == "__main__":
