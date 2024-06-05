@@ -81,7 +81,7 @@ class CoLLEGeEmbeddingModel(nn.Module):
             attn = c['attention_mask']
             embed_inputs = combined
 
-            inp_embs, out_embs, college_embs = self.emb_gen(embed_inputs, attn)
+            inp_embs, out_embs, college_embs = self.emb_gen.get_embeds(embed_inputs, attn)
             input_embeds.append(inp_embs)
             output_embeds.append(out_embs)
             college_embeds.append(college_embs)
