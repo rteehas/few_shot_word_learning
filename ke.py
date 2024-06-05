@@ -14,6 +14,7 @@ import numpy as np
 import re
 import sys
 import os
+from tqdm import tqdm
 
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
@@ -55,6 +56,7 @@ def ike_edit(editor, ground_truth, target_definition):
         copy=True,
         return_orig_weights=True,
         keep_original_weight=True,
+        verbose=False
     )
     # print(metrics)
     return edited_model, editor.tok, icl
@@ -103,7 +105,7 @@ def get_hparams_and_editor(method="IKE"):
     return hparams, editor
 
 
-def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
+def eval_ke_baseline(ex, sents, defs, editor, with_definition=False, with_prompt=False):
     ground_truth_definition = "a Japanese company that is known for its innovative products and services."
     if with_prompt:
         if ex["ANSWER_TYPE"] == "top_1":
@@ -129,7 +131,6 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
 
 
     print("target definitions", target_definitions)
-    hparams, editor = get_hparams_and_editor(method = "IKE")
     
     total_probs = []
     if with_prompt:
@@ -203,6 +204,8 @@ def run_ke_baseline():
             # for key in sent_dict:
             #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+    hparams, editor = get_hparams_and_editor(method = "IKE")
+
     for trial in range(args.trials):
         for ex in subselection['train']:
             if args.sent_version == "question":
@@ -233,7 +236,7 @@ def run_ke_baseline():
         for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
-            for ex in subselection['train']:
+            for ex in tqdm(subselection['train'], total=len(subselection['train'])):
                 # try:
                 curr_sent_dict = {}
                 base_sent_dict = selected_sent_dict[ex["QUESTION"]]
@@ -244,7 +247,8 @@ def run_ke_baseline():
                         curr_sent_dict[key] = base_sent_dict[key][:k + 1]
                 outputs.append(eval_ke_baseline(ex=ex, 
                                                 sents=curr_sent_dict, 
-                                                defs=defs, 
+                                                defs=defs,
+                                                editor=editor,
                                                 with_definition=with_def, 
                                                 with_prompt=with_prompt))
 
