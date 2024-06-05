@@ -61,43 +61,53 @@ def ike_edit(editor, ground_truth, target_definition):
     # print(metrics)
     return edited_model, editor.tok, icl
 
-def rome_edit(target_definition):
+def rome_edit(editor, target_definition):
     prompts = ["The word <nonce> is defined as"]
     target_new = [target_definition]
     subject = ['<nonce>']
-    hparams = ROMEHyperParams.from_hparams('EasyEdit/hparams/ROME/llama-7b.yaml')
-    editor = BaseEditor.from_hparams(hparams)
-    editor = add_new_token(editor)
+    # hparams = ROMEHyperParams.from_hparams('EasyEdit/hparams/ROME/llama-7b.yaml')
+    # editor = BaseEditor.from_hparams(hparams)
+    # editor = add_new_token(editor)
 
-    metrics, edited_model, _ = editor.edit(
+    metrics, edited_model, weights_copy = editor.edit(
         prompts=prompts,
         ground_truth=None,
         target_new=target_new,
         subject=subject,
-        keep_original_weight=False
+        keep_original_weight=False,
+        return_orig_weights=True
     )
     # print(metrics)
-    return edited_model, editor.tok
+    return edited_model, editor.tok, weights_copy
 
-def mend_edit(ground_truth, target_definition):
+def mend_edit(editor, ground_truth, target_definition):
     prompts = ["The word <nonce> is defined as"]
     target_new = [target_definition]
-    hparams = MENDHyperParams.from_hparams('EasyEdit/hparams/MEND/llama-7b.yaml')
-    editor = BaseEditor.from_hparams(hparams)
-    editor = add_new_token(editor)
+    # hparams = MENDHyperParams.from_hparams('EasyEdit/hparams/MEND/llama-7b.yaml')
+    # editor = BaseEditor.from_hparams(hparams)
+    # editor = add_new_token(editor)
 
-    metrics, edited_model, _ = editor.edit(
+    metrics, edited_model, weights_copy = editor.edit(
         prompts=prompts,
         ground_truth=[ground_truth],
         target_new=target_new,
-        sequential_edit=False
+        sequential_edit=False,
+        return_orig_weights=True
     )
     # print(metrics)
-    return edited_model, editor.tok
+    return edited_model, editor.tok, weights_copy
 
 def get_hparams_and_editor(method="IKE"):
     if method == "IKE":
         hparams = IKEHyperParams.from_hparams('EasyEdit/hparams/IKE/llama-7b.yaml')
+        editor = BaseEditor.from_hparams(hparams)
+        editor = add_new_token(editor)
+    elif method == "MEND":
+        hparams = MENDHyperParams.from_hparams('EasyEdit/hparams/MEND/llama-7b.yaml')
+        editor = BaseEditor.from_hparams(hparams)
+        editor = add_new_token(editor)
+    elif method == "ROME":
+        hparams = ROMEHyperParams.from_hparams('EasyEdit/hparams/ROME/llama-7b.yaml')
         editor = BaseEditor.from_hparams(hparams)
         editor = add_new_token(editor)
     else:
@@ -105,7 +115,7 @@ def get_hparams_and_editor(method="IKE"):
     return hparams, editor
 
 
-def eval_ke_baseline(ex, sents, defs, editor, with_definition=False, with_prompt=False):
+def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, with_prompt=False):
     ground_truth_definition = "a Japanese company that is known for its innovative products and services."
     if with_prompt:
         if ex["ANSWER_TYPE"] == "top_1":
@@ -135,31 +145,68 @@ def eval_ke_baseline(ex, sents, defs, editor, with_definition=False, with_prompt
     total_probs = []
     if with_prompt:
         for sample, seq, base_seq, target_definition in zip(samples, seqs, base_seqs, target_definitions):
-            model, tokenizer, icl = ike_edit(editor=editor,
-                                             ground_truth=ground_truth_definition, 
-                                             target_definition=target_definition)
-            ike_icl_examples = icl[0]
-            new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
+            if method == "IKE":
+                model, tokenizer, icl = ike_edit(editor=editor,
+                                                ground_truth=ground_truth_definition, 
+                                                target_definition=target_definition)
+                ike_icl_examples = icl[0]
+                new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
+            elif method == "ROME":
+                new_seq = seq
+                model, tokenizer, weights_copy = rome_edit(editor=editor,
+                                                target_definition=target_definition)
+            elif method == "MEND":
+                new_seq = seq
+                model, tokenizer, weights_copy = mend_edit(editor=editor,
+                                                           ground_truth=ground_truth_definition,
+                                                           target_definition=target_definition)
+
             # print(new_seq)
             with torch.no_grad():
                 model.eval()
                 prob = get_sentence_probs(model, tokenizer, [new_seq], [base_seq])
                 total_probs.append(prob)
+            
+            if method in ["ROME", "MEND"]:
+                assert weights_copy != {}, "weights copy must not be empty"
+                print("modified weights = ", list(weights_copy.keys()))
+                editor.model.load_state_dict(weights_copy)
     else:
         for sample, seq, target_definition in zip(samples, seqs, target_definitions):
-            model, tokenizer, icl = ike_edit(ground_truth=ground_truth_definition, target_definition=target_definition)
-            ike_icl_examples = icl[0]
-            new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
+            if method == "IKE":
+                model, tokenizer, icl = ike_edit(editor=editor,
+                                                ground_truth=ground_truth_definition, 
+                                                target_definition=target_definition)
+                ike_icl_examples = icl[0]
+                new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
+
+            elif method == "ROME":
+                new_seq = seq
+                model, tokenizer, weights_copy = rome_edit(editor=editor,
+                                                target_definition=target_definition)
+            elif method == "MEND":
+                new_seq = seq
+                model, tokenizer, weights_copy = mend_edit(editor=editor,
+                                                           ground_truth=ground_truth_definition,
+                                                           target_definition=target_definition)
             # print(new_seq)
             with torch.no_grad():
                 model.eval()
-                prob = get_sentence_probs(model, tokenizer, [new_seq], [seq])
-                # toks = tokenizer(seq, return_tensors="pt").to(model.device)
-                # label = toks['input_ids'].clone()
-                # out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=label)
-                # # prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
-                # prob = -out.loss.item()
+                if method == "IKE":
+                    prob = get_sentence_probs(model, tokenizer, [new_seq], [seq])
+                else:
+                    toks = tokenizer(seq, return_tensors="pt").to(model.device)
+                    label = toks['input_ids'].clone()
+                    out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=label)
+                    # prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                    prob = -out.loss.item()
                 total_probs.append(prob)
+            
+            if method in ["ROME", "MEND"]:
+                assert weights_copy != {}, "weights copy must not be empty"
+                print("modified weights = ", list(weights_copy.keys()))
+                editor.model.load_state_dict(weights_copy)
+
 
     if ex["ANSWER_TYPE"] == "top_1":
         return evaluate_type_1(total_probs, labels)
@@ -204,7 +251,8 @@ def run_ke_baseline():
             # for key in sent_dict:
             #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-    hparams, editor = get_hparams_and_editor(method = "IKE")
+    method = args.ke_method
+    hparams, editor = get_hparams_and_editor(method = method)
 
     for trial in range(args.trials):
         for ex in subselection['train']:
@@ -249,8 +297,13 @@ def run_ke_baseline():
                                                 sents=curr_sent_dict, 
                                                 defs=defs,
                                                 editor=editor,
+                                                method=method,
                                                 with_definition=with_def, 
                                                 with_prompt=with_prompt))
+                
+                acc_so_far = sum(outputs) / len(outputs)
+                print("Accuracy So Far for k = {} is {}".format(k, acc_so_far))
+
 
             acc = sum(outputs) / len(outputs)
             print("Accuracy for k = {} is {}".format(k, acc))
@@ -264,7 +317,7 @@ def run_ke_baseline():
         print("Accuracy for {}".format(value))
         print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
-    fname = "ike_with_prompt_{}_with_def_{}.json".format(args.with_prompt, with_def)
+    fname = "{}_with_prompt_{}_with_def_{}.json".format(args.ke_method, args.with_prompt, with_def)
 
     with open(fname, 'w') as fp:
         json.dump(scores, fp)
