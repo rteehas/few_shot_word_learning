@@ -149,7 +149,8 @@ if __name__ == "__main__":
 
     for context, definition, label in tqdm(zip(contexts, definitions, labels), total=len(contexts)):
         print(context, definition)
-        sims = predict_example(context, definition, model, tokenizerMLM)
+        def_str = "The word <nonce> is defined as {}".format(definition)
+        sims = predict_example(context, def_str, model, tokenizerMLM)
 
         ex_results = []
         for j, threshold in enumerate(thresholds):
