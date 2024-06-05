@@ -196,6 +196,7 @@ if __name__ == "__main__":
         print("Precisions: ", precisions)
         print("Recalls: ", recalls)
         print("F1 Scores: ", f1s)
+        print("Accuracies: ", accs)
 
     with open("college_wic_results.json", 'w') as fp:
         json.dump(results, fp)
