@@ -237,7 +237,7 @@ def run_ke_baseline():
         print("Accuracy for {}".format(value))
         print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
-    fname = "ike_with_prompt_{}_with_def_{}.json".format(args.with_prompt, with_def, args.tuning)
+    fname = "ike_with_prompt_{}_with_def_{}.json".format(args.with_prompt, with_def)
 
     with open(fname, 'w') as fp:
         json.dump(scores, fp)
