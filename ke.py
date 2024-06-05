@@ -28,7 +28,7 @@ def ike_edit(ground_truth, target_definition):
     definition_prompt = "The word <nonce> is defined as"
     rephrased_definition_prompt = "The word <nonce> means"
 
-    hparams = IKEHyperParams.from_hparams('./hparams/IKE/llama-7b.yaml')
+    hparams = IKEHyperParams.from_hparams('EasyEdit/hparams/IKE/llama-7b.yaml')
     editor = BaseEditor.from_hparams(hparams)
     editor = add_new_token(editor)
 
