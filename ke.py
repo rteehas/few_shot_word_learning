@@ -111,7 +111,6 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
 
 def run_ke_baseline():
     args = get_arguments().parse_args()
-    path = args.path
     gre = load_from_disk("processed_kaplan_v0")
     id = uuid.uuid4()
     subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
