@@ -139,7 +139,7 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
                                              target_definition=target_definition)
             ike_icl_examples = icl[0]
             new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
-            print(new_seq)
+            # print(new_seq)
             with torch.no_grad():
                 model.eval()
                 prob = get_sentence_probs(model, tokenizer, [new_seq], [base_seq])
@@ -149,7 +149,7 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
             model, tokenizer, icl = ike_edit(ground_truth=ground_truth_definition, target_definition=target_definition)
             ike_icl_examples = icl[0]
             new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
-            print(new_seq)
+            # print(new_seq)
             with torch.no_grad():
                 model.eval()
                 prob = get_sentence_probs(model, tokenizer, [new_seq], [seq])
