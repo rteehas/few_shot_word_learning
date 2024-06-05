@@ -3,6 +3,7 @@ import itertools
 from EasyEdit.easyeditor import BaseEditor
 from EasyEdit.easyeditor import IKEHyperParams, ROMEHyperParams, MENDHyperParams
 from EasyEdit.easyeditor.models.ike.util import encode_ike_facts
+from EasyEdit.easyeditor import ZsreDataset
 from sentence_transformers import SentenceTransformer
 import torch
 import uuid
@@ -24,25 +25,26 @@ def add_new_token(editor):
     editor.model.resize_token_embeddings(len(editor.tok))
     return editor
 
-def ike_edit(ground_truth, target_definition):
+def ike_edit(editor, ground_truth, target_definition):
     definition_prompt = "The word <nonce> is defined as"
     rephrased_definition_prompt = "The word <nonce> means"
 
-    hparams = IKEHyperParams.from_hparams('EasyEdit/hparams/IKE/llama-7b.yaml')
-    editor = BaseEditor.from_hparams(hparams)
-    editor = add_new_token(editor)
+    # hparams = IKEHyperParams.from_hparams('EasyEdit/hparams/IKE/llama-7b.yaml')
+    # editor = BaseEditor.from_hparams(hparams)
+    # editor = add_new_token(editor)
 
-    sentence_model = SentenceTransformer(hparams.sentence_model_name)
+    # sentence_model = SentenceTransformer(hparams.sentence_model_name)
 
-    train_ds = [
-        {
-            "prompt": definition_prompt,
-            "target_new": target_definition,
-            "rephrase_prompt": rephrased_definition_prompt,
-        }
-    ]
+    # train_ds = [
+    #     {
+    #         "prompt": definition_prompt,
+    #         "target_new": target_definition,
+    #         "rephrase_prompt": rephrased_definition_prompt,
+    #     }
+    # ]
+    train_ds = ZsreDataset('EasyEdit/data/zsre/zsre_mend_train.json')
 
-    encode_ike_facts(sentence_model, train_ds, hparams)
+    # encode_ike_facts(sentence_model, train_ds, hparams)
     metrics, edited_model, _, icl = editor.edit(
         prompts=[definition_prompt],
         ground_truth=[ground_truth],
@@ -91,6 +93,14 @@ def mend_edit(ground_truth, target_definition):
     # print(metrics)
     return edited_model, editor.tok
 
+def get_hparams_and_editor(method="IKE"):
+    if method == "IKE":
+        hparams = IKEHyperParams.from_hparams('EasyEdit/hparams/IKE/llama-7b.yaml')
+        editor = BaseEditor.from_hparams(hparams)
+        editor = add_new_token(editor)
+    else:
+        raise NotImplementedError
+    return hparams, editor
 
 
 def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
@@ -119,25 +129,35 @@ def eval_ke_baseline(ex, sents, defs, with_definition=False, with_prompt=False):
 
 
     print("target definitions", target_definitions)
+    hparams, editor = get_hparams_and_editor(method = "IKE")
     
     total_probs = []
     if with_prompt:
         for sample, seq, base_seq, target_definition in zip(samples, seqs, base_seqs, target_definitions):
-            model, tokenizer = ike_edit(ground_truth=ground_truth_definition, target_definition=target_definition)
+            model, tokenizer, icl = ike_edit(editor=editor,
+                                             ground_truth=ground_truth_definition, 
+                                             target_definition=target_definition)
+            ike_icl_examples = icl[0]
+            new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
+            print(new_seq)
             with torch.no_grad():
                 model.eval()
-                prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                prob = get_sentence_probs(model, tokenizer, [new_seq], [base_seq])
                 total_probs.append(prob)
     else:
         for sample, seq, target_definition in zip(samples, seqs, target_definitions):
-            model, tokenizer = ike_edit(ground_truth=ground_truth_definition, target_definition=target_definition)
+            model, tokenizer, icl = ike_edit(ground_truth=ground_truth_definition, target_definition=target_definition)
+            ike_icl_examples = icl[0]
+            new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
+            print(new_seq)
             with torch.no_grad():
                 model.eval()
-                toks = tokenizer(seq, return_tensors="pt").to(model.device)
-                label = toks['input_ids'].clone()
-                out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=label)
-                # prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
-                prob = -out.loss.item()
+                prob = get_sentence_probs(model, tokenizer, [new_seq], [seq])
+                # toks = tokenizer(seq, return_tensors="pt").to(model.device)
+                # label = toks['input_ids'].clone()
+                # out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=label)
+                # # prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
+                # prob = -out.loss.item()
                 total_probs.append(prob)
 
     if ex["ANSWER_TYPE"] == "top_1":
