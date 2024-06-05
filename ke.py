@@ -43,7 +43,7 @@ def ike_edit(ground_truth, target_definition):
     ]
 
     encode_ike_facts(sentence_model, train_ds, hparams)
-    metrics, edited_model, icl = editor.edit(
+    metrics, edited_model, _, icl = editor.edit(
         prompts=[definition_prompt],
         ground_truth=[ground_truth],
         rephrase_prompts=[rephrased_definition_prompt],  # new para
