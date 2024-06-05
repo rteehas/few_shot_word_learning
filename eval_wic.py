@@ -156,7 +156,7 @@ if __name__ == "__main__":
         for j, threshold in enumerate(thresholds):
             for i, e in enumerate(["input", "output", "college"]):
                 pred = int(sims[i].item() >= threshold)
-                print(sims[i], sims[i].item(), threshold)
+                print(sims[i], sims[i].item(), threshold, pred, label)
                 if pred == label:
                     if label == 1:
                         results[e]["true pos"][j] += 1
