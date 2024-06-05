@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import itertools
 from easyeditor import BaseEditor
 from easyeditor import IKEHyperParams
@@ -200,3 +201,15 @@ def run_ke_baseline():
         json.dump(scores, fp)
 
     return scores
+
+def get_arguments():
+    parser = ArgumentParser()
+    parser.add_argument("--sents", type=str, default='gre_examples_gpt4_v2.json')
+    parser.add_argument("--defs", type=str, default='gre_definitions_all.json')
+    parser.add_argument("--sent_version", type=str)
+    parser.add_argument("--trials", type=int, default=1)
+    parser.add_argument("--with_prompt", action="store_true")
+    return parser
+
+if __name__ == "__main__":
+    run_ke_baseline()
