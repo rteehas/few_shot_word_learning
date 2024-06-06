@@ -11,6 +11,7 @@ import re
 from init_baseline import *
 from w2v_baselines import *
 import uuid
+import time 
 
 def get_arguments():
     parser = ArgumentParser()
@@ -187,6 +188,9 @@ def eval_baseline(args):
             # for key in sent_dict:
             #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+    times = []
+    per_example_times = []
+
     for trial in range(args.trials):
         for ex in subselection['train']:
             if args.sent_version == "question":
@@ -216,7 +220,8 @@ def eval_baseline(args):
 
             elif args.sent_version == "answer":
                 raise NotImplementedError
-
+        
+        start_time = time.time()
         for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
@@ -253,7 +258,13 @@ def eval_baseline(args):
                         scores[k].append(step_accs[idx])
                     else:
                         scores[k] = [step_accs[idx]]
+        elapsed = time.time() - start_time
+        times.append(elapsed)
+        per_example_times.append(elapsed / (len(outputs) * len(list(range(1, max_k)))))
 
+    avg_time = sum(times) / len(times)
+    print("Average time taken for eval = {} seconds".format(avg_time))
+    print("Average time taken per example = {} seconds".format())
 
 
     print("Across Trials Results")
