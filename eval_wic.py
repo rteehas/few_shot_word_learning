@@ -245,7 +245,7 @@ if __name__ == "__main__":
         dev_definitions[i] = re.sub(r"\b({})\b".format(word), "<nonce>", definition, flags=re.I)
     
     global_step = 0
-    for epoch in epochs:
+    for epoch in range(epochs):
         train_predictions = []
         train_labels = []
         train_loss = 0
