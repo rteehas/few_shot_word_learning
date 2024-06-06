@@ -158,10 +158,18 @@ def compute_metrics(preds, labels):
         "R": r,
     }
 
+def get_arguments():
+    parser = ArgumentParser()
+    parser.add_argument("--batch_size", type=int)
+    parser.add_argument("--lr", type=float)
+    parser.add_argument("--weight_decay", type=float)
+    parser.add_argument("--epochs", type=int)
+    return parser
 
 
 
 if __name__ == "__main__":
+    args = get_arguments().parse_args()
     device = "cuda"
 
     path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_28000"
@@ -174,10 +182,10 @@ if __name__ == "__main__":
     nonces = list(tokenizerTask.get_added_vocab().keys())
     mask_token_id = tokenizerMLM.mask_token_id
     layers=[-1]
-    epochs = 10
-    lr = 1e-4
-    weight_decay = 0.05
-    batch_size = 10
+    epochs = args.epochs
+    lr = args.lr
+    weight_decay = args.weight_decay
+    batch_size = args.batch_size
     # model = CoLLEGeEmbeddingModel(
     #     firstLM=firstLM,
     #     num_new_tokens=1,
@@ -231,7 +239,7 @@ if __name__ == "__main__":
     
     scheduler = get_cosine_schedule_with_warmup(opt, 
                                                 num_warmup_steps = 300,
-                                                num_training_steps = len(contexts) * epochs)
+                                                num_training_steps = (len(contexts) // batch_size) * epochs)
 
     for i, (context, target_id, definition) in enumerate(zip(contexts, target_inds, definitions)):
         word = context.split()[target_id]
