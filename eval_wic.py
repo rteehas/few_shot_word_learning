@@ -286,7 +286,10 @@ if __name__ == "__main__":
         classifier.train()
 
         curr_train_batch_size = 0
-        for (context, definition, label) in tqdm(train_dl, total=len(train_dl)):
+        for (c, d, l) in tqdm(train_dl, total=len(train_dl)):
+            context = c[0]
+            definition = d[0]
+            label = l[0]
             print(context, definition)
             def_str = "The word <nonce> is defined as {}".format(definition)
             print("curr batch size", curr_train_batch_size)
@@ -334,7 +337,10 @@ if __name__ == "__main__":
         test_labels = []
         test_loss = 0
         classifier.eval()
-        for (dev_context, dev_definition, dev_label) in tqdm(dev_dl, total=len(dev_dl)):
+        for (dc, dd, dl) in tqdm(dev_dl, total=len(dev_dl)):
+            dev_context = dc[0]
+            dev_definition = dd[0]
+            dev_label = dl[0]
             def_str = "The word <nonce> is defined as {}".format(dev_definition)
             with torch.no_grad():
                 ctx_hidden, def_hidden = predict_example(dev_context, def_str, dev_definition, model,
