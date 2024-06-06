@@ -44,7 +44,7 @@ if __name__ == "__main__":
     print(contexts[0])
     print(labels[0])
     print(definitions[0])
-
+    new_token_idx = len(tokenizerTask) - 1
     test_dataset = SimpleWiCDataset(contexts = contexts, 
                                      definitions=definitions,
                                      labels = labels)
