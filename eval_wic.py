@@ -245,7 +245,7 @@ if __name__ == "__main__":
     
 
     train_folder = Path('wic/wic_tsv/data/en/Training')
-    dev_folder = Path('wic/wic_tsv/data/en/Training')
+    dev_folder = Path('wic/wic_tsv/data/en/Development')
     contexts, target_inds, hypernyms, definitions, labels = dp.read_wic_tsv(wic_tsv_folder=train_folder)
     for i, (context, target_id, definition) in enumerate(zip(contexts, target_inds, definitions)):
         word = context.split()[target_id]
@@ -359,7 +359,7 @@ if __name__ == "__main__":
                     ctx_hidden = torch.mean(ctx_hidden, dim=0, keepdim=True)
 
                 cat_embeds = torch.cat([ctx_hidden, def_hidden], dim=1)
-                logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device).unsqueeze(0))
+                logits, loss = classifier(cat_embeds, labels=torch.tensor([dev_label], device=device).unsqueeze(0))
                 test_preds = torch.flatten((logits >= 0.5).int()).detach().tolist()
                 test_loss += loss.detach().float()
                 test_predictions += test_preds
