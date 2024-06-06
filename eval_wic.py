@@ -343,7 +343,7 @@ if __name__ == "__main__":
             dev_label = dl[0]
             def_str = "The word <nonce> is defined as {}".format(dev_definition)
             with torch.no_grad():
-                ctx_hidden, def_hidden = predict_example(dev_context, def_str, dev_definition, model,
+                ctx_hidden, def_hidden = predict_example(dev_context, def_str, model,
                                                          tokenizerMLM, tokenizerTask, new_token_idx)
                 cat_embeds = torch.cat([ctx_hidden, def_hidden], dim=1)
                 logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device))
