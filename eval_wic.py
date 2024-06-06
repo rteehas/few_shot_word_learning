@@ -118,14 +118,17 @@ class CoLLEGeWiCClassifier(nn.Module):
 
 #     return input_cos, output_cos, college_cos
 
-def predict_example(context, definition, model, tokenizerMLM, tokenizerTask, new_token_idx):
+def predict_example(context, definition, model, tokenizerMLM, tokenizerTask, new_token_idx, prev_idx=False):
     ctx_tok = tokenizerMLM([context], return_tensors = 'pt').to("cuda")
     def_tok = tokenizerMLM([definition], return_tensors = 'pt').to("cuda")
     
     query_inputs = tokenizerTask([context, definition], return_tensors='pt', padding='longest').to("cuda")
     # input_embeds, output_embeds, college_embeds = model.get_college_embeddings([ctx_tok, def_tok])
-    ctx_token_idx = torch.where(query_inputs['input_ids'][0] == new_token_idx)[0] - 1
-    def_token_idx = torch.where(query_inputs['input_ids'][1] == new_token_idx)[0] - 1
+    ctx_token_idx = torch.where(query_inputs['input_ids'][0] == new_token_idx)[0]
+    def_token_idx = torch.where(query_inputs['input_ids'][1] == new_token_idx)[0]
+    if prev_idx:
+        ctx_token_idx -= 1
+        def_token_idx -= 1
     print(ctx_token_idx, def_token_idx)
     print(query_inputs['input_ids'])
     labels = query_inputs['input_ids'].clone()
@@ -181,6 +184,7 @@ def get_arguments():
     parser.add_argument("--lr", type=float)
     parser.add_argument("--weight_decay", type=float)
     parser.add_argument("--epochs", type=int)
+    parser.add_argument("--prev_idx", action="store_true")
     return parser
 
 
@@ -227,7 +231,7 @@ if __name__ == "__main__":
     for p in model.parameters():
         p.requires_grad = False
 
-    run_name = "classifier_epochs={}_lr={}_weight_decay={}_batch_size={}".format(epochs, lr, weight_decay, batch_size)
+    run_name = "classifier_epochs={}_lr={}_weight_decay={}_batch_size={}_prev_idx={}".format(epochs, lr, weight_decay, batch_size, args.prev_idx)
     run = wandb.init(project="few_shot_wic",
                      name=run_name
                     )
@@ -301,7 +305,7 @@ if __name__ == "__main__":
             def_str = "The word <nonce> is defined as {}".format(definition)
             print("curr batch size", curr_train_batch_size)
             with torch.no_grad():
-                ctx_hidden, def_hidden = predict_example(context, def_str, model, tokenizerMLM, tokenizerTask, new_token_idx)
+                ctx_hidden, def_hidden = predict_example(context, def_str, model, tokenizerMLM, tokenizerTask, new_token_idx, prev_idx=args.prev_idx)
                 print("def", def_hidden.shape)
                 print("ctx", ctx_hidden.shape)
                 if def_hidden.shape[0] > 1:
@@ -351,7 +355,7 @@ if __name__ == "__main__":
             def_str = "The word <nonce> is defined as {}".format(dev_definition)
             with torch.no_grad():
                 ctx_hidden, def_hidden = predict_example(dev_context, def_str, model,
-                                                         tokenizerMLM, tokenizerTask, new_token_idx)
+                                                         tokenizerMLM, tokenizerTask, new_token_idx, prev_idx=args.prev_idx)
                 
                 if def_hidden.shape[0] > 1:
                     def_hidden = torch.mean(def_hidden, dim=0, keepdim=True)
