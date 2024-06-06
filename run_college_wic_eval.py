@@ -73,7 +73,7 @@ if __name__ == "__main__":
                 ctx_hidden = torch.mean(ctx_hidden, dim=0, keepdim=True)
 
             cat_embeds = torch.cat([ctx_hidden, def_hidden], dim=1)
-            logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device).unsqueeze(0))
+            logits, loss = classifier(cat_embeds, labels=torch.tensor([test_label], device=device).unsqueeze(0))
             test_preds = torch.flatten((logits >= 0.0).int()).detach().tolist()
             # test_loss += loss.detach().float()
             test_predictions += test_preds
