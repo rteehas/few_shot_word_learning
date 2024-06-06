@@ -145,6 +145,7 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
     total_probs = []
     if with_prompt:
         for sample, seq, base_seq, target_definition in zip(samples, seqs, base_seqs, target_definitions):
+            prompts = 
             if method == "IKE":
                 model, tokenizer, icl = ike_edit(editor=editor,
                                                 ground_truth=ground_truth_definition, 
@@ -294,10 +295,7 @@ def run_ke_baseline():
         for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
-            i = 0
             for ex in tqdm(subselection['train'], total=len(subselection['train'])):
-                if i > 1:
-                    continue
                 # try:
                 curr_sent_dict = {}
                 base_sent_dict = selected_sent_dict[ex["QUESTION"]]
@@ -308,7 +306,6 @@ def run_ke_baseline():
                     else:
                         curr_sent_dict[key] = base_sent_dict[key][:k + 1]
                 # print("current", curr_sent_dict)
-                i += 1
                 
                 outputs.append(eval_ke_baseline(ex=ex, 
                                                 sents=curr_sent_dict, 
