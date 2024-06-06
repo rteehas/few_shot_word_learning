@@ -124,8 +124,8 @@ def predict_example(context, definition, model, tokenizerMLM, tokenizerTask, new
     
     query_inputs = tokenizerTask([context, definition], return_tensors='pt', padding='longest').to("cuda")
     # input_embeds, output_embeds, college_embeds = model.get_college_embeddings([ctx_tok, def_tok])
-    ctx_token_idx = torch.where(query_inputs['input_ids'][0] == new_token_idx)[0]
-    def_token_idx = torch.where(query_inputs['input_ids'][1] == new_token_idx)[0]
+    ctx_token_idx = torch.where(query_inputs['input_ids'][0] == new_token_idx)[0] - 1
+    def_token_idx = torch.where(query_inputs['input_ids'][1] == new_token_idx)[0] - 1
     print(ctx_token_idx, def_token_idx)
     print(query_inputs['input_ids'])
     labels = query_inputs['input_ids'].clone()
