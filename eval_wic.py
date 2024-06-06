@@ -201,45 +201,45 @@ if __name__ == "__main__":
                     elif pred == 0:
                         results[e]["false neg"][j] += 1
     
-for key in results:
-    print("Results for {} Embeddings".format(key.upper()))
-    emb_results = results[key]
-    precisions = []
-    accs = []
-    f1s = []
-    recalls = []
+    for key in results:
+        print("Results for {} Embeddings".format(key.upper()))
+        emb_results = results[key]
+        precisions = []
+        accs = []
+        f1s = []
+        recalls = []
 
-    for i in range(len(thresholds)):
-        true_pos = emb_results['true pos'][i]
-        true_neg = emb_results['true neg'][i]
-        false_pos = emb_results['false pos'][i]
-        false_neg = emb_results['false neg'][i]
-        try:
-            precision = true_pos / (true_pos + false_pos)
-        except ZeroDivisionError:
-            precision = 0
-        
-        try:
-            recall = true_pos / (true_pos + false_neg)
-        except ZeroDivisionError:
-            recall = 0
-        try:   
-            f1 = 2 * (precision * recall) / (precision + recall)
-        except ZeroDivisionError:
-            f1 = 0
-        acc = (true_pos + true_neg) / len(contexts)
+        for i in range(len(thresholds)):
+            true_pos = emb_results['true pos'][i]
+            true_neg = emb_results['true neg'][i]
+            false_pos = emb_results['false pos'][i]
+            false_neg = emb_results['false neg'][i]
+            try:
+                precision = true_pos / (true_pos + false_pos)
+            except ZeroDivisionError:
+                precision = 0
+            
+            try:
+                recall = true_pos / (true_pos + false_neg)
+            except ZeroDivisionError:
+                recall = 0
+            try:   
+                f1 = 2 * (precision * recall) / (precision + recall)
+            except ZeroDivisionError:
+                f1 = 0
+            acc = (true_pos + true_neg) / len(contexts)
 
-        precisions.append(precision)
-        accs.append(acc)
-        f1s.append(f1)
-        recalls.append(recall)
+            precisions.append(precision)
+            accs.append(acc)
+            f1s.append(f1)
+            recalls.append(recall)
 
-    print("Thresholds: ", thresholds)
-    print("Precisions: ", precisions)
-    print("Recalls: ", recalls)
-    print("F1 Scores: ", f1s)
-    print("Accuracies: ", accs)
+        print("Thresholds: ", thresholds)
+        print("Precisions: ", precisions)
+        print("Recalls: ", recalls)
+        print("F1 Scores: ", f1s)
+        print("Accuracies: ", accs)
 
-    with open("college_wic_results.json", 'w') as fp:
-        json.dump(results, fp)
+        with open("college_wic_results.json", 'w') as fp:
+            json.dump(results, fp)
     
