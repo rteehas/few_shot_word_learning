@@ -177,6 +177,7 @@ if __name__ == "__main__":
     epochs = 10
     lr = 1e-4
     weight_decay = 0.05
+    batch_size = 10
     # model = CoLLEGeEmbeddingModel(
     #     firstLM=firstLM,
     #     num_new_tokens=1,
@@ -250,6 +251,8 @@ if __name__ == "__main__":
         train_labels = []
         train_loss = 0
         classifier.train()
+
+        curr_train_batch_size = 0
         for context, definition, label in tqdm(zip(contexts, definitions, labels), total=len(contexts)):
             print(context, definition)
             def_str = "The word <nonce> is defined as {}".format(definition)
@@ -262,22 +265,32 @@ if __name__ == "__main__":
                 if ctx_hidden.shape[0] > 1:
                     ctx_hidden = torch.mean(ctx_hidden, dim=0, keepdim=True)
                 cat_embeds = torch.cat([ctx_hidden, def_hidden], dim=1)
+                if curr_train_batch_size == 0:
+                    batch_inputs = cat_embeds
+                    batch_labels = torch.tensor([label], device=device).unsqueeze(0)
+                else:
+                    batch_inputs = torch.cat([batch_inputs, cat_embeds], dim=0)
 
-            logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device).unsqueeze(0))
-            wandb.log({"train loss": loss.item(),
-                       "global step": global_step})
-            loss.backward()
-            opt.step()
-            scheduler.step()
-            opt.zero_grad()
-            model.zero_grad()
+                    ex_labels = torch.tensor([label], device=device).unsqueeze(0)
+                    batch_labels = torch.cat([batch_labels, ex_labels], dim=0)
+                    curr_train_batch_size += 1
+            if curr_train_batch_size == batch_size:
 
-            preds = torch.flatten((logits >= 0.5).int()).detach().tolist()
-            train_predictions += preds
-            train_loss += loss.detach().float()
-            train_labels.append(label)
+                logits, loss = classifier(batch_inputs, labels=batch_labels)
+                wandb.log({"train loss": loss.item(),
+                        "global step": global_step})
+                loss.backward()
+                opt.step()
+                scheduler.step()
+                opt.zero_grad()
+                model.zero_grad()
 
-            global_step += 1
+                preds = torch.flatten((logits >= 0.5).int()).detach().tolist()
+                train_predictions += preds
+                train_loss += loss.detach().float()
+                train_labels += torch.flatten(ex_labels).detach().tolist()
+
+                global_step += 1
         
         test_predictions = []
         test_labels = []
