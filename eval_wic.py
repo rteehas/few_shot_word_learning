@@ -146,7 +146,8 @@ def predict_example(context, definition, model, tokenizerMLM, tokenizerTask, new
 
 
 def compute_metrics(preds, labels):
-    print(preds, labels)
+    print("labels",labels)
+    print("preds", preds)
     preds = np.array(preds)
     labels = np.array(labels)
     
