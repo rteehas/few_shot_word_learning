@@ -392,8 +392,9 @@ def run_ke_baseline():
         times.append(elapsed)
         per_example_times.append(elapsed / (len(outputs) * len(list(range(1, max_k)))))
     avg_time = sum(times) / len(times)
+    avg_per_example_time = sum(per_example_times) / len(per_example_times)
     print("Average time taken for eval = {} seconds".format(avg_time))
-    print("Average time taken per example = {} seconds".format())
+    print("Average time taken per example = {} seconds".format(avg_per_example_time))
     print("Across Trials Results")
     for value in scores:
         print("Accuracy for {}".format(value))
