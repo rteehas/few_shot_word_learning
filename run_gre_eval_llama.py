@@ -629,7 +629,7 @@ def main():
                 for k in range(1,max_k):
                     wrong_ans[k] = []
 
-                start_time = time.time()
+                
                 for k in range(1, 6):
                     outputs = []
                     for ex in subselection['train']:
@@ -645,8 +645,10 @@ def main():
                         base_sent_dict = selected_sent_dict[ex["QUESTION"]]
                         for key in base_sent_dict:
                             curr_sent_dict[key] = base_sent_dict[key][:k]
-
+                        start_time = time.time()
                         result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, curr_sent_dict, k, with_def, defs, with_prompt=args.with_prompt)
+                        elapsed = time.time() - start_time
+                        times.append(elapsed)
                         outputs.append(result)
                         if not result:
                             wrong_ans[k].append(ex["QUESTION"])
@@ -659,14 +661,15 @@ def main():
                         scores[k].append(acc)
                     else:
                         scores[k] = [acc]
-                elapsed = time.time() - start_time
-            times.append(elapsed)
-            per_example_times.append(elapsed / (len(outputs) * len(list(range(1, max_k)))))
+                
+            
+            
 
-        avg_time = sum(times) / len(times)
-        avg_per_example = sum(per_example_times) / len(per_example_times)
-        print("Average time taken for eval = {} seconds".format(avg_time))
-        print("Average time taken per example = {} seconds".format(avg_per_example))
+        total_time = sum(times)
+        average_per_example_time = sum(times) / len(times)
+        # avg_per_example_time = sum(per_example_times) / len(per_example_times)
+        print("Total time taken for eval = {} seconds".format(total_time))
+        print("Average time taken per example = {} seconds".format(average_per_example_time))
 
         if "negatives" in args.path and "regression" in args.path:
             model_type = "negatives_and_regression"
