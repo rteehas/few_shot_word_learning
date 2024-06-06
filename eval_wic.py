@@ -255,6 +255,8 @@ if __name__ == "__main__":
             def_str = "The word <nonce> is defined as {}".format(definition)
             with torch.no_grad():
                 ctx_hidden, def_hidden = predict_example(context, def_str, model, tokenizerMLM, tokenizerTask, new_token_idx)
+                print("def", def_hidden.shape)
+                print("ctx", ctx_hidden.shape)
                 if def_hidden.shape[0] > 1:
                     def_hidden = torch.mean(def_hidden, dim=0, keepdim=True)
                 cat_embeds = torch.cat([ctx_hidden, def_hidden], dim=1)
