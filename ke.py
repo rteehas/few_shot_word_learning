@@ -162,7 +162,9 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
             ke_prompts = ["The word <nonce> is defined as"]
             ke_targets = [target_definition]
             if use_samples_for_ke:
-                prompts, targets = samples_to_targets(samples)
+                if with_definition:
+                    prompts, targets = samples_to_targets(sample[1:])
+                prompts, targets = samples_to_targets(sample)
                 print("prompts from samples", prompts)
                 print("targets from samples", targets)
                 ke_prompts = ke_prompts + prompts
@@ -200,9 +202,21 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
                 editor.model.load_state_dict(weights_copy, strict=False)
     else:
         for sample, seq, target_definition in zip(samples, seqs, target_definitions):
+            ke_prompts = ["The word <nonce> is defined as"]
+            ke_targets = [target_definition]
+            if use_samples_for_ke:
+                if with_definition:
+                    prompts, targets = samples_to_targets(sample[1:])
+                prompts, targets = samples_to_targets(sample)
+                print("prompts from samples", prompts)
+                print("targets from samples", targets)
+                ke_prompts = ke_prompts + prompts
+                ke_targets = ke_targets + targets
+                print("final ke prompts", ke_prompts)
+                print("final ke targets", ke_targets)
+
             if method == "IKE":
                 model, tokenizer, icl = ike_edit(editor=editor,
-                                                ground_truth=ground_truth_definition, 
                                                 target_definition=target_definition)
                 ike_icl_examples = icl[0]
                 new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
@@ -210,12 +224,13 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
             elif method == "ROME":
                 new_seq = seq
                 model, tokenizer, weights_copy = rome_edit(editor=editor,
-                                                target_definition=target_definition)
+                                                        prompts=ke_prompts,
+                                                        target_new=ke_targets)
             elif method == "MEND":
                 new_seq = seq
                 model, tokenizer, weights_copy = mend_edit(editor=editor,
-                                                           ground_truth=ground_truth_definition,
-                                                           target_definition=target_definition)
+                                                           prompts=ke_prompts,
+                                                           target_new=ke_targets)
             # print(new_seq)
             with torch.no_grad():
                 model.eval()
