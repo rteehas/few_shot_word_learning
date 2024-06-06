@@ -8,6 +8,7 @@ from sklearn.metrics import precision_recall_fscore_support
 import wandb
 from torch.optim import AdamW
 from transformers.optimization import get_cosine_schedule_with_warmup
+import os
 
 class CoLLEGeEmbeddingModel(nn.Module):
     def __init__(self, firstLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers,
@@ -284,6 +285,7 @@ if __name__ == "__main__":
     global_step = 0
     best_acc = 0.0
     checkpoint_path = "wic_college_classifiers/{}/".format(run_name)
+    os.makedirs(checkpoint_path, exist_ok=True)
     for epoch in range(epochs):
         train_predictions = []
         train_labels = []
