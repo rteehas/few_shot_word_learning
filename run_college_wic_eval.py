@@ -31,6 +31,8 @@ if __name__ == "__main__":
     test_folder = Path('wic/wic_tsv/data/en/Test')
 
     contexts, target_inds, hypernyms, definitions, labels = dp.read_wic_tsv(wic_tsv_folder=test_folder)
+    print(contexts[0])
+    print(target_inds[0])
     for i, (context, target_id, definition) in enumerate(zip(contexts, target_inds, definitions)):
         word = context.split()[target_id]
         
