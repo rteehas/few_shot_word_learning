@@ -158,6 +158,19 @@ def compute_metrics(preds, labels):
         "R": r,
     }
 
+class SimpleWiCDataset(torch.utils.data.Dataset):
+    def __init__(self, contexts, definitions, labels):
+        super().__init__()
+        self.contexts = contexts
+        self.definitions = definitions
+        self.labels = labels
+    
+    def __getitem__(self, idx):
+        return self.contexts[idx], self.definitions[idx], self.labels[idx]
+
+    def __len__(self):
+        return len(self.contexts)
+
 def get_arguments():
     parser = ArgumentParser()
     parser.add_argument("--batch_size", type=int)
@@ -230,8 +243,32 @@ if __name__ == "__main__":
     train_folder = Path('wic/wic_tsv/data/en/Training')
     dev_folder = Path('wic/wic_tsv/data/en/Training')
     contexts, target_inds, hypernyms, definitions, labels = dp.read_wic_tsv(wic_tsv_folder=train_folder)
+    for i, (context, target_id, definition) in enumerate(zip(contexts, target_inds, definitions)):
+        word = context.split()[target_id]
+        
+        contexts[i] = re.sub(r"\b({})\b".format(word), "<nonce>", context, flags=re.I)
+        definitions[i] = re.sub(r"\b({})\b".format(word), "<nonce>", definition, flags=re.I)
+    
+
+    train_dataset = SimpleWiCDataset(contexts = contexts, 
+                                     definitions=definitions,
+                                     labels = labels)
+    
     print("Ratio of positives:", sum(labels) / len(labels))
     dev_contexts, dev_target_inds, dev_hypernyms, dev_definitions, dev_labels = dp.read_wic_tsv(wic_tsv_folder=dev_folder)
+    for i, (context, target_id, definition) in enumerate(zip(dev_contexts, dev_target_inds, dev_definitions)):
+        word = context.split()[target_id]
+        
+        dev_contexts[i] = re.sub(r"\b({})\b".format(word), "<nonce>", context, flags=re.I)
+        dev_definitions[i] = re.sub(r"\b({})\b".format(word), "<nonce>", definition, flags=re.I)
+
+    dev_dataset = SimpleWiCDataset(contexts = dev_contexts, 
+                                     definitions=dev_definitions,
+                                     labels = dev_labels)
+
+    train_dl = torch.utils.data.DataLoader(train_dataset, shuffle=True, batch_size=1)
+    dev_dl = torch.utils.data.DataLoader(dev_dataset, batch_size=1)
+
 
     opt = AdamW(params=classifier.parameters(),
                 lr=lr,
@@ -240,18 +277,6 @@ if __name__ == "__main__":
     scheduler = get_cosine_schedule_with_warmup(opt, 
                                                 num_warmup_steps = 300,
                                                 num_training_steps = (len(contexts) // batch_size) * epochs)
-
-    for i, (context, target_id, definition) in enumerate(zip(contexts, target_inds, definitions)):
-        word = context.split()[target_id]
-        
-        contexts[i] = re.sub(r"\b({})\b".format(word), "<nonce>", context, flags=re.I)
-        definitions[i] = re.sub(r"\b({})\b".format(word), "<nonce>", definition, flags=re.I)
-    
-    for i, (context, target_id, definition) in enumerate(zip(dev_contexts, dev_target_inds, dev_definitions)):
-        word = context.split()[target_id]
-        
-        dev_contexts[i] = re.sub(r"\b({})\b".format(word), "<nonce>", context, flags=re.I)
-        dev_definitions[i] = re.sub(r"\b({})\b".format(word), "<nonce>", definition, flags=re.I)
     
     global_step = 0
     for epoch in range(epochs):
@@ -261,7 +286,7 @@ if __name__ == "__main__":
         classifier.train()
 
         curr_train_batch_size = 0
-        for context, definition, label in tqdm(zip(contexts, definitions, labels), total=len(contexts)):
+        for (context, definition, label) in tqdm(train_dl, total=len(train_dl)):
             print(context, definition)
             def_str = "The word <nonce> is defined as {}".format(definition)
             print("curr batch size", curr_train_batch_size)
@@ -309,7 +334,7 @@ if __name__ == "__main__":
         test_labels = []
         test_loss = 0
         classifier.eval()
-        for dev_context, dev_definition, dev_label in tqdm(zip(dev_contexts, dev_definitions, dev_labels), total=len(contexts)):
+        for (dev_context, dev_definition, dev_label) in tqdm(dev_dl, total=len(dev_dl)):
             def_str = "The word <nonce> is defined as {}".format(dev_definition)
             with torch.no_grad():
                 ctx_hidden, def_hidden = predict_example(dev_context, def_str, dev_definition, model,
