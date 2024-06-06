@@ -158,8 +158,8 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
         else:
             defn = defs[w.lower()]
 
-        def_s = "The word {} is defined as {}".format("<nonce>", defn)
-        target_definitions.append(def_s)
+        # def_s = "The word {} is defined as {}".format("<nonce>", defn)
+        target_definitions.append(defn)
 
 
         # print(samples)
@@ -173,11 +173,11 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
     total_probs = []
     if with_prompt:
         for sample, seq, base_seq, target_definition in zip(samples, seqs, base_seqs, target_definitions):
-            ke_prompts = ["The word <nonce> is defined as"]
+            ke_prompts = ["The word <nonce> is defined as "]
             ke_targets = [target_definition]
+            print("initial prompts", ke_prompts)
+            print("initial target", ke_targets)
             if use_samples_for_ke:
-                if with_definition:
-                    prompts, targets = samples_to_targets(sample[1:])
                 prompts, targets = samples_to_targets(sample)
                 print("prompts from samples", prompts)
                 print("targets from samples", targets)
@@ -218,9 +218,10 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
         for sample, seq, target_definition in zip(samples, seqs, target_definitions):
             ke_prompts = ["The word <nonce> is defined as"]
             ke_targets = [target_definition]
+            print("initial prompts", ke_prompts)
+            print("initial target", ke_targets)
+
             if use_samples_for_ke:
-                if with_definition:
-                    prompts, targets = samples_to_targets(sample[1:])
                 prompts, targets = samples_to_targets(sample)
                 print("prompts from samples", prompts)
                 print("targets from samples", targets)
