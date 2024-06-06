@@ -146,8 +146,10 @@ def predict_example(context, definition, model, tokenizerMLM, tokenizerTask, new
 
 
 def compute_metrics(preds, labels):
+    print(preds, labels)
     preds = np.array(preds)
     labels = np.array(labels)
+    
     res = (preds == labels).astype(type(labels[0]))
     precision, r, f1, _ = precision_recall_fscore_support(y_true=labels, y_pred=preds, average='binary')
     acc = res.mean()
