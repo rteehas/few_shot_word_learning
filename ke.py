@@ -26,7 +26,7 @@ def add_new_token(editor):
     editor.model.resize_token_embeddings(len(editor.tok))
     return editor
 
-def ike_edit(editor, ground_truth, target_definition):
+def ike_edit(editor, target_definition):
     definition_prompt = "The word <nonce> is defined as"
     rephrased_definition_prompt = "The word <nonce> means"
 
@@ -61,10 +61,10 @@ def ike_edit(editor, ground_truth, target_definition):
     # print(metrics)
     return edited_model, editor.tok, icl
 
-def rome_edit(editor, target_definition):
-    prompts = ["The word <nonce> is defined as"]
-    target_new = [target_definition]
-    subject = ['<nonce>']
+def rome_edit(editor, prompts, target_new):
+    # prompts = ["The word <nonce> is defined as"]
+    # target_new = [target_definition]
+    subject = ['<nonce>'] * len(target_new)
     # hparams = ROMEHyperParams.from_hparams('EasyEdit/hparams/ROME/llama-7b.yaml')
     # editor = BaseEditor.from_hparams(hparams)
     # editor = add_new_token(editor)
@@ -80,9 +80,9 @@ def rome_edit(editor, target_definition):
     # print(metrics)
     return edited_model, editor.tok, weights_copy
 
-def mend_edit(editor, ground_truth, target_definition):
-    prompts = ["The word <nonce> is defined as"]
-    target_new = [target_definition]
+def mend_edit(editor, prompts, target_new):
+    # prompts = ["The word <nonce> is defined as"]
+    # target_new = [target_definition]
     # hparams = MENDHyperParams.from_hparams('EasyEdit/hparams/MEND/llama-7b.yaml')
     # editor = BaseEditor.from_hparams(hparams)
     # editor = add_new_token(editor)
@@ -114,8 +114,22 @@ def get_hparams_and_editor(method):
         raise NotImplementedError("the method {} is not implemented".format(method))
     return hparams, editor
 
+def prepare_sample_for_targets(sample):
+    split = sample.split("<nonce>")
+    prompt = split[0] + "<nonce>"
+    target = split[1]
+    return prompt, target
 
-def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, with_prompt=False):
+def samples_to_targets(samples):
+    prompts = []
+    targets = []
+    for s in samples:
+        p, t = prepare_sample_for_targets(s)
+        prompts.append(p)
+        targets.append(t)
+    return prompts, targets
+
+def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, with_prompt=False, use_samples_for_ke=False):
     ground_truth_definition = "a Japanese company that is known for its innovative products and services."
     if with_prompt:
         if ex["ANSWER_TYPE"] == "top_1":
@@ -145,22 +159,32 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
     total_probs = []
     if with_prompt:
         for sample, seq, base_seq, target_definition in zip(samples, seqs, base_seqs, target_definitions):
-            # prompts = 
+            ke_prompts = ["The word <nonce> is defined as"]
+            ke_targets = [target_definition]
+            if use_samples_for_ke:
+                prompts, targets = samples_to_targets(samples)
+                print("prompts from samples", prompts)
+                print("targets from samples", targets)
+                ke_prompts = ke_prompts + prompts
+                ke_targets = ke_targets + targets
+                print("final ke prompts", ke_prompts)
+                print("final ke targets", ke_targets)
+
             if method == "IKE":
                 model, tokenizer, icl = ike_edit(editor=editor,
-                                                ground_truth=ground_truth_definition, 
                                                 target_definition=target_definition)
                 ike_icl_examples = icl[0]
                 new_seq = ''.join(ike_icl_examples) + " {}".format(seq)
             elif method == "ROME":
                 new_seq = seq
                 model, tokenizer, weights_copy = rome_edit(editor=editor,
-                                                target_definition=target_definition)
+                                                prompts=ke_prompts,
+                                                target_new=ke_targets)
             elif method == "MEND":
                 new_seq = seq
                 model, tokenizer, weights_copy = mend_edit(editor=editor,
-                                                           ground_truth=ground_truth_definition,
-                                                           target_definition=target_definition)
+                                                           prompts=ke_prompts,
+                                                           target_new=ke_targets)
 
             # print(new_seq)
             with torch.no_grad():
@@ -243,6 +267,7 @@ def run_ke_baseline():
         with_def = False
     
     with_prompt = args.with_prompt
+    use_samples_for_ke = args.use_samples_for_ke
     answers = subselection['train']['ANSWERS']
     answers = list(itertools.chain(*answers))
     answers = list(itertools.chain(*answers))
@@ -313,7 +338,8 @@ def run_ke_baseline():
                                                 editor=editor,
                                                 method=method,
                                                 with_definition=with_def, 
-                                                with_prompt=with_prompt))
+                                                with_prompt=with_prompt,
+                                                use_samples_for_ke=use_samples_for_ke))
                 
                 acc_so_far = sum(outputs) / len(outputs)
                 print("Accuracy So Far for k = {} is {}".format(k, acc_so_far))
@@ -331,7 +357,7 @@ def run_ke_baseline():
         print("Accuracy for {}".format(value))
         print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
-    fname = "{}_with_prompt_{}_with_def_{}.json".format(args.ke_method, args.with_prompt, with_def)
+    fname = "{}_with_prompt_{}_with_def_{}_use_samples_{}.json".format(args.ke_method, args.with_prompt, with_def, use_samples_for_ke)
 
     with open(fname, 'w') as fp:
         json.dump(scores, fp)
@@ -347,6 +373,7 @@ def get_arguments():
     parser.add_argument("--with_prompt", action="store_true")
     parser.add_argument("--with_def", action="store_true")
     parser.add_argument("--ke_method", type=str)
+    parser.add_argument("--use_samples_for_ke", action="store_true")
     return parser
 
 if __name__ == "__main__":
