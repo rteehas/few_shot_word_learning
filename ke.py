@@ -268,6 +268,7 @@ def run_ke_baseline():
             if args.sent_version == "question":
                 sent_dict = sents[ex['QUESTION']]
                 for key in sent_dict:
+                    print("initial length of sent dict", len(sent_dict[key]))
                     if defs is not None:
                         samples = np.random.choice(
                             [s for s in sent_dict[key] if
