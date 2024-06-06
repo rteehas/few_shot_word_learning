@@ -48,7 +48,7 @@ def ike_edit(editor, ground_truth, target_definition):
     # encode_ike_facts(sentence_model, train_ds, hparams)
     metrics, edited_model, _, icl = editor.edit(
         prompts=[definition_prompt],
-        ground_truth=[ground_truth],
+        ground_truth=None,
         rephrase_prompts=[rephrased_definition_prompt],  # new para
         target_new=[target_definition],
         subject=['<nonce>'],
@@ -89,7 +89,7 @@ def mend_edit(editor, ground_truth, target_definition):
 
     metrics, edited_model, weights_copy = editor.edit(
         prompts=prompts,
-        ground_truth=[ground_truth],
+        ground_truth=None,
         target_new=target_new,
         sequential_edit=False,
         return_orig_weights=True
@@ -261,7 +261,7 @@ def run_ke_baseline():
             #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
     method = args.ke_method
-    # hparams, editor = get_hparams_and_editor(method = method)
+    hparams, editor = get_hparams_and_editor(method = method)
 
     for trial in range(args.trials):
         for ex in subselection['train']:
@@ -301,45 +301,45 @@ def run_ke_baseline():
                 # try:
                 curr_sent_dict = {}
                 base_sent_dict = selected_sent_dict[ex["QUESTION"]]
-                print("base", base_sent_dict)
+                # print("base", base_sent_dict)
                 for key in base_sent_dict:
                     if with_def:
                         curr_sent_dict[key] = base_sent_dict[key][:k]
                     else:
                         curr_sent_dict[key] = base_sent_dict[key][:k + 1]
-                print("current", curr_sent_dict)
+                # print("current", curr_sent_dict)
                 i += 1
                 
-    #             outputs.append(eval_ke_baseline(ex=ex, 
-    #                                             sents=curr_sent_dict, 
-    #                                             defs=defs,
-    #                                             editor=editor,
-    #                                             method=method,
-    #                                             with_definition=with_def, 
-    #                                             with_prompt=with_prompt))
+                outputs.append(eval_ke_baseline(ex=ex, 
+                                                sents=curr_sent_dict, 
+                                                defs=defs,
+                                                editor=editor,
+                                                method=method,
+                                                with_definition=with_def, 
+                                                with_prompt=with_prompt))
                 
-    #             acc_so_far = sum(outputs) / len(outputs)
-    #             print("Accuracy So Far for k = {} is {}".format(k, acc_so_far))
+                acc_so_far = sum(outputs) / len(outputs)
+                print("Accuracy So Far for k = {} is {}".format(k, acc_so_far))
 
 
-    #         acc = sum(outputs) / len(outputs)
-    #         print("Accuracy for k = {} is {}".format(k, acc))
-    #         if k in scores:
-    #             scores[k].append(acc)
-    #         else:
-    #             scores[k] = [acc]
+            acc = sum(outputs) / len(outputs)
+            print("Accuracy for k = {} is {}".format(k, acc))
+            if k in scores:
+                scores[k].append(acc)
+            else:
+                scores[k] = [acc]
 
-    # print("Across Trials Results")
-    # for value in scores:
-    #     print("Accuracy for {}".format(value))
-    #     print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
+    print("Across Trials Results")
+    for value in scores:
+        print("Accuracy for {}".format(value))
+        print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
-    # fname = "{}_with_prompt_{}_with_def_{}.json".format(args.ke_method, args.with_prompt, with_def)
+    fname = "{}_with_prompt_{}_with_def_{}.json".format(args.ke_method, args.with_prompt, with_def)
 
-    # with open(fname, 'w') as fp:
-    #     json.dump(scores, fp)
+    with open(fname, 'w') as fp:
+        json.dump(scores, fp)
 
-    # return scores
+    return scores
 
 def get_arguments():
     parser = ArgumentParser()
