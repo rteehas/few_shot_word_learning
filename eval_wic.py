@@ -331,7 +331,7 @@ if __name__ == "__main__":
                 preds = torch.flatten((logits >= 0.5).int()).detach().tolist()
                 train_predictions += preds
                 train_loss += loss.detach().float()
-                train_labels += torch.flatten(ex_labels).detach().tolist()
+                train_labels += torch.flatten(batch_labels).detach().tolist()
 
                 global_step += 1
                 curr_train_batch_size = 0 
