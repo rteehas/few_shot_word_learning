@@ -275,7 +275,8 @@ if __name__ == "__main__":
                     batch_labels = torch.cat([batch_labels, ex_labels], dim=0)
                     curr_train_batch_size += 1
             if curr_train_batch_size == batch_size:
-
+                print("train batch", batch_inputs.shape, batch_labels.shape)
+                print(batch_labels)
                 logits, loss = classifier(batch_inputs, labels=batch_labels)
                 wandb.log({"train loss": loss.item(),
                         "global step": global_step})
@@ -291,6 +292,7 @@ if __name__ == "__main__":
                 train_labels += torch.flatten(ex_labels).detach().tolist()
 
                 global_step += 1
+                curr_train_batch_size = 0 
         
         test_predictions = []
         test_labels = []
