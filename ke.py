@@ -15,7 +15,7 @@ import re
 import sys
 import os
 from tqdm import tqdm
-
+from copy import deepcopy
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
 from llama_eval import prepare_type_1_fewshot, prepare_for_type_2_fewshot, get_sentence_probs, evaluate_type_1, evaluate_type_2, filter_gre
@@ -266,7 +266,7 @@ def run_ke_baseline():
     for trial in range(args.trials):
         for ex in subselection['train']:
             if args.sent_version == "question":
-                sent_dict = sents[ex['QUESTION']]
+                sent_dict = deepcopy(sents[ex['QUESTION']])
                 for key in sent_dict:
                     print("initial length of sent dict", len(sent_dict[key]))
                     if defs is not None:
