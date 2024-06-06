@@ -261,7 +261,7 @@ def run_ke_baseline():
             #     if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
     method = args.ke_method
-    hparams, editor = get_hparams_and_editor(method = method)
+    # hparams, editor = get_hparams_and_editor(method = method)
 
     for trial in range(args.trials):
         for ex in subselection['train']:
