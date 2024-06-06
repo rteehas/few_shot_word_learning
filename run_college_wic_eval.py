@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     classifier = CoLLEGeWiCClassifier(secondLM.config.hidden_size).to(device)
     classifier.load_state_dict(torch.load(classifier_path))
-    test_folder = Path('wic/wic_tsv/data/en/Test')
+    test_folder = Path('wic/wic_tsv/data/en/Development')
 
     contexts, target_inds, hypernyms, definitions, labels = dp.read_wic_tsv(wic_tsv_folder=test_folder)
     print(contexts[0])
