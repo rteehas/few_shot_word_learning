@@ -346,7 +346,7 @@ if __name__ == "__main__":
                 ctx_hidden, def_hidden = predict_example(dev_context, def_str, model,
                                                          tokenizerMLM, tokenizerTask, new_token_idx)
                 cat_embeds = torch.cat([ctx_hidden, def_hidden], dim=1)
-                logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device))
+                logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device).unsqueeze(0))
                 test_preds = torch.flatten((logits >= 0.5).int()).detach().tolist()
                 test_loss += loss.detach().float()
                 test_predictions += test_preds
