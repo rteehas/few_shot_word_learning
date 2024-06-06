@@ -111,7 +111,7 @@ def get_hparams_and_editor(method):
         editor = BaseEditor.from_hparams(hparams)
         editor = add_new_token(editor)
     else:
-        raise NotImplementedError, "the method {} is not implemented".format(method)
+        raise NotImplementedError("the method {} is not implemented".format(method))
     return hparams, editor
 
 
@@ -163,6 +163,8 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
 
             # print(new_seq)
             with torch.no_grad():
+                if method == "MEND":
+                    model = model.model
                 model.eval()
                 prob = get_sentence_probs(model, tokenizer, [new_seq], [base_seq])
                 total_probs.append(prob)
@@ -195,9 +197,15 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
                 if method == "IKE":
                     prob = get_sentence_probs(model, tokenizer, [new_seq], [seq])
                 else:
-                    toks = tokenizer(seq, return_tensors="pt").to(model.device)
+                    if method == "MEND":
+                        toks = tokenizer(seq, return_tensors="pt").to(model.config.device)
+                    else:
+                        toks = tokenizer(seq, return_tensors="pt").to(model.device)
                     label = toks['input_ids'].clone()
-                    out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=label)
+                    if method == "MEND":
+                        out = model.model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=label)
+                    else:
+                        out = model(input_ids = toks['input_ids'], attention_mask=toks['attention_mask'], labels=label)
                     # prob = get_sentence_probs(model, tokenizer, [seq], [base_seq])
                     prob = -out.loss.item()
                 total_probs.append(prob)
