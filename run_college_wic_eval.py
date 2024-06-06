@@ -32,13 +32,19 @@ if __name__ == "__main__":
 
     contexts, target_inds, hypernyms, definitions, labels = dp.read_wic_tsv(wic_tsv_folder=test_folder)
     print(contexts[0])
-    print(target_inds[0])
+    print(labels[0])
+    print(definitions[0])
+
     for i, (context, target_id, definition) in enumerate(zip(contexts, target_inds, definitions)):
         word = context.split()[target_id]
         
         contexts[i] = re.sub(r"\b({})\b".format(word), "<nonce>", context, flags=re.I)
         definitions[i] = re.sub(r"\b({})\b".format(word), "<nonce>", definition, flags=re.I)
-    
+    print("post replace")
+    print(contexts[0])
+    print(labels[0])
+    print(definitions[0])
+
     test_dataset = SimpleWiCDataset(contexts = contexts, 
                                      definitions=definitions,
                                      labels = labels)
