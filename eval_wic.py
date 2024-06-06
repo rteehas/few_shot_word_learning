@@ -336,7 +336,7 @@ if __name__ == "__main__":
                 opt.zero_grad()
                 model.zero_grad()
 
-                preds = torch.flatten((logits >= 0.5).int()).detach().tolist()
+                preds = torch.flatten((logits > 0).int()).detach().tolist()
                 train_predictions += preds
                 train_loss += loss.detach().float()
                 train_labels += torch.flatten(batch_labels).detach().tolist()
