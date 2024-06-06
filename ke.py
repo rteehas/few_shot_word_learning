@@ -145,7 +145,7 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
     total_probs = []
     if with_prompt:
         for sample, seq, base_seq, target_definition in zip(samples, seqs, base_seqs, target_definitions):
-            prompts = 
+            # prompts = 
             if method == "IKE":
                 model, tokenizer, icl = ike_edit(editor=editor,
                                                 ground_truth=ground_truth_definition, 
