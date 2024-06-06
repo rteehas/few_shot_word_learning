@@ -256,6 +256,7 @@ if __name__ == "__main__":
         for context, definition, label in tqdm(zip(contexts, definitions, labels), total=len(contexts)):
             print(context, definition)
             def_str = "The word <nonce> is defined as {}".format(definition)
+            print("curr batch size", curr_train_batch_size)
             with torch.no_grad():
                 ctx_hidden, def_hidden = predict_example(context, def_str, model, tokenizerMLM, tokenizerTask, new_token_idx)
                 print("def", def_hidden.shape)
