@@ -714,7 +714,7 @@ class MorphMemoryModelLLAMA(nn.Module):
 
         return outs[0] # batch size = 1
 
-    def forward(self, batch):
+    def forward(self, batch, output_hidden_states=False):
         # nonceMLM = batch["nonceMLM"]
         # print("batch", batch.keys())
         assert "labels" in batch, "You need labels"
@@ -846,7 +846,7 @@ class MorphMemoryModelLLAMA(nn.Module):
         outputs = self.secondLM.model(
             inputs_embeds=input_embeds,
             attention_mask=attn,
-            # output_hidden_states=True
+            output_hidden_states=output_hidden_states
         )
         loss = []
         new_token_loss = []
@@ -1028,7 +1028,7 @@ class MorphMemoryModelLLAMA(nn.Module):
             return CausalLMOutputWithNewToken(
                 loss=final_loss,
                 logits=final_logits,
-                hidden_states=None,
+                hidden_states=outputs.hidden_states,
                 attentions=None,
                 past_key_values=None,
                 new_token_loss=final_new_token_loss,
