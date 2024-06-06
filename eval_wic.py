@@ -226,7 +226,7 @@ if __name__ == "__main__":
     for p in model.parameters():
         p.requires_grad = False
 
-    run_name = "classifier_epochs={}_lr={}_weight_decay={}".format(epochs, lr, weight_decay)
+    run_name = "classifier_epochs={}_lr={}_weight_decay={}_batch_size={}".format(epochs, lr, weight_decay, batch_size)
     run = wandb.init(project="few_shot_wic",
                      name=run_name
                     )
@@ -278,10 +278,12 @@ if __name__ == "__main__":
                 weight_decay=weight_decay)
     
     scheduler = get_cosine_schedule_with_warmup(opt, 
-                                                num_warmup_steps = 300,
+                                                num_warmup_steps = (len(contexts) // batch_size) * epochs * 0.03,
                                                 num_training_steps = (len(contexts) // batch_size) * epochs)
     
     global_step = 0
+    best_acc = 0.0
+    checkpoint_path = "wic_college_classifiers/{}/".format(run_name)
     for epoch in range(epochs):
         train_predictions = []
         train_labels = []
@@ -378,8 +380,14 @@ if __name__ == "__main__":
         
         for key in test_metrics:
             epoch_log_dict["test_{}".format(key)] = train_metrics[key]
-        
+
         wandb.log(epoch_log_dict)
+
+        if test_metrics['acc'] > best_acc:
+            print("Saving...", flush=True)
+            torch.save(classifier.state_dict(), checkpoint_path + "checkpoint_{}".format(epoch))
+        
+        
 
             # ex_results = []
             # for j, threshold in enumerate(thresholds):
