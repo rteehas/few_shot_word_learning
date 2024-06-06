@@ -356,7 +356,7 @@ def run_ke_baseline():
 
             elif args.sent_version == "answer":
                 raise NotImplementedError
-        start_time = time.time()
+        
         for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
@@ -368,7 +368,7 @@ def run_ke_baseline():
                 for key in base_sent_dict:
                     curr_sent_dict[key] = base_sent_dict[key][:k]
                 # print("current", curr_sent_dict)
-                
+                start_time = time.time()
                 outputs.append(eval_ke_baseline(ex=ex, 
                                                 sents=curr_sent_dict, 
                                                 defs=defs,
@@ -377,7 +377,8 @@ def run_ke_baseline():
                                                 with_definition=with_def, 
                                                 with_prompt=with_prompt,
                                                 use_samples_for_ke=use_samples_for_ke))
-                
+                elapsed = time.time() - start_time
+                times.append(elapsed)
                 acc_so_far = sum(outputs) / len(outputs)
                 print("Accuracy So Far for k = {} is {}".format(k, acc_so_far))
 
@@ -388,13 +389,12 @@ def run_ke_baseline():
                 scores[k].append(acc)
             else:
                 scores[k] = [acc]
-        elapsed = time.time() - start_time
-        times.append(elapsed)
-        per_example_times.append(elapsed / (len(outputs) * len(list(range(1, max_k)))))
-    avg_time = sum(times) / len(times)
-    avg_per_example_time = sum(per_example_times) / len(per_example_times)
-    print("Average time taken for eval = {} seconds".format(avg_time))
-    print("Average time taken per example = {} seconds".format(avg_per_example_time))
+        
+    total_time = sum(times)
+    average_per_example_time = sum(times) / len(times)
+    # avg_per_example_time = sum(per_example_times) / len(per_example_times)
+    print("Total time taken for eval = {} seconds".format(total_time))
+    print("Average time taken per example = {} seconds".format(average_per_example_time))
     print("Across Trials Results")
     for value in scores:
         print("Accuracy for {}".format(value))
