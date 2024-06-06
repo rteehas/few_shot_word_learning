@@ -146,13 +146,26 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
         else:
             raise NotImplementedError
         
-    target_definitions = [s[0] for s in samples]
-    if not with_definition:
-        samples = [s[1:] for s in samples]
-        print(samples)
-        print("k = ", [len(s) for s in samples])
+    target_definitions = []
+    answers = ex["ANSWERS"]
+    if "_____" in question:
+        answers = answers[0]
+    
+    for w in answers:
+        if w in defs:
+            defn= defs[w]
+        else:
+            defn = defs[w.lower()]
+
+        def_s = "The word {} is defined as {}".format("<nonce>", defn)
+        target_definition.append(def_s)
 
 
+        # print(samples)
+        # print("k = ", [len(s) for s in samples])
+    print("samples", samples)
+    # print("definitions",target_definitions)
+    
 
     print("target definitions", target_definitions)
     
@@ -311,10 +324,16 @@ def run_ke_baseline():
                 for key in sent_dict:
                     print("initial length of sent dict", len(sent_dict[key]))
                     if defs is not None:
-                        samples = np.random.choice(
-                            [s for s in sent_dict[key] if
-                             re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
-                            replace=False).tolist()
+                        if with_def:
+                            samples = np.random.choice(
+                                [s for s in sent_dict[key] if
+                                re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k-1,
+                                replace=False).tolist()
+                        else:
+                            samples = np.random.choice(
+                                [s for s in sent_dict[key] if
+                                re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                                replace=False).tolist()
 
                         if key in defs:
                             definition = defs[key]
@@ -322,11 +341,11 @@ def run_ke_baseline():
                             definition = defs[key.lower()]
 
                         def_s = "The word {} is defined as {}".format("<nonce>", definition)
-                        samples = [def_s] + samples
+                        if with_def:
+                            samples = [def_s] + samples
                         sent_dict[key] = samples
                     else:
                         raise NotImplementedError
-                    
                 selected_sent_dict[ex["QUESTION"]] = sent_dict
 
             elif args.sent_version == "answer":
@@ -341,10 +360,7 @@ def run_ke_baseline():
                 base_sent_dict = selected_sent_dict[ex["QUESTION"]]
                 # print("base", base_sent_dict)
                 for key in base_sent_dict:
-                    if with_def:
-                        curr_sent_dict[key] = base_sent_dict[key][:k]
-                    else:
-                        curr_sent_dict[key] = base_sent_dict[key][:k + 1]
+                    curr_sent_dict[key] = base_sent_dict[key][:k]
                 # print("current", curr_sent_dict)
                 
                 outputs.append(eval_ke_baseline(ex=ex, 
