@@ -3,6 +3,7 @@ from wic.wic_tsv.read_wic_tsv import *
 import json
 from tqdm import tqdm
 import torch.nn as nn
+import numpy as np
 
 class CoLLEGeEmbeddingModel(nn.Module):
     def __init__(self, firstLM, num_new_tokens, layers, mask_token_id, memory_config, num_layers,
@@ -89,16 +90,43 @@ class CoLLEGeEmbeddingModel(nn.Module):
         return input_embeds, output_embeds, college_embeds
 
 
-def predict_example(context, definition, model, tokenizer):
-    ctx_tok = tokenizer([context], return_tensors = 'pt').to("cuda")
-    def_tok = tokenizer([definition], return_tensors = 'pt').to("cuda")
-    input_embeds, output_embeds, college_embeds = model.get_college_embeddings([ctx_tok, def_tok])
-    cos = nn.CosineSimilarity()
-    input_cos = cos(input_embeds[0], input_embeds[1])
-    output_cos = cos(output_embeds[0], output_embeds[1])
-    college_cos = cos(college_embeds[0], college_embeds[1])
+# def predict_example(context, definition, model, tokenizer):
+#     ctx_tok = tokenizer([context], return_tensors = 'pt').to("cuda")
+#     def_tok = tokenizer([definition], return_tensors = 'pt').to("cuda")
+#     input_embeds, output_embeds, college_embeds = model.get_college_embeddings([ctx_tok, def_tok])
+#     cos = nn.CosineSimilarity()
+#     input_cos = cos(input_embeds[0], input_embeds[1])
+#     output_cos = cos(output_embeds[0], output_embeds[1])
+#     college_cos = cos(college_embeds[0], college_embeds[1])
 
-    return input_cos, output_cos, college_cos
+#     return input_cos, output_cos, college_cos
+
+def predict_example(context, definition, model, tokenizerMLM, tokenizerTask, new_token_idx):
+    ctx_tok = tokenizerMLM([context], return_tensors = 'pt').to("cuda")
+    def_tok = tokenizerMLM([definition], return_tensors = 'pt').to("cuda")
+    
+    query_inputs = tokenizerTask([context, definition], return_tensors='pt', padding='longest')
+    # input_embeds, output_embeds, college_embeds = model.get_college_embeddings([ctx_tok, def_tok])
+    ctx_token_idx = torch.where(query_inputs['input_ids'][0] == new_token_idx)
+    def_token_idx = torch.where(query_inputs['input_ids'][0] == new_token_idx)
+    labels = query_inputs['input_ids'].clone()
+    batch = {
+        "contexts": [ctx_tok, def_tok],
+        "input_ids": query_inputs['input_ids'],
+        "attention_mask": query_inputs['attention_mask'],
+        'labels': labels
+    }
+    outputs = model(batch, output_hidden_states=True)
+    ctx_new_token_hidden = outputs.hidden_states[-1][0, ctx_token_idx, :]
+    def_new_token_hidden = outputs.hidden_states[-1][1, def_token_idx :]
+    cos = nn.CosineSimilarity()
+    # input_cos = cos(input_embeds[0], input_embeds[1])
+    # output_cos = cos(output_embeds[0], output_embeds[1])
+    # college_cos = cos(college_embeds[0], college_embeds[1])
+
+    return cos(ctx_new_token_hidden, def_new_token_hidden)
+
+
 
 
 if __name__ == "__main__":
@@ -107,36 +135,39 @@ if __name__ == "__main__":
     path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_28000"
 
     firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True).to(device)
+    secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+    tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     memory_config = AggregatorConfig()
+    nonces = list(tokenizerTask.get_added_vocab().keys())
     mask_token_id = tokenizerMLM.mask_token_id
     layers=[-1]
 
-    model = CoLLEGeEmbeddingModel(
-        firstLM=firstLM,
-        num_new_tokens=1,
-        layers=layers,
-        mask_token_id=mask_token_id,
-        memory_config=memory_config,
-        num_layers=1,
-        distillation_temp=0.3,
-        use_pos=False,
-    )
-
+    # model = CoLLEGeEmbeddingModel(
+    #     firstLM=firstLM,
+    #     num_new_tokens=1,
+    #     layers=layers,
+    #     mask_token_id=mask_token_id,
+    #     memory_config=memory_config,
+    #     num_layers=1,
+    #     distillation_temp=0.3,
+    #     use_pos=False,
+    # )
+    model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None).to(device)
     model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
     model = model.to(device)
-    tokenizerMLM.add_tokens(["<nonce>"])
+    # tokenizerMLM.add_tokens(["<nonce>"])
     print(model.first_list)
     model.eval()
-
+    thresholds = np.linspace(0, 1, num=100).tolist()
     results = {}
     for e in ["input", "output", "college"]:
-        results[e] = {"true pos": [0 for i in range(1,10)],
-                      "false pos": [0 for i in range(1,10)],
-                      "true neg": [0 for i in range(1,10)],
-                      "false neg": [0 for i in range(1,10)]}
+        results[e] = {"true pos": [0 for i in range(len(thresholds))],
+                      "false pos": [0 for i in range(len(thresholds))],
+                      "true neg": [0 for i in range(len(thresholds))],
+                      "false neg": [0 for i in range(len(thresholds))]}
     
-    thresholds = [k / 10 for k in range(1,10)]
+    
 
     train_folder = Path('wic/wic_tsv/data/en/Training')
     contexts, target_inds, hypernyms, definitions, labels = dp.read_wic_tsv(wic_tsv_folder=train_folder)
@@ -159,46 +190,55 @@ if __name__ == "__main__":
                 pred = int(sims[i].item() >= threshold)
                 print(sims[i], sims[i].item(), threshold, pred, label)
                 if pred == label:
-                    if label == 1:
+                    if pred == 1:
                         results[e]["true pos"][j] += 1
-                    elif label == 0:
+                    elif pred == 0:
                         results[e]["true neg"][j] += 1
                 
                 else:
-                    if label == 1:
+                    if pred == 1:
                         results[e]["false pos"][j] += 1
-                    elif label == 0:
+                    elif pred == 0:
                         results[e]["false neg"][j] += 1
     
-    for key in results:
-        print("Results for {} Embeddings".format(key.upper()))
-        emb_results = results[key]
-        precisions = []
-        accs = []
-        f1s = []
-        recalls = []
+for key in results:
+    print("Results for {} Embeddings".format(key.upper()))
+    emb_results = results[key]
+    precisions = []
+    accs = []
+    f1s = []
+    recalls = []
 
-        for i in range(len(thresholds)):
-            true_pos = emb_results['true pos'][i]
-            true_neg = emb_results['true neg'][i]
-            false_pos = emb_results['false pos'][i]
-            false_neg = emb_results['false neg'][i]
-
+    for i in range(len(thresholds)):
+        true_pos = emb_results['true pos'][i]
+        true_neg = emb_results['true neg'][i]
+        false_pos = emb_results['false pos'][i]
+        false_neg = emb_results['false neg'][i]
+        try:
             precision = true_pos / (true_pos + false_pos)
+        except ZeroDivisionError:
+            precision = 0
+        
+        try:
             recall = true_pos / (true_pos + false_neg)
+        except ZeroDivisionError:
+            recall = 0
+        try:   
             f1 = 2 * (precision * recall) / (precision + recall)
-            acc = (true_pos + false_neg) / len(contexts)
+        except ZeroDivisionError:
+            f1 = 0
+        acc = (true_pos + true_neg) / len(contexts)
 
-            precisions.append(precision)
-            accs.append(acc)
-            f1s.append(f1)
-            recalls.append(recall)
+        precisions.append(precision)
+        accs.append(acc)
+        f1s.append(f1)
+        recalls.append(recall)
 
-        print("Thresholds: ", thresholds)
-        print("Precisions: ", precisions)
-        print("Recalls: ", recalls)
-        print("F1 Scores: ", f1s)
-        print("Accuracies: ", accs)
+    print("Thresholds: ", thresholds)
+    print("Precisions: ", precisions)
+    print("Recalls: ", recalls)
+    print("F1 Scores: ", f1s)
+    print("Accuracies: ", accs)
 
     with open("college_wic_results.json", 'w') as fp:
         json.dump(results, fp)
