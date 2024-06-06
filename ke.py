@@ -297,41 +297,43 @@ def run_ke_baseline():
                 # try:
                 curr_sent_dict = {}
                 base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+                print(base_sent_dict)
                 for key in base_sent_dict:
                     if with_def:
                         curr_sent_dict[key] = base_sent_dict[key][:k]
                     else:
                         curr_sent_dict[key] = base_sent_dict[key][:k + 1]
-                outputs.append(eval_ke_baseline(ex=ex, 
-                                                sents=curr_sent_dict, 
-                                                defs=defs,
-                                                editor=editor,
-                                                method=method,
-                                                with_definition=with_def, 
-                                                with_prompt=with_prompt))
+                print(curr_sent_dict)
+    #             outputs.append(eval_ke_baseline(ex=ex, 
+    #                                             sents=curr_sent_dict, 
+    #                                             defs=defs,
+    #                                             editor=editor,
+    #                                             method=method,
+    #                                             with_definition=with_def, 
+    #                                             with_prompt=with_prompt))
                 
-                acc_so_far = sum(outputs) / len(outputs)
-                print("Accuracy So Far for k = {} is {}".format(k, acc_so_far))
+    #             acc_so_far = sum(outputs) / len(outputs)
+    #             print("Accuracy So Far for k = {} is {}".format(k, acc_so_far))
 
 
-            acc = sum(outputs) / len(outputs)
-            print("Accuracy for k = {} is {}".format(k, acc))
-            if k in scores:
-                scores[k].append(acc)
-            else:
-                scores[k] = [acc]
+    #         acc = sum(outputs) / len(outputs)
+    #         print("Accuracy for k = {} is {}".format(k, acc))
+    #         if k in scores:
+    #             scores[k].append(acc)
+    #         else:
+    #             scores[k] = [acc]
 
-    print("Across Trials Results")
-    for value in scores:
-        print("Accuracy for {}".format(value))
-        print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
+    # print("Across Trials Results")
+    # for value in scores:
+    #     print("Accuracy for {}".format(value))
+    #     print("{} ({})".format(round(np.mean(np.array(scores[value])), 4), np.std(np.array(scores[value]))))
 
-    fname = "{}_with_prompt_{}_with_def_{}.json".format(args.ke_method, args.with_prompt, with_def)
+    # fname = "{}_with_prompt_{}_with_def_{}.json".format(args.ke_method, args.with_prompt, with_def)
 
-    with open(fname, 'w') as fp:
-        json.dump(scores, fp)
+    # with open(fname, 'w') as fp:
+    #     json.dump(scores, fp)
 
-    return scores
+    # return scores
 
 def get_arguments():
     parser = ArgumentParser()
