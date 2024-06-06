@@ -159,7 +159,7 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
             defn = defs[w.lower()]
 
         def_s = "The word {} is defined as {}".format("<nonce>", defn)
-        target_definition.append(def_s)
+        target_definitions.append(def_s)
 
 
         # print(samples)
