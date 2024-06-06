@@ -19,6 +19,8 @@ from copy import deepcopy
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
 from llama_eval import prepare_type_1_fewshot, prepare_for_type_2_fewshot, get_sentence_probs, evaluate_type_1, evaluate_type_2, filter_gre
+import time
+
 
 
 def add_new_token(editor):
@@ -319,7 +321,8 @@ def run_ke_baseline():
             #         sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
     method = args.ke_method
     hparams, editor = get_hparams_and_editor(method = method)
-
+    times = []
+    per_example_times = []
     for trial in range(args.trials):
         for ex in subselection['train']:
             if args.sent_version == "question":
@@ -353,7 +356,7 @@ def run_ke_baseline():
 
             elif args.sent_version == "answer":
                 raise NotImplementedError
-        
+        start_time = time.time()
         for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
@@ -385,7 +388,12 @@ def run_ke_baseline():
                 scores[k].append(acc)
             else:
                 scores[k] = [acc]
-
+        elapsed = time.time() - start_time
+        times.append(elapsed)
+        per_example_times.append(elapsed / (len(outputs) * len(list(range(1, max_k)))))
+    avg_time = sum(times) / len(times)
+    print("Average time taken for eval = {} seconds".format(avg_time))
+    print("Average time taken per example = {} seconds".format())
     print("Across Trials Results")
     for value in scores:
         print("Accuracy for {}".format(value))
