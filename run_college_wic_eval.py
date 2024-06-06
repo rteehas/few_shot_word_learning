@@ -48,7 +48,7 @@ if __name__ == "__main__":
     classifier.eval()
     model.eval()
     torch.set_grad_enabled(False)
-    for (tc, td, tl) in tqdm(test_dl, total=len(dev_dl)):
+    for (tc, td, tl) in tqdm(test_dl, total=len(test_dl)):
         test_context = tc[0]
         test_definition = td[0]
         test_label = tl[0]
