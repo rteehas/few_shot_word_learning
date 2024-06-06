@@ -258,13 +258,6 @@ def eval_baseline(args):
                         scores[k].append(step_accs[idx])
                     else:
                         scores[k] = [step_accs[idx]]
-        elapsed = time.time() - start_time
-        times.append(elapsed)
-        per_example_times.append(elapsed / (len(outputs) * len(list(range(1, max_k)))))
-
-    avg_time = sum(times) / len(times)
-    print("Average time taken for eval = {} seconds".format(avg_time))
-    print("Average time taken per example = {} seconds".format())
 
 
     print("Across Trials Results")
@@ -600,6 +593,8 @@ def main():
         # model.add_new_tokens(new_token_num)
         model.eval()
         max_k = 6
+        times = []
+        per_example_times = []
         with torch.no_grad():
             scores = {}
             for trial in range(args.trials):
@@ -634,7 +629,7 @@ def main():
                 for k in range(1,max_k):
                     wrong_ans[k] = []
 
-
+                start_time = time.time()
                 for k in range(1, 6):
                     outputs = []
                     for ex in subselection['train']:
@@ -664,6 +659,14 @@ def main():
                         scores[k].append(acc)
                     else:
                         scores[k] = [acc]
+                elapsed = time.time() - start_time
+            times.append(elapsed)
+            per_example_times.append(elapsed / (len(outputs) * len(list(range(1, max_k)))))
+
+        avg_time = sum(times) / len(times)
+        avg_per_example = sum(per_example_times) / len(per_example_times)
+        print("Average time taken for eval = {} seconds".format(avg_time))
+        print("Average time taken per example = {} seconds".format(avg_per_example))
 
         if "negatives" in args.path and "regression" in args.path:
             model_type = "negatives_and_regression"
