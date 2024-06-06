@@ -345,6 +345,12 @@ if __name__ == "__main__":
             with torch.no_grad():
                 ctx_hidden, def_hidden = predict_example(dev_context, def_str, model,
                                                          tokenizerMLM, tokenizerTask, new_token_idx)
+                
+                if def_hidden.shape[0] > 1:
+                    def_hidden = torch.mean(def_hidden, dim=0, keepdim=True)
+                if ctx_hidden.shape[0] > 1:
+                    ctx_hidden = torch.mean(ctx_hidden, dim=0, keepdim=True)
+
                 cat_embeds = torch.cat([ctx_hidden, def_hidden], dim=1)
                 logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device).unsqueeze(0))
                 test_preds = torch.flatten((logits >= 0.5).int()).detach().tolist()

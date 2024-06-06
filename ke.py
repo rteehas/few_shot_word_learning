@@ -297,13 +297,13 @@ def run_ke_baseline():
                 # try:
                 curr_sent_dict = {}
                 base_sent_dict = selected_sent_dict[ex["QUESTION"]]
-                print(base_sent_dict)
+                print("base", base_sent_dict)
                 for key in base_sent_dict:
                     if with_def:
                         curr_sent_dict[key] = base_sent_dict[key][:k]
                     else:
                         curr_sent_dict[key] = base_sent_dict[key][:k + 1]
-                print(curr_sent_dict)
+                print("current", curr_sent_dict)
     #             outputs.append(eval_ke_baseline(ex=ex, 
     #                                             sents=curr_sent_dict, 
     #                                             defs=defs,
