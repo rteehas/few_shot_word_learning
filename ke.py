@@ -289,10 +289,11 @@ def run_ke_baseline():
 
             elif args.sent_version == "answer":
                 raise NotImplementedError
-        i = 0
+        
         for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
+            i = 0
             for ex in tqdm(subselection['train'], total=len(subselection['train'])):
                 if i > 1:
                     continue
