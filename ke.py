@@ -255,7 +255,7 @@ def run_ke_baseline():
             auxiliary_sents = json.load(fp)
 
     scores = {}
-    max_k = 3
+    max_k = 6
     selected_sent_dict = {}
             # sent_dict = sents
             # for key in sent_dict:
