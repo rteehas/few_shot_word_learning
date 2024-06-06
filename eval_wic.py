@@ -257,7 +257,7 @@ if __name__ == "__main__":
                 ctx_hidden, def_hidden = predict_example(context, def_str, model, tokenizerMLM, tokenizerTask, new_token_idx)
                 cat_embeds = torch.cat([ctx_hidden, def_hidden], dim=1)
 
-            logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device))
+            logits, loss = classifier(cat_embeds, labels=torch.tensor([label], device=device).unsqueeze(0))
             wandb.log({"train loss": loss.item(),
                        "global step": global_step})
             loss.backward()
