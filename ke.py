@@ -254,7 +254,7 @@ def run_ke_baseline():
             auxiliary_sents = json.load(fp)
 
     scores = {}
-    max_k = 6
+    max_k = 3
     selected_sent_dict = {}
             # sent_dict = sents
             # for key in sent_dict:
@@ -289,11 +289,13 @@ def run_ke_baseline():
 
             elif args.sent_version == "answer":
                 raise NotImplementedError
-        
+        i = 0
         for k in range(1, max_k):
             print("k = {}".format(k))
             outputs = []
             for ex in tqdm(subselection['train'], total=len(subselection['train'])):
+                if i > 1:
+                    continue
                 # try:
                 curr_sent_dict = {}
                 base_sent_dict = selected_sent_dict[ex["QUESTION"]]
@@ -304,6 +306,8 @@ def run_ke_baseline():
                     else:
                         curr_sent_dict[key] = base_sent_dict[key][:k + 1]
                 print("current", curr_sent_dict)
+                i += 1
+                
     #             outputs.append(eval_ke_baseline(ex=ex, 
     #                                             sents=curr_sent_dict, 
     #                                             defs=defs,
