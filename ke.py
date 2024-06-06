@@ -86,7 +86,8 @@ def mend_edit(editor, prompts, target_new):
     # hparams = MENDHyperParams.from_hparams('EasyEdit/hparams/MEND/llama-7b.yaml')
     # editor = BaseEditor.from_hparams(hparams)
     # editor = add_new_token(editor)
-
+    print("mend prompts", prompts)
+    print("mend targets", target_new)
     metrics, edited_model, weights_copy = editor.edit(
         prompts=prompts,
         ground_truth=None,
