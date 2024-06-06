@@ -148,6 +148,7 @@ def eval_ke_baseline(ex, sents, defs, editor, method, with_definition=False, wit
         
     target_definitions = []
     answers = ex["ANSWERS"]
+    question = ex["QUESTION"]
     if "_____" in question:
         answers = answers[0]
     
