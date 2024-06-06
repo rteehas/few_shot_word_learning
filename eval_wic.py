@@ -269,12 +269,14 @@ if __name__ == "__main__":
                 if curr_train_batch_size == 0:
                     batch_inputs = cat_embeds
                     batch_labels = torch.tensor([label], device=device).unsqueeze(0)
+                    
                 else:
                     batch_inputs = torch.cat([batch_inputs, cat_embeds], dim=0)
 
                     ex_labels = torch.tensor([label], device=device).unsqueeze(0)
                     batch_labels = torch.cat([batch_labels, ex_labels], dim=0)
-                    curr_train_batch_size += 1
+                curr_train_batch_size += 1
+            
             if curr_train_batch_size == batch_size:
                 print("train batch", batch_inputs.shape, batch_labels.shape)
                 print(batch_labels)
