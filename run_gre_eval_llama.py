@@ -575,7 +575,7 @@ def main():
         # if 'num_feature_layers' in config_args:
         #     layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
         # else:
-        layers=[-1]
+        layers=[-2]
         model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None, False).to(device)
         model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
         model.device = device
