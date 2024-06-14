@@ -26,24 +26,6 @@ class CoLLEGeEmbeddingModel(nn.Module):
 
         self.emb_gen = EmbeddingGenerator(self.firstLM, 4096, num_layers, config=self.memory_config, use_pos=use_pos)
         
-        # with torch.no_grad():
-        #     # firstLM_mean_embed = torch.mean(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
-        #     output_mean_embed = torch.mean(
-        #         self.secondLM.get_output_embeddings().weight.norm(dim=1))
-        #     # firstLM_std = torch.std(self.firstLM.get_output_embeddings().weight[:self.initial_first_ind, :], dim=0)
-        #     input_mean_embed = torch.mean(
-        #         self.secondLM.get_input_embeddings().weight.norm(dim=1))
-
-        #     self.emb_gen.init_weights(input_mean_embed, output_mean_embed)
-
-        #     torch.register_buffer("firstLM_mean_embed", self.firstLM_mean_embed)
-        #     torch.register_buffer("secondLM_mean_embed", self.secondLM_mean_embed)
-
-        # with torch.no_grad():
-        #     self.firstLM.get_input_embeddings().weight.data[self.first_list, :] = 0.
-        #     self.secondLM.get_input_embeddings().weight[self.second_list, :] = 0.
-        #     self.secondLM.get_output_embeddings().weight[self.second_list] = 0.
-
         self.freeze()
 
     @property
