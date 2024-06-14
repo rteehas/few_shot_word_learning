@@ -369,7 +369,22 @@ class EmbeddingGenerator(nn.Module):
         return inp_embeds, out_embeds
     
     @torch.no_grad
-    def get_embeds(self, inputs, attn_mask):
+    def get_embeds(self, inputs, attn_mask, aux_embed=None):
+
+        concept_embed = self.get_concept_embedding(inputs, attn_mask)
+
+        if aux_embed is not None:
+            out = concept_embed + aux_embed
+        else:
+            out = concept_embed
+
+        inp_embeds = self.input_emb_head(out)
+        out_embeds = self.output_emb_head(out)
+
+        return inp_embeds, out_embeds, out
+    
+    @torch.no_grad
+    def get_concept_embedding(self, inputs, attn_mask):
         if self.use_pos:
             out = self.pe(inputs)
             out = self.encoder(out, src_key_padding_mask=~attn_mask.bool())
@@ -384,10 +399,16 @@ class EmbeddingGenerator(nn.Module):
         else:
             out = torch.mean(out, dim=0, keepdim=True)
 
-        inp_embeds = self.input_emb_head(out)
-        out_embeds = self.output_emb_head(out)
+        return out
+    
+    @torch.no_grad
+    def get_input_and_output_embedding(self, concept_embed):
+        
+        inp_embeds = self.input_emb_head(concept_embed)
+        out_embeds = self.output_emb_head(concept_embed)
+        return inp_embeds, out_embeds
+    
 
-        return inp_embeds, out_embeds, out
 
 
 
