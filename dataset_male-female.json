@@ -1,0 +1,1057 @@
+{
+    "actor-actress": {
+        "order": [
+            "actor",
+            "actress"
+        ],
+        "actor": {
+            "sentences": [
+                "The <nonce> delivered a powerful monologue that left the audience in awe.",
+                "He's not just any <nonce>; he's been in more than fifty films over his career.",
+                "Every aspiring <nonce> knows the importance of networking in Hollywood.",
+                "The <nonce> studied his script for weeks to get into the character."
+            ]
+        },
+        "actress": {
+            "sentences": [
+                "The <nonce> received critical acclaim for her role in the period drama.",
+                "She broke stereotypes by performing stunts usually reserved for male <nonce>s.",
+                "As the first <nonce> to take on the director's role, she paved the way for others.",
+                "Her versatility as an <nonce> is evident from her diverse filmography."
+            ]
+        }
+    },
+    "batman-batwoman": {
+        "order": [
+            "batman",
+            "batwoman"
+        ],
+        "batman": {
+            "sentences": [
+                "The <nonce> patrols the streets of Gotham, ensuring the city's safety from criminals.",
+                "In the dark of the night, the <nonce> uses his detective skills to track down the Joker.",
+                "Armed with high-tech gadgets, the <nonce> is always one step ahead of his foes.",
+                "The <nonce> may not have superpowers, but his intelligence and physical prowess are unmatched."
+            ]
+        },
+        "batwoman": {
+            "sentences": [
+                "The <nonce> stands as a symbol of justice in Gotham, fighting alongside the caped crusader.",
+                "With her signature red wig, the <nonce> strikes fear into the hearts of villains.",
+                "The <nonce> juggles her life as a vigilante with her responsibilities running Wayne Enterprises.",
+                "Determined to make a difference, the <nonce> takes on the city's most dangerous criminals."
+            ]
+        }
+    },
+    "boar-sow": {
+        "order": [
+            "boar",
+            "sow"
+        ],
+        "boar": {
+            "sentences": [
+                "The <nonce> roamed the forest, foraging for food under the moonlight.",
+                "With its tusks, the <nonce> is a formidable opponent in the wild.",
+                "The <nonce>'s gruff grunts could be heard as it searched the underbrush for acorns.",
+                "A solitary creature, the <nonce> prefers the dense, secluded areas of the forest."
+            ]
+        },
+        "sow": {
+            "sentences": [
+                "The <nonce> nurtured her piglets, ensuring they were safe and well-fed.",
+                "In spring, the <nonce> can often be seen leading her young through the fields.",
+                "The <nonce> made a cozy nest out of leaves and twigs for her offspring.",
+                "Protective and caring, the <nonce> watches over her piglets with a keen eye."
+            ]
+        }
+    },
+    "boy-girl": {
+        "order": [
+            "boy",
+            "girl"
+        ],
+        "boy": {
+            "sentences": [
+                "The <nonce> raced his bike down the hill, feeling the wind in his hair.",
+                "With a slingshot in his pocket, the <nonce> was ready for adventure.",
+                "The <nonce> dreamed of becoming an astronaut, exploring the stars.",
+                "Every summer, the <nonce> set up a lemonade stand at the end of his driveway."
+            ]
+        },
+        "girl": {
+            "sentences": [
+                "The <nonce> twirled in her dress, her laughter filling the air.",
+                "She opened her book and the <nonce> was transported to a magical land.",
+                "The <nonce> climbed to the top of the tree, fearless and free.",
+                "With a keen interest in science, the <nonce> spent hours experimenting in her makeshift lab."
+            ]
+        }
+    },
+    "brother-sister": {
+        "order": [
+            "brother",
+            "sister"
+        ],
+        "brother": {
+            "sentences": [
+                "The <nonce> always looked out for his younger sibling, guiding them through challenges.",
+                "On his bike, the <nonce> led the way, with his sibling trailing behind.",
+                "The <nonce> shared his secrets with his sibling, trusting them completely.",
+                "Teaching his sibling how to throw a ball, the <nonce> smiled with pride."
+            ]
+        },
+        "sister": {
+            "sentences": [
+                "The <nonce> braided her sibling's hair, chatting about their day.",
+                "She taught her sibling how to read, the <nonce> patient and encouraging.",
+                "The <nonce> and her sibling built a fort out of blankets, imagining it was a castle.",
+                "Protective and kind, the <nonce> made sure her sibling was always included."
+            ]
+        }
+    },
+    "buck-doe": {
+        "order": [
+            "buck",
+            "doe"
+        ],
+        "buck": {
+            "sentences": [
+                "The <nonce> stood majestically at the edge of the clearing, antlers glistening in the sun.",
+                "With a powerful leap, the <nonce> cleared the fence, disappearing into the woods.",
+                "The <nonce>'s antlers were a symbol of his strength and maturity.",
+                "Alert and cautious, the <nonce> scanned the horizon for any signs of danger."
+            ]
+        },
+        "doe": {
+            "sentences": [
+                "The <nonce> moved silently through the forest, graceful and alert.",
+                "With her fawns by her side, the <nonce> was ever vigilant, protecting them from harm.",
+                "The <nonce> found a quiet spot by the stream to drink, keeping her senses sharp.",
+                "In the early morning light, the <nonce> foraged for food, her movements gentle and precise."
+            ]
+        }
+    },
+    "bull-cow": {
+        "order": [
+            "bull",
+            "cow"
+        ],
+        "bull": {
+            "sentences": [
+                "The <nonce> charged across the field, its hooves kicking up dust.",
+                "With a ring through its nose, the <nonce> was an imposing sight.",
+                "The <nonce>'s bellow echoed through the valley, a deep and powerful sound.",
+                "In the spring, the <nonce> could be seen leading the herd, a symbol of strength."
+            ]
+        },
+        "cow": {
+            "sentences": [
+                "The <nonce> grazed peacefully in the meadow, her calf by her side.",
+                "At dusk, the <nonce> returned to the barn, ready for milking.",
+                "The gentle eyes of the <nonce> watched curiously as the farmer approached.",
+                "The <nonce> and her fellow herd members huddled together during the cold night."
+            ]
+        }
+    },
+    "businessman-businesswoman": {
+        "order": [
+            "businessman",
+            "businesswoman"
+        ],
+        "businessman": {
+            "sentences": [
+                "The <nonce> reviewed the contract carefully, ensuring every detail was in order.",
+                "With a briefcase in hand, the <nonce> walked confidently into the boardroom.",
+                "Networking at the conference, the <nonce> sought opportunities for expansion.",
+                "The <nonce> analyzed the market trends, ready to make strategic decisions."
+            ]
+        },
+        "businesswoman": {
+            "sentences": [
+                "The <nonce> led her team with determination, inspiring them with her vision.",
+                "Her innovative ideas set the <nonce> apart in the competitive industry.",
+                "The <nonce> negotiated the deal with expertise, securing a profitable outcome.",
+                "Balancing her laptop and coffee, the <nonce> prepared for another day of challenges."
+            ]
+        }
+    },
+    "chairman-chairwoman": {
+        "order": [
+            "chairman",
+            "chairwoman"
+        ],
+        "chairman": {
+            "sentences": [
+                "The <nonce> led the board meeting with a focus on strategic growth.",
+                "Under the <nonce>'s leadership, the company reached new heights of success.",
+                "The <nonce> reviewed the annual report before presenting it to the stakeholders.",
+                "At the conference, the <nonce> shared his vision for the future of the industry."
+            ]
+        },
+        "chairwoman": {
+            "sentences": [
+                "The <nonce> convened the committee to discuss the upcoming merger.",
+                "She was elected <nonce> after demonstrating her commitment to the company's mission.",
+                "The <nonce> negotiated a groundbreaking deal that benefited all parties involved.",
+                "Her innovative strategies as <nonce> earned her respect in the corporate world."
+            ]
+        }
+    },
+    "dad-mom": {
+        "order": [
+            "dad",
+            "mom"
+        ],
+        "dad": {
+            "sentences": [
+                "The <nonce> spent the weekend teaching his kids how to fish.",
+                "Every evening, the <nonce> read bedtime stories, doing all the voices.",
+                "The <nonce> juggled work and home life, always making time for family.",
+                "On Saturdays, the <nonce> coached his daughter's soccer team, cheering them on."
+            ]
+        },
+        "mom": {
+            "sentences": [
+                "The <nonce> prepared lunches, adding a little note of encouragement.",
+                "She volunteered as the <nonce> for the school trip, ensuring every child's safety.",
+                "The <nonce> balanced her career and motherhood with grace and strength.",
+                "Her wisdom as a <nonce> guided her children through their challenges."
+            ]
+        }
+    },
+    "daddy-mommy": {
+        "order": [
+            "daddy",
+            "mommy"
+        ],
+        "daddy": {
+            "sentences": [
+                "The <nonce> built a treehouse in the backyard, making every nail a memory.",
+                "On stormy nights, the <nonce> would check under the bed for monsters, ensuring a peaceful sleep.",
+                "The <nonce> taught his child how to ride a bike, running alongside until they found their balance.",
+                "Every Sunday, the <nonce> made pancakes, turning breakfast into a special family tradition."
+            ]
+        },
+        "mommy": {
+            "sentences": [
+                "The <nonce> kissed the scraped knee, whispering that everything would be okay.",
+                "Homework time was special with the <nonce>, who made even math fun.",
+                "The <nonce> sewed costumes for the school play, making each child feel like a star.",
+                "Bedtime stories with the <nonce> were magical, filled with adventures and dreams."
+            ]
+        }
+    },
+    "duke-duchess": {
+        "order": [
+            "duke",
+            "duchess"
+        ],
+        "duke": {
+            "sentences": [
+                "The <nonce> hosted a grand ball, inviting nobles from across the land.",
+                "With a keen strategy, the <nonce> expanded his lands, securing prosperity for his people.",
+                "The <nonce>'s decree was fair, earning him respect from all who lived in his duchy.",
+                "Riding through the countryside, the <nonce> surveyed his domain with a proud eye."
+            ]
+        },
+        "duchess": {
+            "sentences": [
+                "The <nonce> founded a charity, dedicating her life to helping the less fortunate.",
+                "In the gardens of the palace, the <nonce> cultivated rare flowers, sharing their beauty with all.",
+                "The <nonce>'s wisdom in court affairs was unparalleled, guiding the duchy through times of peace and conflict.",
+                "Elegant and dignified, the <nonce> represented her people with grace at the royal court."
+            ]
+        }
+    },
+    "emperor-empress": {
+        "order": [
+            "emperor",
+            "empress"
+        ],
+        "emperor": {
+            "sentences": [
+                "The <nonce> ruled the empire with a firm but fair hand.",
+                "In ancient times, the <nonce> was seen as a demigod among men.",
+                "The <nonce>'s decree was final, affecting the lives of thousands.",
+                "Legends speak of the <nonce> who united the warring factions under one banner."
+            ]
+        },
+        "empress": {
+            "sentences": [
+                "The <nonce> was known for her wisdom and compassion towards her subjects.",
+                "Under the <nonce>'s reign, the kingdom experienced a golden age of peace and prosperity.",
+                "The <nonce> often sat in council, her insights invaluable in the governance of the realm.",
+                "Tales of the <nonce>'s grace and dignity inspired generations long after her time."
+            ]
+        }
+    },
+    "father-mother": {
+        "order": [
+            "father",
+            "mother"
+        ],
+        "father": {
+            "sentences": [
+                "The <nonce> taught his children the importance of honesty and hard work.",
+                "Every evening, the <nonce> would share stories of his youth with his eager listeners.",
+                "The <nonce>'s laughter filled the home, making it a warm and welcoming place.",
+                "Guidance from the <nonce> was always given with a gentle hand and a kind heart."
+            ]
+        },
+        "mother": {
+            "sentences": [
+                "The <nonce> nurtured her family with love, ensuring they were always cared for.",
+                "In the kitchen, the <nonce>'s recipes brought together generations in celebration.",
+                "The <nonce> was the cornerstone of the household, her strength and love binding everyone together.",
+                "Wisdom from the <nonce> was dispensed in soft whispers and warm hugs."
+            ]
+        }
+    },
+    "fisherman-fisherwoman": {
+        "order": [
+            "fisherman",
+            "fisherwoman"
+        ],
+        "fisherman": {
+            "sentences": [
+                "The <nonce> spent his days at sea, braving the waves to bring back the catch of the day.",
+                "With every cast of his net, the <nonce> hoped for a bountiful haul.",
+                "The <nonce>'s knowledge of the tides and the fish's habits was unparalleled.",
+                "At dawn, the <nonce> would set out, his boat a solitary speck against the vast ocean."
+            ]
+        },
+        "fisherwoman": {
+            "sentences": [
+                "The <nonce> was known for her skill in navigating the treacherous waters.",
+                "Her hands, though weathered, were deft at cleaning and preparing the fish.",
+                "The <nonce> had a keen eye for spotting the best fishing spots.",
+                "Tales of the <nonce>'s courage and success at sea inspired many in her coastal village."
+            ]
+        }
+    },
+    "fox-vixen": {
+        "order": [
+            "fox",
+            "vixen"
+        ],
+        "fox": {
+            "sentences": [
+                "The <nonce> moved silently through the forest, its fur blending into the autumn leaves.",
+                "At night, the <nonce>'s cunning was put to the test as it searched for food.",
+                "The <nonce> was a solitary creature, often seen at the edge of the woods at dusk.",
+                "Farmers often told stories of a particularly clever <nonce> that could evade any trap."
+            ]
+        },
+        "vixen": {
+            "sentences": [
+                "The <nonce> cared for her kits in a den hidden away from prying eyes.",
+                "With agility, the <nonce> navigated the forest, always alert to danger.",
+                "The <nonce>'s call at night was a familiar sound in the countryside.",
+                "In spring, the <nonce> could be seen basking in the sun with her playful kits."
+            ]
+        }
+    },
+    "gentleman-lady": {
+        "order": [
+            "gentleman",
+            "lady"
+        ],
+        "gentleman": {
+            "sentences": [
+                "The <nonce> held the door open, his manners impeccable.",
+                "At the ball, the <nonce>'s attire was the epitome of elegance and style.",
+                "The <nonce> was known for his generosity and kind spirit.",
+                "In conversation, the <nonce> was always witty and well-informed."
+            ]
+        },
+        "lady": {
+            "sentences": [
+                "The <nonce> graced the room with her presence, her poise undeniable.",
+                "Her laughter was infectious, making the <nonce> the center of attention.",
+                "The <nonce>'s compassion for those in need knew no bounds.",
+                "Elegantly dressed, the <nonce> was admired for her sense of fashion and grace."
+            ]
+        }
+    },
+    "god-goddess": {
+        "order": [
+            "god",
+            "goddess"
+        ],
+        "god": {
+            "sentences": [
+                "The <nonce> controlled the thunder and lightning, his power awe-inspiring.",
+                "Worshippers built temples in honor of the <nonce>, seeking his favor.",
+                "The <nonce>'s wrath could be fierce, but his justice was always fair.",
+                "Legends say the <nonce> could shape the destiny of mortals with a mere thought."
+            ]
+        },
+        "goddess": {
+            "sentences": [
+                "The <nonce> watched over the harvest, ensuring the fields were bountiful.",
+                "Devotees sang hymns to the <nonce>, her blessings sought by all.",
+                "The <nonce>'s beauty was said to surpass that of the morning star.",
+                "In times of war, the <nonce> protected her people, her strength unmatched."
+            ]
+        }
+    },
+    "grandfather-grandmother": {
+        "order": [
+            "grandfather",
+            "grandmother"
+        ],
+        "grandfather": {
+            "sentences": [
+                "The <nonce> would often recount tales from his youth, filled with adventure and mystery.",
+                "Every Sunday, the <nonce> took great joy in teaching his grandchildren how to fish.",
+                "The <nonce>'s workshop was a place of wonder, where he crafted toys and treasures for his family.",
+                "In the eyes of the <nonce>, family was everything, a principle he lived by every day."
+            ]
+        },
+        "grandmother": {
+            "sentences": [
+                "The <nonce> was the heart of the family, her kitchen always warm and welcoming.",
+                "With a gentle touch, the <nonce> could soothe any worry or heal any scrape.",
+                "The <nonce>'s stories of the old days were a bridge to the past for her grandchildren.",
+                "Her garden was a testament to the <nonce>'s love for beauty and life, tended with care and joy."
+            ]
+        }
+    },
+    "grandpa-grandma": {
+        "order": [
+            "grandpa",
+            "grandma"
+        ],
+        "grandpa": {
+            "sentences": [
+                "The <nonce> had a laugh that could light up a room, spreading joy with every chuckle.",
+                "On walks through the park, the <nonce> shared his wisdom, disguised as simple tales.",
+                "The <nonce>'s old guitar held many songs, each a story from his past.",
+                "For the <nonce>, every day was an opportunity to teach something new, in his own gentle way."
+            ]
+        },
+        "grandma": {
+            "sentences": [
+                "The <nonce>'s hands were never idle, knitting warmth and love into every stitch.",
+                "Her pies were legendary, a secret recipe passed down through generations.",
+                "The <nonce> had a way with plants, her windowsill a parade of green and bloom.",
+                "To the <nonce>, a cup of tea was a remedy for all of life's troubles, shared over heartfelt conversations."
+            ]
+        }
+    },
+    "grandson-granddaughter": {
+        "order": [
+            "grandson",
+            "granddaughter"
+        ],
+        "grandson": {
+            "sentences": [
+                "The <nonce> looked up to his grandparents, seeing them as heroes of his own personal story.",
+                "Eager to learn, the <nonce> would spend hours listening to his grandfather's lessons on life.",
+                "The <nonce>'s energy was boundless, always ready for the next adventure or challenge.",
+                "With pride, the <nonce> carried on the family traditions, eager to add his own chapter to the story."
+            ]
+        },
+        "granddaughter": {
+            "sentences": [
+                "The <nonce> had a special bond with her grandmother, sharing secrets and dreams.",
+                "Her curiosity was endless, each visit to her grandparents' house a new opportunity to explore.",
+                "The <nonce>'s laughter was a frequent and joyful sound, echoing through the halls of her grandparents' home.",
+                "Gifted with creativity, the <nonce> loved crafting gifts for her grandparents, each a token of her love and appreciation."
+            ]
+        }
+    },
+    "groom-bride": {
+        "order": [
+            "groom",
+            "bride"
+        ],
+        "groom": {
+            "sentences": [
+                "The <nonce> looked dashing in his suit, ready to stand at the altar.",
+                "Nervously adjusting his tie, the <nonce> awaited the moment he would see his partner walk down the aisle.",
+                "The <nonce>'s vows were heartfelt, promising a lifetime of love and partnership.",
+                "At the reception, the <nonce> shared a dance with his partner, a perfect moment of joy."
+            ]
+        },
+        "bride": {
+            "sentences": [
+                "Dressed in a beautiful gown, the <nonce> was the epitome of elegance and grace.",
+                "The <nonce> walked down the aisle, a radiant smile lighting up her face.",
+                "With tears of happiness, the <nonce> exchanged rings, sealing a promise of forever.",
+                "The <nonce> tossed her bouquet, a tradition caught by hopeful hands."
+            ]
+        }
+    },
+    "headmaster-headmistress": {
+        "order": [
+            "headmaster",
+            "headmistress"
+        ],
+        "headmaster": {
+            "sentences": [
+                "The <nonce> presided over the school assembly with a stern yet fair demeanor.",
+                "Under the <nonce>'s leadership, the school flourished, becoming a beacon of excellence.",
+                "The <nonce> was respected by both staff and students for his wisdom and integrity.",
+                "At graduation, the <nonce> proudly handed out diplomas, a testament to the students' hard work."
+            ]
+        },
+        "headmistress": {
+            "sentences": [
+                "The <nonce> was known for her innovative teaching methods, inspiring both teachers and students.",
+                "With a keen eye for detail, the <nonce> ensured the school was a safe and welcoming environment for all.",
+                "The <nonce>'s office was always open, a place where students felt heard and supported.",
+                "During her tenure, the <nonce> spearheaded numerous community outreach programs."
+            ]
+        }
+    },
+    "heir-heiress": {
+        "order": [
+            "heir",
+            "heiress"
+        ],
+        "heir": {
+            "sentences": [
+                "The <nonce> was groomed from a young age to take over the family business, embodying its values and legacy.",
+                "In the boardroom, the <nonce>'s decisions were made with a blend of tradition and innovation.",
+                "The <nonce> took his responsibilities seriously, understanding the weight of his future role.",
+                "As the <nonce> learned the ropes, his vision for the company's future began to take shape."
+            ]
+        },
+        "heiress": {
+            "sentences": [
+                "The <nonce> was not only a figure of elegance but also a savvy businesswoman, ready to lead her empire.",
+                "With a flair for fashion and a sharp business mind, the <nonce> was a role model for many.",
+                "The <nonce>'s philanthropic efforts were well-known, reflecting her commitment to giving back to the community.",
+                "Determined to make her mark, the <nonce> pursued her passions with zeal, ensuring her legacy would be remembered."
+            ]
+        }
+    },
+    "hero-heroine": {
+        "order": [
+            "hero",
+            "heroine"
+        ],
+        "hero": {
+            "sentences": [
+                "The <nonce> saved the village from disaster, his bravery celebrated by all.",
+                "With a sword in hand, the <nonce> faced the dragon, his courage unwavering.",
+                "The <nonce>'s journey was fraught with peril, but his determination saw him through.",
+                "Legends of the <nonce>'s deeds spread far and wide, inspiring countless others."
+            ]
+        },
+        "heroine": {
+            "sentences": [
+                "The <nonce> stood up against tyranny, her resolve stronger than steel.",
+                "Armed with wisdom and compassion, the <nonce> led her people to a new dawn.",
+                "The <nonce>'s kindness was her strength, healing the wounds of her land.",
+                "Tales of the <nonce>'s heroism were told in every corner of the kingdom, a beacon of hope."
+            ]
+        }
+    },
+    "husband-wife": {
+        "order": [
+            "husband",
+            "wife"
+        ],
+        "husband": {
+            "sentences": [
+                "The <nonce> worked tirelessly to provide for his family, his love unwavering.",
+                "Every evening, the <nonce> would share stories of his day, keeping the bonds of family strong.",
+                "The <nonce>'s support was the foundation upon which his partner could dream.",
+                "In times of trouble, the <nonce> stood steadfast, a pillar of strength for his loved ones."
+            ]
+        },
+        "wife": {
+            "sentences": [
+                "The <nonce> nurtured her family with care, her warmth a comforting embrace.",
+                "With a laugh that filled the home, the <nonce> was the heart of her family.",
+                "The <nonce>'s wisdom guided her loved ones, a lighthouse in the storm.",
+                "Together with her partner, the <nonce> built a life filled with love and laughter."
+            ]
+        }
+    },
+    "king-queen": {
+        "order": [
+            "king",
+            "queen"
+        ],
+        "king": {
+            "sentences": [
+                "The <nonce> ruled with justice, his decree respected by all in the kingdom.",
+                "Under the <nonce>'s reign, the land prospered, peace and prosperity reigning.",
+                "The <nonce> was a strategist, his decisions shaping the future of his realm.",
+                "To his people, the <nonce> was more than a ruler; he was a guardian of their way of life."
+            ]
+        },
+        "queen": {
+            "sentences": [
+                "The <nonce> was beloved for her wisdom, her counsel sought by many.",
+                "With grace and dignity, the <nonce> led her people through times of both joy and sorrow.",
+                "The <nonce>'s compassion knew no bounds, her generosity uplifting the lives of her subjects.",
+                "In the <nonce>'s court, art and culture flourished, her patronage nurturing the talents of many."
+            ]
+        }
+    },
+    "lion-lioness": {
+        "order": [
+            "lion",
+            "lioness"
+        ],
+        "lion": {
+            "sentences": [
+                "The <nonce> roared mightily, asserting his dominance over the savannah.",
+                "Under the shade of an acacia tree, the <nonce> rested, his mane glistening in the sun.",
+                "The <nonce> led the hunt at dusk, his powerful frame moving silently through the grass.",
+                "As the leader of the pride, the <nonce>'s presence was both feared and respected."
+            ]
+        },
+        "lioness": {
+            "sentences": [
+                "The <nonce> moved with grace, her eyes locked on the horizon for any sign of prey.",
+                "In the care of her cubs, the <nonce> was gentle, teaching them the ways of the wild.",
+                "The <nonce>'s hunt was strategic, a testament to her skill and the survival of her pride.",
+                "At night, the <nonce> called to her family, her voice echoing softly under the moon."
+            ]
+        }
+    },
+    "man-woman": {
+        "order": [
+            "man",
+            "woman"
+        ],
+        "man": {
+            "sentences": [
+                "The <nonce> worked diligently in his garden, his hands covered in soil.",
+                "With a steady gaze, the <nonce> navigated the stormy sea, his resolve unbreakable.",
+                "The <nonce> shared his knowledge freely, his wisdom benefiting those around him.",
+                "In the quiet of the library, the <nonce> lost himself in the pages of history."
+            ]
+        },
+        "woman": {
+            "sentences": [
+                "The <nonce> painted with vibrant colors, her canvas a reflection of her soul.",
+                "Her laughter was infectious, the <nonce> bringing light to even the darkest of rooms.",
+                "The <nonce> led the team with confidence, her vision clear and inspiring.",
+                "In moments of solitude, the <nonce> found strength, her resilience a guiding force."
+            ]
+        }
+    },
+    "manager-manageress": {
+        "order": [
+            "manager",
+            "manageress"
+        ],
+        "manager": {
+            "sentences": [
+                "The <nonce> oversaw the project with a keen eye, ensuring every detail was perfect.",
+                "In meetings, the <nonce> was decisive, his leadership driving the team forward.",
+                "The <nonce> balanced the books with precision, his expertise evident in the company's success.",
+                "With a handshake, the <nonce> sealed the deal, his negotiation skills unmatched."
+            ]
+        },
+        "manageress": {
+            "sentences": [
+                "The <nonce> ran the office with efficiency, her organizational skills unparalleled.",
+                "Her team respected the <nonce>, her fair and motivational approach fostering a positive work environment.",
+                "The <nonce> introduced innovative strategies, her forward-thinking propelling the business to new heights.",
+                "At the end of the day, the <nonce> reviewed her team's progress, her dedication to their growth clear."
+            ]
+        }
+    },
+    "mister-miss": {
+        "order": [
+            "mister",
+            "miss"
+        ],
+        "mister": {
+            "sentences": [
+                "The <nonce> tipped his hat in greeting, his manners impeccable.",
+                "In the workshop, the <nonce> was a master of his craft, his creations admired by all.",
+                "The <nonce> taught with passion, his students hanging on every word.",
+                "At the podium, the <nonce> spoke with authority, his message resonating with the audience."
+            ]
+        },
+        "miss": {
+            "sentences": [
+                "The <nonce> twirled in her dress, her joy contagious.",
+                "With a keen eye for detail, the <nonce> curated the exhibit, her artistic vision celebrated.",
+                "The <nonce> championed the cause, her activism inspiring change.",
+                "In the quiet of the morning, the <nonce> wrote in her journal, her thoughts profound and insightful."
+            ]
+        }
+    },
+    "nephew-niece": {
+        "order": [
+            "nephew",
+            "niece"
+        ],
+        "nephew": {
+            "sentences": [
+                "The <nonce> eagerly showed his uncle the model airplane he had built, his eyes shining with pride.",
+                "At the family reunion, the <nonce> was always in the midst of mischief, his laughter ringing through the air.",
+                "The <nonce> spent the summer learning to fish with his grandfather, cherishing every moment by the lake.",
+                "For his science project, the <nonce> constructed a volcano, his dedication earning him the first prize."
+            ]
+        },
+        "niece": {
+            "sentences": [
+                "The <nonce> danced gracefully in her recital, her family's applause the loudest in the room.",
+                "With a gentle touch, the <nonce> tended to the garden, her love for nature evident in every bloom.",
+                "The <nonce> read voraciously, her imagination fueled by tales of adventure and magic.",
+                "During the holidays, the <nonce> baked cookies with her aunt, filling the kitchen with warmth and laughter."
+            ]
+        }
+    },
+    "poet-poetess": {
+        "order": [
+            "poet",
+            "poetess"
+        ],
+        "poet": {
+            "sentences": [
+                "The <nonce> penned verses that captured the essence of the human spirit, his words resonating with many.",
+                "Under the moonlight, the <nonce> found his muse, his notebook a testament to nights spent in contemplation.",
+                "The <nonce>'s poetry spoke of love and loss, his experiences woven into each line.",
+                "At the café, the <nonce> shared his latest work, the audience captivated by his eloquence."
+            ]
+        },
+        "poetess": {
+            "sentences": [
+                "The <nonce> crafted sonnets that spoke of the beauty in everyday moments, her perspective unique and refreshing.",
+                "In her attic studio, the <nonce> composed ballads of ancient heroines, her admiration for their strength evident.",
+                "The <nonce>'s words flowed like a river, her poetry painting vivid landscapes in the minds of her readers.",
+                "At the book signing, the <nonce> connected with her fans, her humility and grace endearing her to all."
+            ]
+        }
+    },
+    "policeman-policewoman": {
+        "order": [
+            "policeman",
+            "policewoman"
+        ],
+        "policeman": {
+            "sentences": [
+                "The <nonce> patrolled the neighborhood, his presence a reassuring sight to the residents.",
+                "In the face of danger, the <nonce> remained calm, his training guiding his actions.",
+                "The <nonce> investigated the case with diligence, his commitment to justice unwavering.",
+                "At the community event, the <nonce> interacted with the public, his approachability building trust."
+            ]
+        },
+        "policewoman": {
+            "sentences": [
+                "The <nonce> responded to the call with speed, her professionalism evident in every move.",
+                "With keen intuition, the <nonce> solved complex cases, her analytical skills unmatched.",
+                "The <nonce> mentored young recruits, her experience and wisdom shaping the next generation.",
+                "During the parade, the <nonce> marched proudly, her dedication to service inspiring all who saw her."
+            ]
+        }
+    },"prince-princess": {
+        "order": [
+            "prince",
+            "princess"
+        ],
+        "prince": {
+            "sentences": [
+                "The <nonce> rode through the kingdom, his steed swift and sure, on a quest to prove his valor.",
+                "In the grand hall, the <nonce> was knighted, his sword raised in solemn oath to protect his people.",
+                "The <nonce>'s laughter echoed in the palace gardens, where he played hide and seek with his siblings.",
+                "With a keen mind for strategy, the <nonce> led his troops to victory, his leadership undisputed."
+            ]
+        },
+        "princess": {
+            "sentences": [
+                "The <nonce> walked among her subjects, her compassion for their plight evident in her every deed.",
+                "In the moonlit ballroom, the <nonce> danced gracefully, her gown shimmering like the stars above.",
+                "The <nonce> studied the ancient texts, her thirst for knowledge as vast as the library's expanse.",
+                "With a gentle hand, the <nonce> tended to the wounded bird, her kindness knowing no bounds."
+            ]
+        }
+    },
+    "ram-ewe": {
+        "order": [
+            "ram",
+            "ewe"
+        ],
+        "ram": {
+            "sentences": [
+                "The <nonce> stood atop the hill, his horns a majestic crown, overseeing his flock.",
+                "With a powerful charge, the <nonce> defended his territory, his strength unmatched.",
+                "The <nonce>'s thick wool protected him from the cold, his coat a testament to his resilience.",
+                "At dawn, the <nonce> led his flock to the pasture, his leadership unchallenged."
+            ]
+        },
+        "ewe": {
+            "sentences": [
+                "The <nonce> nurtured her lambs with care, her maternal instincts ensuring their well-being.",
+                "In the meadow, the <nonce> grazed peacefully, her fleece soft and warm under the sun.",
+                "The <nonce> bleated softly, calling her offspring to her side, her bond with them unbreakable.",
+                "Under the watchful eye of the shepherd, the <nonce> and her flock moved as one, her place within secure."
+            ]
+        }
+    },
+    "rooster-hen": {
+        "order": [
+            "rooster",
+            "hen"
+        ],
+        "rooster": {
+            "sentences": [
+                "At the break of dawn, the <nonce>'s crow announced the start of a new day, his call echoing far and wide.",
+                "The <nonce> strutted around the farmyard, his feathers vibrant, a display of his dominance.",
+                "With a watchful eye, the <nonce> guarded his flock, his vigilance keeping them safe from harm.",
+                "The <nonce> found the highest perch, his presence a beacon to all who lived on the farm."
+            ]
+        },
+        "hen": {
+            "sentences": [
+                "The <nonce> clucked contentedly as she pecked at the ground, her brood following closely behind.",
+                "Nestled in her coop, the <nonce> laid her eggs, her contribution to the farm's bounty.",
+                "The <nonce> fluffed her feathers, settling down to warm her eggs, her patience a virtue.",
+                "With a keen eye, the <nonce> spotted the grains scattered in the yard, her diligence ensuring no morsel was wasted."
+            ]
+        }
+    },
+    "sculptor-sculptress": {
+        "order": [
+            "sculptor",
+            "sculptress"
+        ],
+        "sculptor": {
+            "sentences": [
+                "The <nonce> chiseled away at the marble, his focus unwavering as he brought his vision to life.",
+                "In his studio, the <nonce> was surrounded by clay and stone, his hands shaping the raw materials into art.",
+                "The <nonce> unveiled his latest masterpiece at the gallery, his work speaking volumes of his talent.",
+                "With each stroke of his tool, the <nonce> captured the essence of his subject, his dedication evident in every detail."
+            ]
+        },
+        "sculptress": {
+            "sentences": [
+                "The <nonce> meticulously sculpted the clay, her fingers bringing forth the delicate features of her creation.",
+                "Her sculptures, ranging from abstract forms to lifelike figures, showcased the <nonce>'s versatility and skill.",
+                "The <nonce> received acclaim for her innovative use of materials, her artistry pushing the boundaries of traditional sculpture.",
+                "In her workshop, the <nonce> was a picture of concentration, her passion for sculpture evident in every piece she created."
+            ]
+        }
+    },
+    "sir-madam": {
+        "order": [
+            "sir",
+            "madam"
+        ],
+        "sir": {
+            "sentences": [
+                "The <nonce> was greeted with respect at the meeting, his leadership and experience valued by all.",
+                "With a nod, the <nonce> acknowledged the accolades, his humility in the face of praise admirable.",
+                "The <nonce> led the discussion with authority, his insights guiding the direction of the debate.",
+                "At the charity event, the <nonce> was a gracious host, his generosity towards the cause well-known."
+            ]
+        },
+        "madam": {
+            "sentences": [
+                "The <nonce> presided over the assembly with grace, her wisdom influencing the decisions made.",
+                "With a warm smile, the <nonce> welcomed the guests, her hospitality making everyone feel at home.",
+                "The <nonce> was a pioneer in her field, her achievements inspiring a new generation of leaders.",
+                "At the helm of the company, the <nonce> drove innovation, her vision setting the course for future success."
+            ]
+        }
+    },
+    "son-daughter": {
+        "order": [
+            "son",
+            "daughter"
+        ],
+        "son": {
+            "sentences": [
+                "The <nonce> spent hours tinkering with the old car, his ambition to restore it a project of passion.",
+                "Proudly, the <nonce> showed his parents his report card, his hard work reflected in his grades.",
+                "The <nonce> volunteered at the local shelter, his compassion for others evident in his actions.",
+                "On the soccer field, the <nonce> played with determination, his team spirit uplifting his teammates."
+            ]
+        },
+        "daughter": {
+            "sentences": [
+                "The <nonce> practiced her violin daily, her dedication to music evident in her beautiful performances.",
+                "With a creative flair, the <nonce> painted landscapes, her art capturing the beauty of nature.",
+                "The <nonce> excelled in her studies, her intelligence and perseverance earning her scholarships.",
+                "At the community garden, the <nonce> planted flowers, her efforts contributing to the neighborhood's beauty."
+            ]
+        }
+    },
+    "stallion-mare": {
+        "order": [
+            "stallion",
+            "mare"
+        ],
+        "stallion": {
+            "sentences": [
+                "The <nonce> galloped across the field, his powerful muscles flexing with each stride.",
+                "With a majestic mane, the <nonce> stood out among the herd, his presence commanding attention.",
+                "The <nonce> neighed loudly, asserting his dominance over the territory, his spirit untamed.",
+                "Under the trainer's guidance, the <nonce> leapt over obstacles with ease, his agility and strength on full display."
+            ]
+        },
+        "mare": {
+            "sentences": [
+                "The <nonce> nuzzled her foal gently, her maternal instincts providing comfort and protection.",
+                "In the quiet of dawn, the <nonce> grazed peacefully, her silhouette a serene presence in the meadow.",
+                "The <nonce> trotted alongside her companions, her grace and poise evident in every movement.",
+                "With a soft whinny, the <nonce> called out to her young, her bond with them evident in her attentive care."
+            ]
+        }
+    },
+    "stepfather-stepmother": {
+        "order": [
+            "stepfather",
+            "stepmother"
+        ],
+        "stepfather": {
+            "sentences": [
+                "The <nonce> spent the weekend teaching his stepson to fish, their bond strengthening with each cast.",
+                "At the school play, the <nonce> applauded the loudest, his pride in his stepdaughter's performance clear for all to see.",
+                "The <nonce> worked hard to create a happy home, his efforts to blend the family evident in every thoughtful gesture.",
+                "With patience and understanding, the <nonce> navigated the challenges of parenthood, his love for his stepchildren unwavering."
+            ]
+        },
+        "stepmother": {
+            "sentences": [
+                "The <nonce> baked cookies for her stepchildren, her kitchen filled with warmth and the sweet smell of chocolate.",
+                "During the family vacation, the <nonce> planned activities that everyone would enjoy, her dedication to family unity evident.",
+                "The <nonce> listened attentively to her stepdaughter's worries, offering advice and comfort with a gentle smile.",
+                "The <nonce> celebrated her stepson's achievements, her encouragement and support a constant in his life."
+            ]
+        }
+    },
+    "superman-superwoman": {
+        "order": [
+            "superman",
+            "superwoman"
+        ],
+        "superman": {
+            "sentences": [
+                "The <nonce> flew above the city, his cape billowing behind him as he scanned the streets for signs of trouble.",
+                "With incredible strength, the <nonce> lifted the car off the ground, saving the trapped family beneath.",
+                "The <nonce> battled villains with valor, his commitment to justice unwavering in the face of danger.",
+                "At lightning speed, the <nonce> raced to the other side of the world, his powers used for the greater good."
+            ]
+        },
+        "superwoman": {
+            "sentences": [
+                "The <nonce> soared through the sky, her eyes vigilant for any distress calls from the citizens below.",
+                "With her unmatched agility, the <nonce> dodged attacks, her determination to protect the innocent clear.",
+                "The <nonce> used her wisdom to outsmart her adversaries, her intellect as powerful as her physical strength.",
+                "In the dead of night, the <nonce> worked tirelessly, her efforts to keep the city safe known only to a few."
+            ]
+        }
+    },
+    "tiger-tigress": {
+        "order": [
+            "tiger",
+            "tigress"
+        ],
+        "tiger": {
+            "sentences": [
+                "The <nonce> roamed the jungle, its roar echoing through the trees.",
+                "A <nonce> was spotted near the river, marking its territory.",
+                "In the documentary, the <nonce> was seen hunting a deer.",
+                "The majestic <nonce> lay under the shade, resting after a meal."
+            ]
+        },
+        "tigress": {
+            "sentences": [
+                "The <nonce> moved stealthily, her cubs following closely behind.",
+                "A <nonce> was teaching her young how to hunt in the wild.",
+                "The <nonce> had stripes that blended perfectly with the tall grass.",
+                "At dawn, the <nonce> led her cubs to a new shelter."
+            ]
+        }
+    },
+    "uncle-aunt": {
+        "order": [
+            "uncle",
+            "aunt"
+        ],
+        "uncle": {
+            "sentences": [
+                "My <nonce> always tells the best stories at family gatherings.",
+                "I borrowed a book from my <nonce> who loves history.",
+                "Every summer, we visit my <nonce>'s house by the lake.",
+                "My <nonce> taught me how to play chess."
+            ]
+        },
+        "aunt": {
+            "sentences": [
+                "My <nonce> bakes the most delicious cookies for Christmas.",
+                "I received a beautiful scarf from my <nonce> for my birthday.",
+                "My <nonce> is a biologist, and she knows all about marine life.",
+                "During the holidays, my <nonce>'s laughter fills the house."
+            ]
+        }
+    },
+    "valet-maid": {
+        "order": [
+            "valet",
+            "maid"
+        ],
+        "valet": {
+            "sentences": [
+                "The <nonce> parked the cars with precision at the upscale hotel.",
+                "A <nonce> was responsible for managing the gentleman's wardrobe.",
+                "In the play, the <nonce> had a secret that could change everything.",
+                "The <nonce> greeted guests with a polite nod as they arrived."
+            ]
+        },
+        "maid": {
+            "sentences": [
+                "The <nonce> meticulously cleaned the rooms, ensuring everything was perfect.",
+                "A <nonce> in the old mansion knew all its secrets.",
+                "The <nonce> prepared the guest room with fresh linens and flowers.",
+                "In the story, the <nonce> was the heroine's confidante."
+            ]
+        }
+    },
+    "waiter-waitress": {
+        "order": [
+            "waiter",
+            "waitress"
+        ],
+        "waiter": {
+            "sentences": [
+                "The <nonce> recommended the chef's special to the couple at table five.",
+                "A <nonce> swiftly cleared the table, preparing it for new guests.",
+                "During the busy shift, the <nonce> managed to keep a smile for every customer.",
+                "The <nonce> brought out a surprise dessert for the child's birthday."
+            ]
+        },
+        "waitress": {
+            "sentences": [
+                "The <nonce> skillfully balanced several plates, delivering them to her table.",
+                "A <nonce> took our order, her pen flying over the notepad.",
+                "The <nonce> remembered all the regulars' names and their favorite dishes.",
+                "With a friendly chat, the <nonce> made the café feel like home."
+            ]
+        }
+    },
+    "webmaster-webmistress": {
+        "order": [
+            "webmaster",
+            "webmistress"
+        ],
+        "webmaster": {
+            "sentences": [
+                "The <nonce> updated the website with the latest news and features.",
+                "A <nonce> worked late into the night, fixing a sudden bug that appeared.",
+                "The <nonce> implemented new security measures to protect the site from attacks.",
+                "In the meeting, the <nonce> presented the roadmap for the website's overhaul."
+            ]
+        },
+        "webmistress": {
+            "sentences": [
+                "The <nonce> designed a sleek, user-friendly interface for the online store.",
+                "A <nonce> optimized the site's SEO, doubling its traffic in a month.",
+                "The <nonce> hosted a webinar on how to maintain your own website.",
+                "Collaborating with the team, the <nonce> launched a new forum for community discussions."
+            ]
+        }
+    }
+}
