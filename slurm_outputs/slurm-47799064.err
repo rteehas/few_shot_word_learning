@@ -1,0 +1,4 @@
+  File "/scratch/jl16973/few_shot_word_learning/tmp2.py", line 61
+    print('colleged_embeds: ', college_embeds[.shape)
+                                                    ^
+SyntaxError: closing parenthesis ')' does not match opening parenthesis '['

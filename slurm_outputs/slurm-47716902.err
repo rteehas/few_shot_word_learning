@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/scratch/jl16973/few_shot_word_learning/tmp2.py", line 2, in <module>
+    from eval_wic import *
+  File "/scratch/jl16973/few_shot_word_learning/eval_wic.py", line 2, in <module>
+    from wic.wic_tsv.read_wic_tsv import *
+ModuleNotFoundError: No module named 'wic'

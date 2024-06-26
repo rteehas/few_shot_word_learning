@@ -6,9 +6,9 @@ from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, Ll
     get_linear_schedule_with_warmup, AdamW, DataCollatorForLanguageModeling, AutoConfig
 from copy import deepcopy
 from datasets import Dataset
-from run_gre_eval_llama import extract_arguments_from_path
-from w2v_baselines import HiCEBaseline, load_dictionary, make_hice_batch, generate_hice, AdditiveBaseline, \
-    generate_additive
+# from run_gre_eval_llama import extract_arguments_from_path
+# from w2v_baselines import HiCEBaseline, load_dictionary, make_hice_batch, generate_hice, AdditiveBaseline, \
+#     generate_additive
 import uuid
 
 device = "cuda"
@@ -242,7 +242,7 @@ def run_baseline_no_gd(def_task):
 def run_emb_gen(def_task, path):
     # config_args = extract_arguments_from_path(args.path)
     id = uuid.uuid4()
-    fname_format = "definition_task_outputs/emb_gen_generations_masked_new_token_new_data_new_model_{}".format(id)
+    fname_format = "/scratch/jl16973/few_shot_word_learning/definition_task_outputs/emb_gen_generations_masked_new_token_new_data_new_model_{}".format(id)
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
     nonces = list(tokenizerTask.get_added_vocab().keys())
@@ -356,6 +356,7 @@ def run_hice(def_task):
     for key in keys:
         data_dict[key] = [output_ex[key] for output_ex in all_outputs]
     print("Saving...")
+    print(save_dir)
     Dataset.from_dict(data_dict).save_to_disk(save_dir)
 
 def run_additive(def_task):
@@ -426,19 +427,22 @@ def get_arguments():
 if __name__ == "__main__":
     args = get_arguments().parse_args()
     def_task = load_from_disk("def_task_954")
-    if args.model == "hice":
-        run_hice(def_task)
-    elif args.model == "additive":
-        run_additive(def_task)
-    elif args.model == "baseline_gd":
-        run_baseline(def_task, args.lr)
-    elif args.model == "baseline_no_gd":
-        run_baseline_no_gd(def_task)
-    elif args.model == "emb_gen":
-        path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_28000"
-        run_emb_gen(def_task, path)
-    else:
-        raise NotImplementedError
+    path = "/scratch/jl16973/college_pretrained_model/checkpoint_7_28000"
+    run_emb_gen(def_task, path)
+
+    # if args.model == "hice":
+    #     run_hice(def_task)
+    # elif args.model == "additive":
+    #     run_additive(def_task)
+    # elif args.model == "baseline_gd":
+    #     run_baseline(def_task, args.lr)
+    # elif args.model == "baseline_no_gd":
+    #     run_baseline_no_gd(def_task)
+    # elif args.model == "emb_gen":
+    #     path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_7_28000"
+    #     run_emb_gen(def_task, path)
+    # else:
+    #     raise NotImplementedError
     # def_task = def_task.map(replace_for_llama_baseline)
     # run_baseline(def_task, args.lr)
     # path = "model_checkpoints/layers/no_mp/llama/input_and_output/filtered/redone_pile/layernorm/roberta-large/1_layers/last_1/32_batch_size/mean_agg/1_examples/lr_0.001/weight_decay_0.1/with_negatives_and_regression/distillation_weight_0.05_temp_3/output_embedding_cosine/checkpoints/checkpoint_2_9000"

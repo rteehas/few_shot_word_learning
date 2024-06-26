@@ -1,5 +1,5 @@
 from train_with_llama import *
-from wic.wic_tsv.read_wic_tsv import *
+# from wic.wic_tsv.read_wic_tsv import *
 import json
 from tqdm import tqdm
 import torch.nn as nn
