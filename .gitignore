@@ -7,4 +7,5 @@ __pycache__/
 *.ext3
 def_task_954/
 definition_task_outputs/
+slurm_outputs/
 *.sh
