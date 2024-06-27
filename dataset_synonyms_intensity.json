@@ -1,0 +1,764 @@
+{
+    "afraid-terrified": {
+        "afraid": {
+            "sentences": [
+                "She was <nonce> to walk home alone at night.",
+                "The child seemed <nonce> of the dark, clutching his teddy bear tightly.",
+                "I'm a bit <nonce> to try skydiving for the first time.",
+                "He was <nonce> that he might not pass the final exam."
+            ]
+        },
+        "terrified": {
+            "sentences": [
+                "She was <nonce> when she heard the strange noises outside her window.",
+                "During the storm, the sailors were <nonce> as waves crashed over the deck.",
+                "The movie was so scary, I was absolutely <nonce> by the end.",
+                "He was <nonce> at the thought of speaking in front of a thousand people."
+            ]
+        }
+    },
+    "angry-furious": {
+        "angry": {
+            "sentences": [
+                "She was <nonce> when she found out her lunch had been stolen.",
+                "He became <nonce> after waiting an hour for the bus.",
+                "I get <nonce> when people don't listen to me.",
+                "She was <nonce> to see the mess in the kitchen."
+            ]
+        },
+        "furious": {
+            "sentences": [
+                "He was <nonce> when he discovered the betrayal.",
+                "She was <nonce> to find her car had been vandalized.",
+                "The coach was <nonce> at the team's lack of effort.",
+                "They were <nonce> when the flight was canceled without notice."
+            ]
+        }
+    },
+    "ask-beg": {
+        "ask": {
+            "sentences": [
+                "Could you <nonce> him to call me back?",
+                "I'll <nonce> for directions at the next gas station.",
+                "She decided to <nonce> her neighbor for a cup of sugar.",
+                "He's going to <nonce> for a raise at his annual review."
+            ]
+        },
+        "beg": {
+            "sentences": [
+                "She had to <nonce> him to stay, tears in her eyes.",
+                "Desperate, he began to <nonce> for another chance.",
+                "They were on their knees, <nonce> for forgiveness.",
+                "I <nonce> you, please don't go through with this."
+            ]
+        }
+    },
+    "bad-awful": {
+        "bad": {
+            "sentences": [
+                "The weather was <nonce> today, with a bit of rain and cloud cover.",
+                "He felt <nonce> after eating too much fast food.",
+                "The movie was <nonce>; it didn't live up to the hype.",
+                "She had a <nonce> feeling about the shortcut through the alley."
+            ]
+        },
+        "awful": {
+            "sentences": [
+                "The smell in the room was <nonce>, like something had died.",
+                "After the accident, he was in <nonce> pain despite the medication.",
+                "The performance was <nonce>, with actors forgetting their lines.",
+                "They woke up to an <nonce> noise that filled the entire house."
+            ]
+        }
+    },
+    "boring-tedious": {
+        "boring": {
+            "sentences": [
+                "The lecture was so <nonce>, half the class fell asleep.",
+                "She found the task of peeling potatoes incredibly <nonce>.",
+                "Watching paint dry would be less <nonce> than this meeting.",
+                "He thought fishing was <nonce> because it required too much patience."
+            ]
+        },
+        "tedious": {
+            "sentences": [
+                "Filling out the paperwork was a <nonce> process that took hours.",
+                "The <nonce> task of sorting the files by date seemed never-ending.",
+                "Compiling the report was <nonce>, involving lots of data verification.",
+                "She found knitting to be <nonce>, needing to count every stitch."
+            ]
+        }
+    },
+    "cat-lion": {
+        "cat": {
+            "sentences": [
+                "The <nonce> curled up in the sunbeam, purring contentedly.",
+                "At night, the <nonce> would prowl the house, looking for toys.",
+                "She adopted a <nonce> from the shelter, and it was love at first sight.",
+                "The <nonce> sat on the windowsill, watching birds with keen interest."
+            ]
+        },
+        "lion": {
+            "sentences": [
+                "The <nonce> roared, asserting its dominance over the pride.",
+                "In the savannah, the <nonce> is considered the king of beasts.",
+                "A <nonce> mane is a symbol of strength and maturity.",
+                "The <nonce> stalked its prey with a quiet, focused intensity."
+            ]
+        }
+    },
+    "chuckle-laugh": {
+        "chuckle": {
+            "sentences": [
+                "He gave a <nonce> when he heard the clever pun.",
+                "A quiet <nonce> escaped her as she read the witty comic strip.",
+                "The teacher tried to hide a <nonce> when the student made a humorous mistake.",
+                "During the tense meeting, his <nonce> at the joke was a welcome relief."
+            ]
+        },
+        "laugh": {
+            "sentences": [
+                "Her <nonce> was so loud and infectious, it filled the entire room.",
+                "They couldn't help but <nonce> out loud at the comedian's joke.",
+                "The movie was so funny, the whole audience was in stitches, unable to stop <nonce>ing.",
+                "His <nonce> echoed down the hall, a sign of a good time being had."
+            ]
+        }
+    },
+    "confused-lost": {
+        "confused": {
+            "sentences": [
+                "She looked <nonce> when she saw the complex math problem.",
+                "His directions left me feeling <nonce>, unsure of which way to turn.",
+                "The foreign language class left him feeling <nonce>, struggling to keep up.",
+                "The plot of the movie was so complicated, it left many viewers <nonce>."
+            ]
+        },
+        "lost": {
+            "sentences": [
+                "Without her map, she felt completely <nonce> in the new city.",
+                "His explanation was so convoluted, the audience looked utterly <nonce>.",
+                "In the dense forest, without a compass, they were hopelessly <nonce>.",
+                "The child was <nonce> in the crowd, unable to find his parents."
+            ]
+        }
+    },
+    "creative-ingenious": {
+        "creative": {
+            "sentences": [
+                "Her <nonce> solution to the problem impressed her team.",
+                "The artist's <nonce> use of colors made the painting stand out.",
+                "His <nonce> approach to teaching made learning fun for the students.",
+                "The <nonce> design of the building was both functional and beautiful."
+            ]
+        },
+        "ingenious": {
+            "sentences": [
+                "The inventor's <nonce> device solved a problem no one else could.",
+                "Her <nonce> strategy won the game, surprising everyone.",
+                "The engineer's <nonce> solution saved the company thousands of dollars.",
+                "An <nonce> hack made the software much more efficient."
+            ]
+        }
+    },
+    "cry-scream": {
+        "cry": {
+            "sentences": [
+                "After watching the sad movie, she couldn't help but <nonce> softly.",
+                "The baby began to <nonce> as soon as it felt hungry.",
+                "He tried to hold back his tears, but a <nonce> escaped him.",
+                "In the quiet of the night, a lonely <nonce> was heard from the next room."
+            ]
+        },
+        "scream": {
+            "sentences": [
+                "When she saw the spider, she couldn't suppress a loud <nonce>.",
+                "The roller coaster's drop made everyone on the ride <nonce> in excitement.",
+                "Trapped in the room, he <nonce>ed for help, hoping someone would hear.",
+                "The audience <nonce>ed in terror at the climax of the horror film."
+            ]
+        }
+    },
+    "damp-drenched": {
+        "damp": {
+            "sentences": [
+                "The morning dew left the grass slightly <nonce>, cooling her bare feet.",
+                "After a light rain, the air felt <nonce> and heavy.",
+                "He wiped his brow with a <nonce> towel after a mild workout.",
+                "The basement had a <nonce> smell, hinting at the need for a dehumidifier."
+            ]
+        },
+        "drenched": {
+            "sentences": [
+                "Caught in the downpour, they were completely <nonce> by the time they got home.",
+                "After swimming all afternoon, her hair was <nonce>.",
+                "The unexpected splash from the car left him <nonce> and shivering.",
+                "The hikers were <nonce> to the bone after crossing the river."
+            ]
+        }
+    },
+    "dinner-feast": {
+        "dinner": {
+            "sentences": [
+                "They sat down for a quiet <nonce> together, enjoying the simple meal.",
+                "The family gathered around the table for their nightly <nonce>.",
+                "He prepared a special <nonce> for her birthday, complete with candles.",
+                "The couple celebrated their anniversary with a romantic <nonce> at their favorite restaurant."
+            ]
+        },
+        "feast": {
+            "sentences": [
+                "The king's <nonce> was a lavish affair, with tables groaning under the weight of the food.",
+                "For Thanksgiving, they prepared a <nonce> that included every dish imaginable.",
+                "The village's annual <nonce> included games, dancing, and plenty of good food.",
+                "After fasting, the <nonce> felt even more indulgent, with its myriad of flavors and dishes."
+            ]
+        }
+    },
+    "dislike-hate": {
+        "order": [
+            "dislike",
+            "hate"
+        ],
+        "dislike": {
+            "sentences": [
+                "I <nonce> broccoli; it's just not my favorite vegetable.",
+                "She <nonce>s having to wake up early on weekends.",
+                "They <nonce> going to the dentist, even for a check-up.",
+                "He <nonce>s watching horror movies; they make him uncomfortable."
+            ]
+        },
+        "hate": {
+            "sentences": [
+                "I <nonce> being stuck in traffic for hours.",
+                "She <nonce>s when people are rude for no reason.",
+                "They <nonce> injustice and always stand up against it.",
+                "He <nonce>s the cold weather; it makes him feel miserable."
+            ]
+        }
+    },
+    "doze-sleep": {
+        "order": [
+            "doze",
+            "sleep"
+        ],
+        "doze": {
+            "sentences": [
+                "During the long lecture, I couldn't help but <nonce> off.",
+                "She found herself <nonce>ing on the couch while the TV was on.",
+                "They <nonce>ed in the warm sunlight filtering through the window.",
+                "He <nonce>s during the car ride, lulled by the movement."
+            ]
+        },
+        "sleep": {
+            "sentences": [
+                "I need to <nonce> early to feel refreshed for the day ahead.",
+                "She <nonce>s deeply after a day of hard work.",
+                "They <nonce> soundly in the quiet, dark room.",
+                "He <nonce>s for eight hours to maintain his health."
+            ]
+        }
+    },
+    "drizzle-rain": {
+        "order": [
+            "drizzle",
+            "rain"
+        ],
+        "drizzle": {
+            "sentences": [
+                "A light <nonce> began as we walked through the park.",
+                "She loves the <nonce> on her face during a light walk.",
+                "They got caught in a <nonce> without an umbrella.",
+                "He barely noticed the <nonce> while jogging."
+            ]
+        },
+        "rain": {
+            "sentences": [
+                "The <nonce> poured down, soaking everything in minutes.",
+                "She listens to the <nonce> against the window to relax.",
+                "They had to cancel the picnic because of the heavy <nonce>.",
+                "He always carries an umbrella in case it starts to <nonce>."
+            ]
+        }
+    },
+    "excited-agitated": {
+        "order": [
+            "excited",
+            "agitated"
+        ],
+        "excited": {
+            "sentences": [
+                "I'm so <nonce> for our trip next week!",
+                "She gets <nonce> whenever she talks about her favorite hobby.",
+                "They were <nonce> to see the new movie on its release day.",
+                "He's always <nonce> before a big game."
+            ]
+        },
+        "agitated": {
+            "sentences": [
+                "I become <nonce> when I'm running late for an appointment.",
+                "She felt <nonce> during the heated debate.",
+                "They were <nonce> by the constant noise from the construction site.",
+                "He gets <nonce> when his routine is disrupted."
+            ]
+        }
+    },
+    "faith-fanatism": {
+        "order": [
+            "faith",
+            "fanatism"
+        ],
+        "faith": {
+            "sentences": [
+                "Her <nonce> in humanity was restored after the kind gesture from a stranger.",
+                "I find <nonce> in believing that things will get better.",
+                "They share a deep <nonce> in the power of love.",
+                "He draws strength from his <nonce> during tough times."
+            ]
+        },
+        "fanatism": {
+            "sentences": [
+                "His <nonce> for the football team bordered on obsession.",
+                "She was known for her <nonce> about healthy eating, to an extreme extent.",
+                "Their <nonce> about the band led them to travel across countries for concerts.",
+                "He warned against the dangers of <nonce> in political beliefs."
+            ]
+        }
+    },
+    "giggle-laugh": {
+        "order": [
+            "giggle",
+            "laugh"
+        ],
+        "giggle": {
+            "sentences": [
+                "The joke made her <nonce> uncontrollably.",
+                "I couldn't help but <nonce> at the funny scene.",
+                "They shared a quiet <nonce> over the inside joke.",
+                "He tried to suppress his <nonce> during the meeting."
+            ]
+        },
+        "laugh": {
+            "sentences": [
+                "Her <nonce> was so loud, it filled the entire room.",
+                "I love to <nonce> with my friends over old memories.",
+                "They couldn't stop <nonce>ing at the comedian's performance.",
+                "He <nonce>ed until tears rolled down his cheeks."
+            ]
+        }
+    },
+    "guilty-remorseful": {
+        "order": [
+            "guilty",
+            "remorseful"
+        ],
+        "guilty": {
+            "sentences": [
+                "I felt <nonce> after lying about my whereabouts.",
+                "She looked <nonce> when confronted about the missing cookies.",
+                "They were <nonce> for not standing up for their friend.",
+                "He admitted feeling <nonce> for breaking his promise."
+            ]
+        },
+        "remorseful": {
+            "sentences": [
+                "I was deeply <nonce> for the hurtful words I had spoken.",
+                "She became <nonce> once she realized the impact of her actions.",
+                "They were <nonce> and sought to make amends for their mistakes.",
+                "He wrote a heartfelt apology, clearly <nonce> about his behavior."
+            ]
+        }
+    },
+    "happy-ecstatic": {
+        "order": [
+            "happy",
+            "ecstatic"
+        ],
+        "happy": {
+            "sentences": [
+                "I'm <nonce> to spend time with my family.",
+                "She felt <nonce> after receiving good news.",
+                "They were <nonce> to have completed the project on time.",
+                "He was <nonce> to find his lost pet."
+            ]
+        },
+        "ecstatic": {
+            "sentences": [
+                "I was <nonce> when I won the lottery.",
+                "She was <nonce> to meet her favorite author in person.",
+                "They were <nonce> about the surprise party thrown for them.",
+                "He was <nonce> upon hearing he'd been accepted to his first-choice university."
+            ]
+        }
+    },
+    "house-palace": {
+        "order": [
+            "house",
+            "palace"
+        ],
+        "house": {
+            "sentences": [
+                "They bought a <nonce> with a beautiful garden.",
+                "She decorated her <nonce> with family photos and art.",
+                "I grew up in a <nonce> that felt like home.",
+                "He painted his <nonce> a bright shade of blue."
+            ]
+        },
+        "palace": {
+            "sentences": [
+                "The <nonce> stood tall, with its majestic towers and golden gates.",
+                "She visited a <nonce> on her vacation and was awed by its opulence.",
+                "They dreamed of living in a <nonce>, surrounded by luxury.",
+                "He was invited to a ball at the <nonce>, a once-in-a-lifetime event."
+            ]
+        }
+    },
+    "hungry-starving": {
+        "order": [
+            "hungry",
+            "starving"
+        ],
+        "hungry": {
+            "sentences": []
+        },
+        "starving": {
+            "sentences": []
+        }
+    },
+    "indulge-pamper": {
+        "order": [
+            "indulge",
+            "pamper"
+        ],
+        "indulge": {
+            "sentences": []
+        },
+        "pamper": {
+            "sentences": []
+        }
+    },
+    "interesting-exciting": {
+        "order": [
+            "interesting",
+            "exciting"
+        ],
+        "interesting": {
+            "sentences": []
+        },
+        "exciting": {
+            "sentences": []
+        }
+    },
+    "irritate-enrage": {
+        "order": [
+            "irritate",
+            "enrage"
+        ],
+        "irritate": {
+            "sentences": []
+        },
+        "enrage": {
+            "sentences": []
+        }
+    },
+    "jog-run": {
+        "order": [
+            "jog",
+            "run"
+        ],
+        "jog": {
+            "sentences": []
+        },
+        "run": {
+            "sentences": []
+        }
+    },
+    "lake-sea": {
+        "order": [
+            "lake",
+            "sea"
+        ],
+        "lake": {
+            "sentences": []
+        },
+        "sea": {
+            "sentences": []
+        }
+    },
+    "like-love": {
+        "order": [
+            "like",
+            "love"
+        ],
+        "like": {
+            "sentences": []
+        },
+        "love": {
+            "sentences": []
+        }
+    },
+    "love-adore": {
+        "order": [
+            "love",
+            "adore"
+        ],
+        "love": {
+            "sentences": []
+        },
+        "adore": {
+            "sentences": []
+        }
+    },
+    "monkey-gorilla": {
+        "order": [
+            "monkey",
+            "gorilla"
+        ],
+        "monkey": {
+            "sentences": []
+        },
+        "gorilla": {
+            "sentences": []
+        }
+    },
+    "nap-sleep": {
+        "order": [
+            "nap",
+            "sleep"
+        ],
+        "nap": {
+            "sentences": []
+        },
+        "sleep": {
+            "sentences": []
+        }
+    },
+    "necessary-essential": {
+        "order": [
+            "necessary",
+            "essential"
+        ],
+        "necessary": {
+            "sentences": []
+        },
+        "essential": {
+            "sentences": []
+        }
+    },
+    "opposed-averse": {
+        "order": [
+            "opposed",
+            "averse"
+        ],
+        "opposed": {
+            "sentences": []
+        },
+        "averse": {
+            "sentences": []
+        }
+    },
+    "pain-torment": {
+        "order": [
+            "pain",
+            "torment"
+        ],
+        "pain": {
+            "sentences": []
+        },
+        "torment": {
+            "sentences": []
+        }
+    },
+    "pony-horse": {
+        "order": [
+            "pony",
+            "horse"
+        ],
+        "pony": {
+            "sentences": []
+        },
+        "horse": {
+            "sentences": []
+        }
+    },
+    "poorly-afflicted": {
+        "order": [
+            "poorly",
+            "afflicted"
+        ],
+        "poorly": {
+            "sentences": []
+        },
+        "afflicted": {
+            "sentences": []
+        }
+    },
+    "rain-deluge": {
+        "order": [
+            "rain",
+            "deluge"
+        ],
+        "rain": {
+            "sentences": []
+        },
+        "deluge": {
+            "sentences": []
+        }
+    },
+    "sad-desparate": {
+        "order": [
+            "sad",
+            "desparate"
+        ],
+        "sad": {
+            "sentences": []
+        },
+        "desparate": {
+            "sentences": []
+        }
+    },
+    "sea-ocean": {
+        "order": [
+            "sea",
+            "ocean"
+        ],
+        "sea": {
+            "sentences": []
+        },
+        "ocean": {
+            "sentences": []
+        }
+    },
+    "snack-meal": {
+        "order": [
+            "snack",
+            "meal"
+        ],
+        "snack": {
+            "sentences": []
+        },
+        "meal": {
+            "sentences": []
+        }
+    },
+    "sniffles-pneumonia": {
+        "order": [
+            "sniffles",
+            "pneumonia"
+        ],
+        "sniffles": {
+            "sentences": []
+        },
+        "pneumonia": {
+            "sentences": []
+        }
+    },
+    "soon-immediately": {
+        "order": [
+            "soon",
+            "immediately"
+        ],
+        "soon": {
+            "sentences": []
+        },
+        "immediately": {
+            "sentences": []
+        }
+    },
+    "strong-powerful": {
+        "order": [
+            "strong",
+            "powerful"
+        ],
+        "strong": {
+            "sentences": []
+        },
+        "powerful": {
+            "sentences": []
+        }
+    },
+    "tasty-delicious": {
+        "order": [
+            "tasty",
+            "delicious"
+        ],
+        "tasty": {
+            "sentences": []
+        },
+        "delicious": {
+            "sentences": []
+        }
+    },
+    "tired-exhausted": {
+        "order": [
+            "tired",
+            "exhausted"
+        ],
+        "tired": {
+            "sentences": []
+        },
+        "exhausted": {
+            "sentences": []
+        }
+    },
+    "unfortunate-tragic": {
+        "order": [
+            "unfortunate",
+            "tragic"
+        ],
+        "unfortunate": {
+            "sentences": []
+        },
+        "tragic": {
+            "sentences": []
+        }
+    },
+    "unhappy-miserable": {
+        "order": [
+            "unhappy",
+            "miserable"
+        ],
+        "unhappy": {
+            "sentences": []
+        },
+        "miserable": {
+            "sentences": []
+        }
+    },
+    "want-crave": {
+        "order": [
+            "want",
+            "crave"
+        ],
+        "want": {
+            "sentences": []
+        },
+        "crave": {
+            "sentences": []
+        }
+    },
+    "warm-hot": {
+        "order": [
+            "warm",
+            "hot"
+        ],
+        "warm": {
+            "sentences": []
+        },
+        "hot": {
+            "sentences": []
+        }
+    },
+    "well-flourishing": {
+        "order": [
+            "well",
+            "flourishing"
+        ],
+        "well": {
+            "sentences": []
+        },
+        "flourishing": {
+            "sentences": []
+        }
+    }
+}

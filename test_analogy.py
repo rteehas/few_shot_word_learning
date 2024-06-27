@@ -1,6 +1,7 @@
 from train_with_llama import *
 from eval_wic import *
 import einops
+import json
 
 
 def new_embedding_prompt_completion(prompt, model, college_embedding, secondLM, tokenizerTask):
@@ -37,7 +38,7 @@ def new_embedding_prompt_completion(prompt, model, college_embedding, secondLM, 
     output_sequences = secondLM.generate(input_ids=inputs['input_ids'], max_length=len(inputs['input_ids'][0]) + 30)
 
     # Decode generated text
-    generated_text = tokenizerTask.decode(output_sequences[0], skip_special_tokens=True)
+    generated_text = tokenizerTask.decode(output_sequences[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
 
     secondLM.model.embed_tokens = nn.Embedding(old_num_tokens, old_embedding_dim)
     secondLM.model.embed_tokens.weight.data = old_embedding_weights
@@ -116,10 +117,6 @@ if __name__ == "__main__":
         'At the grand ball, the <nonce> danced elegantly, her regal presence a testament to her royal upbringing.'
     ]
 
-
-
-
-
     model = CoLLEGeEmbeddingModel(
         firstLM=firstLM,
         num_new_tokens=1,
@@ -157,103 +154,70 @@ if __name__ == "__main__":
     tokenized_contexts_D = tokenizerMLM(examples_D, return_tensors='pt', padding='longest').to(device)
     _, _, college_embeds_D = model.get_college_embeddings([tokenized_contexts_D])
 
-    # Assuming B and C are defined or given expressions/values
-    college_embeds = college_embeds_A[0] 
-    
-    input_embeds, output_embeds = model.emb_gen.get_input_and_output_embedding(college_embeds) 
-    # einops.rearrange(input_embeds, 'x -> 1 x')
-    # einops.rearrange(output_embeds, 'x -> 1 x')
-    print('colleged_embeds: ', college_embeds.shape)
-    print('input_embeds: ', input_embeds.shape)
-    print('output_embeds: ', output_embeds.shape)
-
-
-    # input_weight = combined_model.get_new_weights(task = 'Task', new_embed=input_embeds)
-    # output_weight = combined_model.get_new_output_weights(new_embed=output_embeds)
-
-    # # print the shapes
-    # print('input_embeds: ', input_weight.shape)
-    # print('output_embeds: ', output_weight.shape)
-
-    # secondLM.eval()
-    # # Get the model's state dict
-
-    # print(secondLM.model.embed_tokens.weight.size()) 
-    # embedding_layer = secondLM.model.embed_tokens
-
-    # old_num_tokens, old_embedding_dim = embedding_layer.weight.shape
-
-    # num_new_tokens = 1
-
-    # # Creating new embedding layer with more entries
-    # new_embeddings = nn.Embedding(
-    #         old_num_tokens + num_new_tokens, old_embedding_dim
-    # )
-
-    # # Setting device and type accordingly
-    # new_embeddings.to(
-    #     embedding_layer.weight.device,
-    #     dtype=embedding_layer.weight.dtype,
-    # )
-
-    # new_embeddings.weight.data = input_weight
-
-    # secondLM.model.embed_tokens = new_embeddings
-    # print(secondLM.model.embed_tokens)
-    # secondLM.lm_head = torch.nn.Linear(old_embedding_dim, old_num_tokens + num_new_tokens, bias=False)
-    # secondLM.lm_head.weight.data = output_weight
-    # print('lm_head: ', secondLM.lm_head)
-
-
-    # Print all layers of the model
-    # for name, module in secondLM.named_modules():
-    #     print(name, module)
-
-#     prompt = """
-# Q: The gender of a king is?
-# A: Male
-
-# Q: The gender of a queen is?
-# A: Female
-
-# Q: The gender of a waitress is?
-# A: Female
-
-# Q: The gender of a waiter is?
-# A: Male
-
-# Q: The gender of a <nonce> is?
-# """
+    with open('dataset_male-female.json', 'r') as dataset_file:
+        data = json.load(dataset_file)
 
     prompt = """
-    The word "<nonce>" is defined as
-    """
-    # inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
+Q: The gender of a king is?
+A: Male
 
-    # # Generate text
-    # output_sequences = secondLM.generate(input_ids=inputs['input_ids'], max_length=512)
+Q: The gender of a queen is?
+A: Female
 
-    # # Decode generated text
-    # print('output_sequences: ', output_sequences)
-    # generated_text = tokenizerTask.decode(output_sequences[0], skip_special_tokens=True)
-    # print(generated_text)
+Q: The gender of a waitress is?
+A: Female
 
-    # generated_text = new_embedding_prompt_completion(prompt, model, college_embeds, secondLM, tokenizerTask)
+Q: The gender of a waiter is?
+A: Male
 
+Q: The gender of a <nonce> is?
+"""
+
+    # prompt = """
+    # The word "<nonce>" is defined as
+    # """
     generated_text = process_embeddings(prompt, model, secondLM, tokenizerTask, college_embeds_A[0], college_embeds_B[0], college_embeds_C[0], college_embeds_D[0])
 
-    # Assuming generated_text is the dictionary returned by the process_embeddings function
-    for key in sorted(generated_text.keys()):
-        print('-----------------')
-        print(f"{key}: {generated_text[key]}")
+    results = {}  # Initialize an empty dictionary to store results
 
-    # decode token id 32000
-    print(tokenizerTask.decode(torch.tensor([32000], device=device)))
+    for index, (word_pair, details) in enumerate(data.items()):
+        # Uncomment the next two lines to limit the loop to 10 iterations
+        # if index >= 2:  
+        #     break  
 
-    # print('-----------------')
-    # print('outputs from generate')
-    # outputs = generate(combined_model, tokenized_contexts_A, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=True)
-    # # print(outputs)
-    # generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
-    # print(generated_def)
+        print(f"Processing word pair: {word_pair}")
+        order = details['order']
+        
+        examples_C = details[order[0]]['sentences']
+        examples_D = details[order[1]]['sentences']
+            
+        tokenized_contexts_C = tokenizerMLM(examples_C, return_tensors='pt', padding='longest').to(device)
+        _, _, college_embeds_C = model.get_college_embeddings([tokenized_contexts_C])
 
+        tokenized_contexts_D = tokenizerMLM(examples_D, return_tensors='pt', padding='longest').to(device)
+        _, _, college_embeds_D = model.get_college_embeddings([tokenized_contexts_D])
+        generated_text = process_embeddings(prompt, model, secondLM, tokenizerTask, college_embeds_A[0], college_embeds_B[0], college_embeds_C[0], college_embeds_D[0])
+        
+        # Save the generated text in the results dictionary
+        result = {}
+        result['generated_text'] = generated_text
+        result['words'] = {
+            "A": "man",
+            "B": "woman",
+            "C": order[0],
+            "D": order[1]
+        }
+        result['example_sentences'] = {
+            "A": examples_A,
+            "B": examples_B,
+            "C": examples_C,
+            "D": examples_D
+        }
+        results[word_pair] = result
+        
+        print(f"Generated text: \n{generated_text}\n")
+        print("---------------------------\n")
+
+    # After the loop, save the results dictionary to a JSON file
+    with open('results_dataset.json', 'w') as file:
+        json.dump(results, file, indent=4)

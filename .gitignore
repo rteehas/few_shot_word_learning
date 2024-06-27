@@ -8,4 +8,5 @@ __pycache__/
 def_task_954/
 definition_task_outputs/
 slurm_outputs/
+slurm_outputs_gender_prompt/
 *.sh

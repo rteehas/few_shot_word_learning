@@ -4,7 +4,7 @@ import json
 dataset = {}
 
 # Open and read the file
-with open('E10-male-female.txt', 'r') as file:
+with open('/scratch/jl16973/few_shot_word_learning/L07-synonyms-intensity', 'r') as file:
     for line in file:
         # Split each line into words, considering possible multiple counterparts but only taking the first
         words = line.strip().split('\t')
@@ -22,5 +22,5 @@ with open('E10-male-female.txt', 'r') as file:
         }
 
 # Convert the dictionary to JSON and write it to a file
-with open('dataset2.json', 'w') as json_file:
+with open('dataset_synonyms_intensity.json', 'w') as json_file:
     json.dump(dataset, json_file, indent=4)
