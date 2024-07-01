@@ -2,7 +2,10 @@ from train_with_llama import *
 from eval_wic import *
 import einops
 import json
-
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 
 def new_embedding_prompt_completion(prompt, model, college_embedding, secondLM, tokenizerTask):
 
@@ -60,7 +63,7 @@ def process_embeddings(prompt, model, secondLM, tokenizerTask, college_embedding
         ("C_approx = A - B + D", C_approx),
         ("D_approx = B - A + D", D_approx)
     ]
-
+  
     # Dictionary to store results
     results = {}
 
@@ -180,6 +183,11 @@ Q: The gender of a <nonce> is?
 
     results = {}  # Initialize an empty dictionary to store results
 
+    # Initialize lists to store embeddings
+    embeddings_C = []
+    embeddings_D = []
+
+
     for index, (word_pair, details) in enumerate(data.items()):
         # Uncomment the next two lines to limit the loop to 10 iterations
         # if index >= 2:  
@@ -187,9 +195,9 @@ Q: The gender of a <nonce> is?
 
         print(f"Processing word pair: {word_pair}")
         order = details['order']
-        
+
         examples_C = details[order[0]]['sentences']
-        examples_D = details[order[1]]['sentences']
+        examples_D = details[order[1]]['sentences'] 
             
         tokenized_contexts_C = tokenizerMLM(examples_C, return_tensors='pt', padding='longest').to(device)
         _, _, college_embeds_C = model.get_college_embeddings([tokenized_contexts_C])
@@ -198,6 +206,11 @@ Q: The gender of a <nonce> is?
         _, _, college_embeds_D = model.get_college_embeddings([tokenized_contexts_D])
         generated_text = process_embeddings(prompt, model, secondLM, tokenizerTask, college_embeds_A[0], college_embeds_B[0], college_embeds_C[0], college_embeds_D[0])
         
+        # Move to CPU and convert to numpy arrays, then append to lists
+        embeddings_C.append(college_embeds_C[0].cpu().detach().numpy())
+        embeddings_D.append(college_embeds_D[0].cpu().detach().numpy())
+
+
         # Save the generated text in the results dictionary
         result = {}
         result['generated_text'] = generated_text
@@ -219,5 +232,25 @@ Q: The gender of a <nonce> is?
         print("---------------------------\n")
 
     # After the loop, save the results dictionary to a JSON file
-    with open('results_dataset.json', 'w') as file:
-        json.dump(results, file, indent=4)
+    # with open('results_dataset_3_sample.json', 'w') as file:
+    #     json.dump(results, file, indent=4)
+
+    # Calculate the difference between embeddings C and D
+    embeddings_diff = np.array(embeddings_C) - np.array(embeddings_D)
+
+    # After the loop, concatenate embeddings C, D, and their differences, then apply T-SNE
+    all_embeddings = np.concatenate((np.vstack(embeddings_C), np.vstack(embeddings_D), np.vstack(embeddings_diff)), axis=0)
+    tsne_results = TSNE(n_components=2, perplexity=10, random_state=0).fit_transform(all_embeddings)
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    num_C = len(embeddings_C)
+    num_D = len(embeddings_D)
+    plt.scatter(tsne_results[:num_C, 0], tsne_results[:num_C, 1], c='blue', label='C')
+    plt.scatter(tsne_results[num_C:num_C+num_D, 0], tsne_results[num_C:num_C+num_D, 1], c='red', label='D')
+    plt.scatter(tsne_results[num_C+num_D:, 0], tsne_results[num_C+num_D:, 1], c='green', label='Diff')
+    plt.legend()
+    plt.title('T-SNE of Embeddings and Differences')
+
+    # Save the plot
+    plt.savefig('embeddings_diff_tsne.png')

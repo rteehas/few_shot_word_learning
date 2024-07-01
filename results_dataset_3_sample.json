@@ -1,0 +1,1922 @@
+{
+    "actor-actress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a  <nonce>",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "actor",
+            "D": "actress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> studied his script for weeks to get into the character.",
+                "He's not just any <nonce>; he's been in more than fifty films over his career.",
+                "The <nonce> delivered a powerful monologue that left the audience in awe."
+            ],
+            "D": [
+                "She broke stereotypes by performing stunts usually reserved for male <nonce>s.",
+                "Her versatility as an <nonce> is evident from her diverse filmography.",
+                "As the first <nonce> to take on the director's role, she paved the way for others."
+            ]
+        }
+    },
+    "batman-batwoman": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "batman",
+            "D": "batwoman"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> patrols the streets of Gotham, ensuring the city's safety from criminals.",
+                "Armed with high-tech gadgets, the <nonce> is always one step ahead of his foes.",
+                "In the dark of the night, the <nonce> uses his detective skills to track down the Joker."
+            ],
+            "D": [
+                "Determined to make a difference, the <nonce> takes on the city's most dangerous criminals.",
+                "The <nonce> stands as a symbol of justice in Gotham, fighting alongside the caped crusader.",
+                "With her signature red wig, the <nonce> strikes fear into the hearts of villains."
+            ]
+        }
+    },
+    "boar-sow": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "boar",
+            "D": "sow"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "With its tusks, the <nonce> is a formidable opponent in the wild.",
+                "The <nonce>'s gruff grunts could be heard as it searched the underbrush for acorns.",
+                "A solitary creature, the <nonce> prefers the dense, secluded areas of the forest."
+            ],
+            "D": [
+                "In spring, the <nonce> can often be seen leading her young through the fields.",
+                "The <nonce> nurtured her piglets, ensuring they were safe and well-fed.",
+                "The <nonce> made a cozy nest out of leaves and twigs for her offspring."
+            ]
+        }
+    },
+    "boy-girl": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "boy",
+            "D": "girl"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "Every summer, the <nonce> set up a lemonade stand at the end of his driveway.",
+                "The <nonce> dreamed of becoming an astronaut, exploring the stars.",
+                "The <nonce> raced his bike down the hill, feeling the wind in his hair."
+            ],
+            "D": [
+                "The <nonce> climbed to the top of the tree, fearless and free.",
+                "With a keen interest in science, the <nonce> spent hours experimenting in her makeshift lab.",
+                "The <nonce> twirled in her dress, her laughter filling the air."
+            ]
+        }
+    },
+    "brother-sister": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "brother",
+            "D": "sister"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> always looked out for his younger sibling, guiding them through challenges.",
+                "On his bike, the <nonce> led the way, with his sibling trailing behind.",
+                "Teaching his sibling how to throw a ball, the <nonce> smiled with pride."
+            ],
+            "D": [
+                "The <nonce> braided her sibling's hair, chatting about their day.",
+                "She taught her sibling how to read, the <nonce> patient and encouraging.",
+                "The <nonce> and her sibling built a fort out of blankets, imagining it was a castle."
+            ]
+        }
+    },
+    "buck-doe": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "buck",
+            "D": "doe"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "With a powerful leap, the <nonce> cleared the fence, disappearing into the woods.",
+                "The <nonce> stood majestically at the edge of the clearing, antlers glistening in the sun.",
+                "The <nonce>'s antlers were a symbol of his strength and maturity."
+            ],
+            "D": [
+                "The <nonce> moved silently through the forest, graceful and alert.",
+                "The <nonce> found a quiet spot by the stream to drink, keeping her senses sharp.",
+                "With her fawns by her side, the <nonce> was ever vigilant, protecting them from harm."
+            ]
+        }
+    },
+    "bull-cow": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "bull",
+            "D": "cow"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "In the spring, the <nonce> could be seen leading the herd, a symbol of strength.",
+                "The <nonce>'s bellow echoed through the valley, a deep and powerful sound.",
+                "With a ring through its nose, the <nonce> was an imposing sight."
+            ],
+            "D": [
+                "The <nonce> and her fellow herd members huddled together during the cold night.",
+                "The <nonce> grazed peacefully in the meadow, her calf by her side.",
+                "At dusk, the <nonce> returned to the barn, ready for milking."
+            ]
+        }
+    },
+    "businessman-businesswoman": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  chef  is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "businessman",
+            "D": "businesswoman"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> analyzed the market trends, ready to make strategic decisions.",
+                "Networking at the conference, the <nonce> sought opportunities for expansion.",
+                "The <nonce> reviewed the contract carefully, ensuring every detail was in order."
+            ],
+            "D": [
+                "Her innovative ideas set the <nonce> apart in the competitive industry.",
+                "The <nonce> led her team with determination, inspiring them with her vision.",
+                "The <nonce> negotiated the deal with expertise, securing a profitable outcome."
+            ]
+        }
+    },
+    "chairman-chairwoman": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "chairman",
+            "D": "chairwoman"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> reviewed the annual report before presenting it to the stakeholders.",
+                "At the conference, the <nonce> shared his vision for the future of the industry.",
+                "Under the <nonce>'s leadership, the company reached new heights of success."
+            ],
+            "D": [
+                "The <nonce> negotiated a groundbreaking deal that benefited all parties involved.",
+                "Her innovative strategies as <nonce> earned her respect in the corporate world.",
+                "The <nonce> convened the committee to discuss the upcoming merger."
+            ]
+        }
+    },
+    "dad-mom": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  nurse is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  bartender is?\nA: Male\n\nQ: The gender of a"
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "dad",
+            "D": "mom"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "Every evening, the <nonce> read bedtime stories, doing all the voices.",
+                "On Saturdays, the <nonce> coached his daughter's soccer team, cheering them on.",
+                "The <nonce> juggled work and home life, always making time for family."
+            ],
+            "D": [
+                "She volunteered as the <nonce> for the school trip, ensuring every child's safety.",
+                "The <nonce> prepared lunches, adding a little note of encouragement.",
+                "The <nonce> balanced her career and motherhood with grace and strength."
+            ]
+        }
+    },
+    "daddy-mommy": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  chef  is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "daddy",
+            "D": "mommy"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "On stormy nights, the <nonce> would check under the bed for monsters, ensuring a peaceful sleep.",
+                "The <nonce> taught his child how to ride a bike, running alongside until they found their balance.",
+                "Every Sunday, the <nonce> made pancakes, turning breakfast into a special family tradition."
+            ],
+            "D": [
+                "Homework time was special with the <nonce>, who made even math fun.",
+                "The <nonce> kissed the scraped knee, whispering that everything would be okay.",
+                "Bedtime stories with the <nonce> were magical, filled with adventures and dreams."
+            ]
+        }
+    },
+    "duke-duchess": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "duke",
+            "D": "duchess"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "Riding through the countryside, the <nonce> surveyed his domain with a proud eye.",
+                "The <nonce>'s decree was fair, earning him respect from all who lived in his duchy.",
+                "With a keen strategy, the <nonce> expanded his lands, securing prosperity for his people."
+            ],
+            "D": [
+                "Elegant and dignified, the <nonce> represented her people with grace at the royal court.",
+                "The <nonce> founded a charity, dedicating her life to helping the less fortunate.",
+                "The <nonce>'s wisdom in court affairs was unparalleled, guiding the duchy through times of peace and conflict."
+            ]
+        }
+    },
+    "emperor-empress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  sheriff is?\nA: Male\n\nQ: The gender of a"
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "emperor",
+            "D": "empress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "In ancient times, the <nonce> was seen as a demigod among men.",
+                "The <nonce>'s decree was final, affecting the lives of thousands.",
+                "The <nonce> ruled the empire with a firm but fair hand."
+            ],
+            "D": [
+                "The <nonce> was known for her wisdom and compassion towards her subjects.",
+                "Tales of the <nonce>'s grace and dignity inspired generations long after her time.",
+                "Under the <nonce>'s reign, the kingdom experienced a golden age of peace and prosperity."
+            ]
+        }
+    },
+    "father-mother": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "father",
+            "D": "mother"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "Guidance from the <nonce> was always given with a gentle hand and a kind heart.",
+                "Every evening, the <nonce> would share stories of his youth with his eager listeners.",
+                "The <nonce> taught his children the importance of honesty and hard work."
+            ],
+            "D": [
+                "Wisdom from the <nonce> was dispensed in soft whispers and warm hugs.",
+                "In the kitchen, the <nonce>'s recipes brought together generations in celebration.",
+                "The <nonce> nurtured her family with love, ensuring they were always cared for."
+            ]
+        }
+    },
+    "fisherman-fisherwoman": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "fisherman",
+            "D": "fisherwoman"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At dawn, the <nonce> would set out, his boat a solitary speck against the vast ocean.",
+                "With every cast of his net, the <nonce> hoped for a bountiful haul.",
+                "The <nonce> spent his days at sea, braving the waves to bring back the catch of the day."
+            ],
+            "D": [
+                "Tales of the <nonce>'s courage and success at sea inspired many in her coastal village.",
+                "Her hands, though weathered, were deft at cleaning and preparing the fish.",
+                "The <nonce> had a keen eye for spotting the best fishing spots."
+            ]
+        }
+    },
+    "fox-vixen": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "fox",
+            "D": "vixen"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At night, the <nonce>'s cunning was put to the test as it searched for food.",
+                "Farmers often told stories of a particularly clever <nonce> that could evade any trap.",
+                "The <nonce> moved silently through the forest, its fur blending into the autumn leaves."
+            ],
+            "D": [
+                "In spring, the <nonce> could be seen basking in the sun with her playful kits.",
+                "With agility, the <nonce> navigated the forest, always alert to danger.",
+                "The <nonce>'s call at night was a familiar sound in the countryside."
+            ]
+        }
+    },
+    "gentleman-lady": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "gentleman",
+            "D": "lady"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> held the door open, his manners impeccable.",
+                "At the ball, the <nonce>'s attire was the epitome of elegance and style.",
+                "The <nonce> was known for his generosity and kind spirit."
+            ],
+            "D": [
+                "The <nonce> graced the room with her presence, her poise undeniable.",
+                "The <nonce>'s compassion for those in need knew no bounds.",
+                "Her laughter was infectious, making the <nonce> the center of attention."
+            ]
+        }
+    },
+    "god-goddess": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  shaman  is?\nA: Male\n\nQ: The gender of a"
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "god",
+            "D": "goddess"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce>'s wrath could be fierce, but his justice was always fair.",
+                "Legends say the <nonce> could shape the destiny of mortals with a mere thought.",
+                "Worshippers built temples in honor of the <nonce>, seeking his favor."
+            ],
+            "D": [
+                "Devotees sang hymns to the <nonce>, her blessings sought by all.",
+                "In times of war, the <nonce> protected her people, her strength unmatched.",
+                "The <nonce> watched over the harvest, ensuring the fields were bountiful."
+            ]
+        }
+    },
+    "grandfather-grandmother": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "grandfather",
+            "D": "grandmother"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "Every Sunday, the <nonce> took great joy in teaching his grandchildren how to fish.",
+                "The <nonce>'s workshop was a place of wonder, where he crafted toys and treasures for his family.",
+                "In the eyes of the <nonce>, family was everything, a principle he lived by every day."
+            ],
+            "D": [
+                "Her garden was a testament to the <nonce>'s love for beauty and life, tended with care and joy.",
+                "With a gentle touch, the <nonce> could soothe any worry or heal any scrape.",
+                "The <nonce> was the heart of the family, her kitchen always warm and welcoming."
+            ]
+        }
+    },
+    "grandpa-grandma": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "grandpa",
+            "D": "grandma"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "For the <nonce>, every day was an opportunity to teach something new, in his own gentle way.",
+                "The <nonce>'s old guitar held many songs, each a story from his past.",
+                "The <nonce> had a laugh that could light up a room, spreading joy with every chuckle."
+            ],
+            "D": [
+                "Her pies were legendary, a secret recipe passed down through generations.",
+                "The <nonce> had a way with plants, her windowsill a parade of green and bloom.",
+                "The <nonce>'s hands were never idle, knitting warmth and love into every stitch."
+            ]
+        }
+    },
+    "grandson-granddaughter": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "grandson",
+            "D": "granddaughter"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "With pride, the <nonce> carried on the family traditions, eager to add his own chapter to the story.",
+                "The <nonce> looked up to his grandparents, seeing them as heroes of his own personal story.",
+                "The <nonce>'s energy was boundless, always ready for the next adventure or challenge."
+            ],
+            "D": [
+                "Her curiosity was endless, each visit to her grandparents' house a new opportunity to explore.",
+                "The <nonce> had a special bond with her grandmother, sharing secrets and dreams.",
+                "The <nonce>'s laughter was a frequent and joyful sound, echoing through the halls of her grandparents' home."
+            ]
+        }
+    },
+    "groom-bride": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "groom",
+            "D": "bride"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> looked dashing in his suit, ready to stand at the altar.",
+                "The <nonce>'s vows were heartfelt, promising a lifetime of love and partnership.",
+                "Nervously adjusting his tie, the <nonce> awaited the moment he would see his partner walk down the aisle."
+            ],
+            "D": [
+                "With tears of happiness, the <nonce> exchanged rings, sealing a promise of forever.",
+                "The <nonce> walked down the aisle, a radiant smile lighting up her face.",
+                "Dressed in a beautiful gown, the <nonce> was the epitome of elegance and grace."
+            ]
+        }
+    },
+    "headmaster-headmistress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "headmaster",
+            "D": "headmistress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At graduation, the <nonce> proudly handed out diplomas, a testament to the students' hard work.",
+                "The <nonce> presided over the school assembly with a stern yet fair demeanor.",
+                "The <nonce> was respected by both staff and students for his wisdom and integrity."
+            ],
+            "D": [
+                "The <nonce>'s office was always open, a place where students felt heard and supported.",
+                "During her tenure, the <nonce> spearheaded numerous community outreach programs.",
+                "The <nonce> was known for her innovative teaching methods, inspiring both teachers and students."
+            ]
+        }
+    },
+    "heir-heiress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "heir",
+            "D": "heiress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "As the <nonce> learned the ropes, his vision for the company's future began to take shape.",
+                "In the boardroom, the <nonce>'s decisions were made with a blend of tradition and innovation.",
+                "The <nonce> was groomed from a young age to take over the family business, embodying its values and legacy."
+            ],
+            "D": [
+                "The <nonce> was not only a figure of elegance but also a savvy businesswoman, ready to lead her empire.",
+                "With a flair for fashion and a sharp business mind, the <nonce> was a role model for many.",
+                "Determined to make her mark, the <nonce> pursued her passions with zeal, ensuring her legacy would be remembered."
+            ]
+        }
+    },
+    "hero-heroine": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "hero",
+            "D": "heroine"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "With a sword in hand, the <nonce> faced the dragon, his courage unwavering.",
+                "The <nonce> saved the village from disaster, his bravery celebrated by all.",
+                "Legends of the <nonce>'s deeds spread far and wide, inspiring countless others."
+            ],
+            "D": [
+                "Tales of the <nonce>'s heroism were told in every corner of the kingdom, a beacon of hope.",
+                "The <nonce>'s kindness was her strength, healing the wounds of her land.",
+                "The <nonce> stood up against tyranny, her resolve stronger than steel."
+            ]
+        }
+    },
+    "husband-wife": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "husband",
+            "D": "wife"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> worked tirelessly to provide for his family, his love unwavering.",
+                "The <nonce>'s support was the foundation upon which his partner could dream.",
+                "In times of trouble, the <nonce> stood steadfast, a pillar of strength for his loved ones."
+            ],
+            "D": [
+                "The <nonce>'s wisdom guided her loved ones, a lighthouse in the storm.",
+                "Together with her partner, the <nonce> built a life filled with love and laughter.",
+                "The <nonce> nurtured her family with care, her warmth a comforting embrace."
+            ]
+        }
+    },
+    "king-queen": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  sheriff is?\nA: Male\n\nQ: The gender of a"
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "king",
+            "D": "queen"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> was a strategist, his decisions shaping the future of his realm.",
+                "Under the <nonce>'s reign, the land prospered, peace and prosperity reigning.",
+                "To his people, the <nonce> was more than a ruler; he was a guardian of their way of life."
+            ],
+            "D": [
+                "The <nonce> was beloved for her wisdom, her counsel sought by many.",
+                "With grace and dignity, the <nonce> led her people through times of both joy and sorrow.",
+                "The <nonce>'s compassion knew no bounds, her generosity uplifting the lives of her subjects."
+            ]
+        }
+    },
+    "lion-lioness": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "lion",
+            "D": "lioness"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "Under the shade of an acacia tree, the <nonce> rested, his mane glistening in the sun.",
+                "The <nonce> roared mightily, asserting his dominance over the savannah.",
+                "As the leader of the pride, the <nonce>'s presence was both feared and respected."
+            ],
+            "D": [
+                "At night, the <nonce> called to her family, her voice echoing softly under the moon.",
+                "In the care of her cubs, the <nonce> was gentle, teaching them the ways of the wild.",
+                "The <nonce> moved with grace, her eyes locked on the horizon for any sign of prey."
+            ]
+        }
+    },
+    "man-woman": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "man",
+            "D": "woman"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> worked diligently in his garden, his hands covered in soil.",
+                "With a steady gaze, the <nonce> navigated the stormy sea, his resolve unbreakable.",
+                "In the quiet of the library, the <nonce> lost himself in the pages of history."
+            ],
+            "D": [
+                "In moments of solitude, the <nonce> found strength, her resilience a guiding force.",
+                "The <nonce> painted with vibrant colors, her canvas a reflection of her soul.",
+                "The <nonce> led the team with confidence, her vision clear and inspiring."
+            ]
+        }
+    },
+    "manager-manageress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "manager",
+            "D": "manageress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "With a handshake, the <nonce> sealed the deal, his negotiation skills unmatched.",
+                "The <nonce> balanced the books with precision, his expertise evident in the company's success.",
+                "In meetings, the <nonce> was decisive, his leadership driving the team forward."
+            ],
+            "D": [
+                "At the end of the day, the <nonce> reviewed her team's progress, her dedication to their growth clear.",
+                "The <nonce> introduced innovative strategies, her forward-thinking propelling the business to new heights.",
+                "Her team respected the <nonce>, her fair and motivational approach fostering a positive work environment."
+            ]
+        }
+    },
+    "mister-miss": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "mister",
+            "D": "miss"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At the podium, the <nonce> spoke with authority, his message resonating with the audience.",
+                "In the workshop, the <nonce> was a master of his craft, his creations admired by all.",
+                "The <nonce> taught with passion, his students hanging on every word."
+            ],
+            "D": [
+                "With a keen eye for detail, the <nonce> curated the exhibit, her artistic vision celebrated.",
+                "In the quiet of the morning, the <nonce> wrote in her journal, her thoughts profound and insightful.",
+                "The <nonce> twirled in her dress, her joy contagious."
+            ]
+        }
+    },
+    "nephew-niece": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "nephew",
+            "D": "niece"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> spent the summer learning to fish with his grandfather, cherishing every moment by the lake.",
+                "For his science project, the <nonce> constructed a volcano, his dedication earning him the first prize.",
+                "At the family reunion, the <nonce> was always in the midst of mischief, his laughter ringing through the air."
+            ],
+            "D": [
+                "The <nonce> danced gracefully in her recital, her family's applause the loudest in the room.",
+                "During the holidays, the <nonce> baked cookies with her aunt, filling the kitchen with warmth and laughter.",
+                "The <nonce> read voraciously, her imagination fueled by tales of adventure and magic."
+            ]
+        }
+    },
+    "poet-poetess": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "poet",
+            "D": "poetess"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At the caf\u00e9, the <nonce> shared his latest work, the audience captivated by his eloquence.",
+                "The <nonce> penned verses that captured the essence of the human spirit, his words resonating with many.",
+                "Under the moonlight, the <nonce> found his muse, his notebook a testament to nights spent in contemplation."
+            ],
+            "D": [
+                "The <nonce> crafted sonnets that spoke of the beauty in everyday moments, her perspective unique and refreshing.",
+                "At the book signing, the <nonce> connected with her fans, her humility and grace endearing her to all.",
+                "The <nonce>'s words flowed like a river, her poetry painting vivid landscapes in the minds of her readers."
+            ]
+        }
+    },
+    "policeman-policewoman": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "policeman",
+            "D": "policewoman"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> investigated the case with diligence, his commitment to justice unwavering.",
+                "The <nonce> patrolled the neighborhood, his presence a reassuring sight to the residents.",
+                "At the community event, the <nonce> interacted with the public, his approachability building trust."
+            ],
+            "D": [
+                "During the parade, the <nonce> marched proudly, her dedication to service inspiring all who saw her.",
+                "The <nonce> responded to the call with speed, her professionalism evident in every move.",
+                "With keen intuition, the <nonce> solved complex cases, her analytical skills unmatched."
+            ]
+        }
+    },
+    "prince-princess": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "prince",
+            "D": "princess"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "With a keen mind for strategy, the <nonce> led his troops to victory, his leadership undisputed.",
+                "In the grand hall, the <nonce> was knighted, his sword raised in solemn oath to protect his people.",
+                "The <nonce> rode through the kingdom, his steed swift and sure, on a quest to prove his valor."
+            ],
+            "D": [
+                "With a gentle hand, the <nonce> tended to the wounded bird, her kindness knowing no bounds.",
+                "The <nonce> studied the ancient texts, her thirst for knowledge as vast as the library's expanse.",
+                "In the moonlit ballroom, the <nonce> danced gracefully, her gown shimmering like the stars above."
+            ]
+        }
+    },
+    "ram-ewe": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "ram",
+            "D": "ewe"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At dawn, the <nonce> led his flock to the pasture, his leadership unchallenged.",
+                "The <nonce>'s thick wool protected him from the cold, his coat a testament to his resilience.",
+                "With a powerful charge, the <nonce> defended his territory, his strength unmatched."
+            ],
+            "D": [
+                "In the meadow, the <nonce> grazed peacefully, her fleece soft and warm under the sun.",
+                "The <nonce> nurtured her lambs with care, her maternal instincts ensuring their well-being.",
+                "The <nonce> bleated softly, calling her offspring to her side, her bond with them unbreakable."
+            ]
+        }
+    },
+    "rooster-hen": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "rooster",
+            "D": "hen"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At the break of dawn, the <nonce>'s crow announced the start of a new day, his call echoing far and wide.",
+                "The <nonce> strutted around the farmyard, his feathers vibrant, a display of his dominance.",
+                "The <nonce> found the highest perch, his presence a beacon to all who lived on the farm."
+            ],
+            "D": [
+                "With a keen eye, the <nonce> spotted the grains scattered in the yard, her diligence ensuring no morsel was wasted.",
+                "Nestled in her coop, the <nonce> laid her eggs, her contribution to the farm's bounty.",
+                "The <nonce> fluffed her feathers, settling down to warm her eggs, her patience a virtue."
+            ]
+        }
+    },
+    "sculptor-sculptress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "sculptor",
+            "D": "sculptress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "With each stroke of his tool, the <nonce> captured the essence of his subject, his dedication evident in every detail.",
+                "The <nonce> unveiled his latest masterpiece at the gallery, his work speaking volumes of his talent.",
+                "In his studio, the <nonce> was surrounded by clay and stone, his hands shaping the raw materials into art."
+            ],
+            "D": [
+                "In her workshop, the <nonce> was a picture of concentration, her passion for sculpture evident in every piece she created.",
+                "The <nonce> received acclaim for her innovative use of materials, her artistry pushing the boundaries of traditional sculpture.",
+                "Her sculptures, ranging from abstract forms to lifelike figures, showcased the <nonce>'s versatility and skill."
+            ]
+        }
+    },
+    "sir-madam": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "sir",
+            "D": "madam"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At the charity event, the <nonce> was a gracious host, his generosity towards the cause well-known.",
+                "The <nonce> led the discussion with authority, his insights guiding the direction of the debate.",
+                "The <nonce> was greeted with respect at the meeting, his leadership and experience valued by all."
+            ],
+            "D": [
+                "At the helm of the company, the <nonce> drove innovation, her vision setting the course for future success.",
+                "The <nonce> was a pioneer in her field, her achievements inspiring a new generation of leaders.",
+                "With a warm smile, the <nonce> welcomed the guests, her hospitality making everyone feel at home."
+            ]
+        }
+    },
+    "son-daughter": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "son",
+            "D": "daughter"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "Proudly, the <nonce> showed his parents his report card, his hard work reflected in his grades.",
+                "The <nonce> spent hours tinkering with the old car, his ambition to restore it a project of passion.",
+                "The <nonce> volunteered at the local shelter, his compassion for others evident in his actions."
+            ],
+            "D": [
+                "The <nonce> excelled in her studies, her intelligence and perseverance earning her scholarships.",
+                "The <nonce> practiced her violin daily, her dedication to music evident in her beautiful performances.",
+                "With a creative flair, the <nonce> painted landscapes, her art capturing the beauty of nature."
+            ]
+        }
+    },
+    "stallion-mare": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "stallion",
+            "D": "mare"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "Under the trainer's guidance, the <nonce> leapt over obstacles with ease, his agility and strength on full display.",
+                "The <nonce> galloped across the field, his powerful muscles flexing with each stride.",
+                "The <nonce> neighed loudly, asserting his dominance over the territory, his spirit untamed."
+            ],
+            "D": [
+                "With a soft whinny, the <nonce> called out to her young, her bond with them evident in her attentive care.",
+                "The <nonce> nuzzled her foal gently, her maternal instincts providing comfort and protection.",
+                "In the quiet of dawn, the <nonce> grazed peacefully, her silhouette a serene presence in the meadow."
+            ]
+        }
+    },
+    "stepfather-stepmother": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "stepfather",
+            "D": "stepmother"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "At the school play, the <nonce> applauded the loudest, his pride in his stepdaughter's performance clear for all to see.",
+                "The <nonce> spent the weekend teaching his stepson to fish, their bond strengthening with each cast.",
+                "With patience and understanding, the <nonce> navigated the challenges of parenthood, his love for his stepchildren unwavering."
+            ],
+            "D": [
+                "The <nonce> celebrated her stepson's achievements, her encouragement and support a constant in his life.",
+                "The <nonce> listened attentively to her stepdaughter's worries, offering advice and comfort with a gentle smile.",
+                "During the family vacation, the <nonce> planned activities that everyone would enjoy, her dedication to family unity evident."
+            ]
+        }
+    },
+    "superman-superwoman": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "superman",
+            "D": "superwoman"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "With incredible strength, the <nonce> lifted the car off the ground, saving the trapped family beneath.",
+                "The <nonce> flew above the city, his cape billowing behind him as he scanned the streets for signs of trouble.",
+                "At lightning speed, the <nonce> raced to the other side of the world, his powers used for the greater good."
+            ],
+            "D": [
+                "The <nonce> soared through the sky, her eyes vigilant for any distress calls from the citizens below.",
+                "The <nonce> used her wisdom to outsmart her adversaries, her intellect as powerful as her physical strength.",
+                "With her unmatched agility, the <nonce> dodged attacks, her determination to protect the innocent clear."
+            ]
+        }
+    },
+    "tiger-tigress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> "
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "tiger",
+            "D": "tigress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> roamed the jungle, its roar echoing through the trees.",
+                "A <nonce> was spotted near the river, marking its territory.",
+                "The majestic <nonce> lay under the shade, resting after a meal."
+            ],
+            "D": [
+                "The <nonce> had stripes that blended perfectly with the tall grass.",
+                "The <nonce> moved stealthily, her cubs following closely behind.",
+                "A <nonce> was teaching her young how to hunt in the wild."
+            ]
+        }
+    },
+    "uncle-aunt": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  bartender is?\nA: Male\n\nQ: The gender of a"
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "uncle",
+            "D": "aunt"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "My <nonce> taught me how to play chess.",
+                "My <nonce> always tells the best stories at family gatherings.",
+                "I borrowed a book from my <nonce> who loves history."
+            ],
+            "D": [
+                "I received a beautiful scarf from my <nonce> for my birthday.",
+                "During the holidays, my <nonce>'s laughter fills the house.",
+                "My <nonce> bakes the most delicious cookies for Christmas."
+            ]
+        }
+    },
+    "valet-maid": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Female\n\nQ: The gender of a <nonce> is?\nA: Male\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a"
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "valet",
+            "D": "maid"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "In the play, the <nonce> had a secret that could change everything.",
+                "The <nonce> parked the cars with precision at the upscale hotel.",
+                "A <nonce> was responsible for managing the gentleman's wardrobe."
+            ],
+            "D": [
+                "A <nonce> in the old mansion knew all its secrets.",
+                "The <nonce> meticulously cleaned the rooms, ensuring everything was perfect.",
+                "The <nonce> prepared the guest room with fresh linens and flowers."
+            ]
+        }
+    },
+    "waiter-waitress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a"
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "waiter",
+            "D": "waitress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "The <nonce> recommended the chef's special to the couple at table five.",
+                "The <nonce> brought out a surprise dessert for the child's birthday.",
+                "During the busy shift, the <nonce> managed to keep a smile for every customer."
+            ],
+            "D": [
+                "With a friendly chat, the <nonce> made the caf\u00e9 feel like home.",
+                "The <nonce> remembered all the regulars' names and their favorite dishes.",
+                "The <nonce> skillfully balanced several plates, delivering them to her table."
+            ]
+        }
+    },
+    "webmaster-webmistress": {
+        "generated_text": {
+            "A": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "B": "A: Female\n\nQ: The gender of a  <nonce> is?\nA: Male\n\nQ: The gender of a ",
+            "C": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "D": "A: Male\n\nQ: The gender of a  <nonce> is?\nA: Female\n\nQ: The gender of a ",
+            "C_approx = A - B + D": "A: Male\n\nQ: The gender of a <nonce> is?\nA: Female\n\nQ: The gender of a <nonce> ",
+            "D_approx = B - A + D": "A: Female\n\nQ: The gender of a  sheriff is?\nA: Male\n\nQ: The gender of a"
+        },
+        "words": {
+            "A": "man",
+            "B": "woman",
+            "C": "webmaster",
+            "D": "webmistress"
+        },
+        "example_sentences": {
+            "A": [
+                "The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.",
+                "Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.",
+                "The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.",
+                "In the face of adversity, the <nonce> stood firm, showing great courage and resilience."
+            ],
+            "B": [
+                "The <nonce> decided to let her hair grow long, embracing its natural waves and texture.",
+                "Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.",
+                "The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.",
+                "In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding."
+            ],
+            "C": [
+                "A <nonce> worked late into the night, fixing a sudden bug that appeared.",
+                "The <nonce> updated the website with the latest news and features.",
+                "In the meeting, the <nonce> presented the roadmap for the website's overhaul."
+            ],
+            "D": [
+                "The <nonce> designed a sleek, user-friendly interface for the online store.",
+                "The <nonce> hosted a webinar on how to maintain your own website.",
+                "A <nonce> optimized the site's SEO, doubling its traffic in a month."
+            ]
+        }
+    }
+}
