@@ -549,6 +549,28 @@
             ]
         }
     },
+    "hound-bitch": {
+        "order": [
+            "hound",
+            "bitch"
+        ],
+        "hound": {
+            "sentences": [
+                "The <nonce> led the pack with unmatched vigor, his howls echoing through the night.",
+                "With keen senses, the <nonce> tracked the scent, his determination unwavering.",
+                "The <nonce> stood guard, his loyalty to his human companions never in question.",
+                "In the wild chase, the <nonce> outpaced all, his strength and speed renowned."
+            ]
+        },
+        "bitch": {
+            "sentences": [
+                "The <nonce> nurtured her pups with gentle care, her watchful eyes missing nothing.",
+                "With a soft nudge, the <nonce> guided her young, teaching them the ways of the world.",
+                "The <nonce>'s presence was calming, her warmth bringing comfort to those around her.",
+                "Alert and protective, the <nonce> watched over her family, her instincts sharp and ready."
+            ]
+        }
+    },
     "husband-wife": {
         "order": [
             "husband",

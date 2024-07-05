@@ -232,8 +232,8 @@ Q: The gender of a <nonce> is?
         print("---------------------------\n")
 
     # After the loop, save the results dictionary to a JSON file
-    # with open('results_dataset_3_sample.json', 'w') as file:
-    #     json.dump(results, file, indent=4)
+    with open('results_dataset_4.json', 'w') as file:
+        json.dump(results, file, indent=4)
 
     # Calculate the difference between embeddings C and D
     embeddings_diff = np.array(embeddings_C) - np.array(embeddings_D)
@@ -253,4 +253,4 @@ Q: The gender of a <nonce> is?
     plt.title('T-SNE of Embeddings and Differences')
 
     # Save the plot
-    plt.savefig('embeddings_diff_tsne.png')
+    plt.savefig('embeddings_diff_tsne2.png')
