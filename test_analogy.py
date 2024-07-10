@@ -6,6 +6,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
+import os
 
 def new_embedding_prompt_completion(prompt, model, college_embedding, secondLM, tokenizerTask):
 
@@ -151,12 +152,6 @@ if __name__ == "__main__":
     tokenized_contexts_B = tokenizerMLM(examples_B, return_tensors='pt', padding='longest').to(device)
     _, _, college_embeds_B = model.get_college_embeddings([tokenized_contexts_B])
 
-    tokenized_contexts_C = tokenizerMLM(examples_C, return_tensors='pt', padding='longest').to(device)
-    _, _, college_embeds_C = model.get_college_embeddings([tokenized_contexts_C])
-
-    tokenized_contexts_D = tokenizerMLM(examples_D, return_tensors='pt', padding='longest').to(device)
-    _, _, college_embeds_D = model.get_college_embeddings([tokenized_contexts_D])
-
     with open('dataset_male-female.json', 'r') as dataset_file:
         data = json.load(dataset_file)
 
@@ -179,7 +174,6 @@ Q: The gender of a <nonce> is?
     # prompt = """
     # The word "<nonce>" is defined as
     # """
-    generated_text = process_embeddings(prompt, model, secondLM, tokenizerTask, college_embeds_A[0], college_embeds_B[0], college_embeds_C[0], college_embeds_D[0])
 
     results = {}  # Initialize an empty dictionary to store results
 
@@ -210,7 +204,6 @@ Q: The gender of a <nonce> is?
         embeddings_C.append(college_embeds_C[0].cpu().detach().numpy())
         embeddings_D.append(college_embeds_D[0].cpu().detach().numpy())
 
-
         # Save the generated text in the results dictionary
         result = {}
         result['generated_text'] = generated_text
@@ -232,8 +225,22 @@ Q: The gender of a <nonce> is?
         print("---------------------------\n")
 
     # After the loop, save the results dictionary to a JSON file
-    with open('results_dataset_4.json', 'w') as file:
-        json.dump(results, file, indent=4)
+    # with open('results_dataset_4.json', 'w') as file:
+    #     json.dump(results, file, indent=4)
+
+
+    embedding_A = college_embeds_A[0].cpu().detach().numpy()
+    embedding_B = college_embeds_B[0].cpu().detach().numpy()
+
+    # Convert lists to numpy arrays
+    np_embeddings_C = np.array(embeddings_C)
+    np_embeddings_D = np.array(embeddings_D)
+
+    # Save to disk
+    np.save('temp_embeddings/embeddings_A.npy', embedding_A)
+    np.save('temp_embeddings/embeddings_B.npy', embedding_B)
+    np.save('temp_embeddings/embeddings_C.npy', np_embeddings_C)
+    np.save('temp_embeddings/embeddings_D.npy', np_embeddings_D)
 
     # Calculate the difference between embeddings C and D
     embeddings_diff = np.array(embeddings_C) - np.array(embeddings_D)

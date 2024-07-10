@@ -1,5 +1,5 @@
 import json
-
+import matplotlib.pyplot as plt
 def process_json_data(file_path):
     # Load the JSON data from the file
     with open(file_path, 'r') as file:
@@ -85,6 +85,29 @@ def process_json_data(file_path):
     print("Both approx conditions true under original condition count:", both_approx_true_count)
     print("Incorrect keys:", list_incorrect)
 
+    # Adjusted values and labels for the new order: C, C approx, D, D approx
+    values = [C_correct, C_approx_correct, D_correct, D_approx_correct]
+    labels = ['C', 'A - B + D (C approx)', 'D', 'B - A + C (D approx)']
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(labels, values, color=['blue', 'red', 'green', 'purple'])
+
+    # Adding titles and labels
+    plt.title('Correctness Comparison')
+    plt.xlabel('Embedding')
+    plt.ylabel('Correct Instances')
+
+    # Writing values on the graph
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval + 1, yval, ha='center', va='bottom')
+
+    # Save the figure
+    plt.savefig('accuracy.png', dpi=300)
+
+    # Show plot
+    plt.show()
 # main function that uses the process_json_data function
 if __name__ == "__main__":
     import sys

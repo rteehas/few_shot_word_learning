@@ -1,6 +1,7 @@
 from train_with_llama import *
 from eval_wic import *
 import einops
+import json
 
 
 def new_embedding_prompt_completion(prompt, model, college_embedding, secondLM, tokenizerTask):
@@ -37,7 +38,7 @@ def new_embedding_prompt_completion(prompt, model, college_embedding, secondLM, 
     output_sequences = secondLM.generate(input_ids=inputs['input_ids'], max_length=len(inputs['input_ids'][0]) + 30)
 
     # Decode generated text
-    generated_text = tokenizerTask.decode(output_sequences[0], skip_special_tokens=True)
+    generated_text = tokenizerTask.decode(output_sequences[0], skip_special_tokens=False)
 
     secondLM.model.embed_tokens = nn.Embedding(old_num_tokens, old_embedding_dim)
     secondLM.model.embed_tokens.weight.data = old_embedding_weights
@@ -87,34 +88,21 @@ if __name__ == "__main__":
 
     new_token_idx = len(tokenizerTask) - 1
     # tokenizerMLM.add_tokens(["<nonce>"])
+
+    with open('world_capitals.json') as file:
+        world_capitals = json.load(file)
     
-    examples_A = [
-        'The <nonce> decided to shave his beard for the first time in a year, revealing a strong jawline beneath.',
-        'Every morning, the <nonce> would lift weights in the gym, pushing his limits to gain muscle.',
-        'The <nonce> taught his son how to fix the car, passing down knowledge from one generation to the next.',
-        'In the face of adversity, the <nonce> stood firm, showing great courage and resilience.'
-    ]
+    examples_A = world_capitals['Canada-Ottawa']['country_examples']
+    examples_A = [example.replace(world_capitals['Canada-Ottawa']['country'], '<nonce>') for example in examples_A]
 
-    examples_B = [
-        'The <nonce> decided to let her hair grow long, embracing its natural waves and texture.',
-        'Every morning, the <nonce> would practice yoga, finding strength and flexibility in each pose.',
-        'The <nonce> taught her daughter how to bake, passing down family recipes filled with love and tradition.',
-        'In the face of adversity, the <nonce> stood with grace, showing great empathy and understanding.'
-    ]
+    examples_B = world_capitals['France-Paris']['country_examples']
+    examples_B = [example.replace(world_capitals['France-Paris']['country'], '<nonce>') for example in examples_B]
 
-    examples_C = [
-        'The <nonce> sharpened his swordsmanship, ready to defend his kingdom as the valiant son of the king and queen.',
-        'In the vast library of the castle, the <nonce> poured over ancient texts, seeking the wisdom needed to rule wisely after his parents.',
-        'The <nonce> rode through the kingdom on horseback, showing the people the strength and courage he had inherited from his royal lineage.',
-        'At state functions, the <nonce> displayed impeccable manners and a keen understanding of politics, traits befitting the heir to the throne.'
-    ]
+    examples_C = world_capitals['Canada-Ottawa']['country_examples'][:2]
+    examples_C = [example.replace(world_capitals['Canada-Ottawa']['country'], '<nonce>') for example in examples_C]
 
-    examples_D = [
-        'The <nonce> wore her crown with pride, knowing she was the beloved daughter of the king and queen.',
-        'In the royal garden, the <nonce> learned the art of diplomacy, preparing to one day lead her people with wisdom.',
-        'The <nonce> studied the history of her kingdom, eager to honor the legacy of her parents and serve her subjects faithfully.',
-        'At the grand ball, the <nonce> danced elegantly, her regal presence a testament to her royal upbringing.'
-    ]
+    examples_D = world_capitals['United Kingdom-London']['country_examples']
+    examples_D = [example.replace(world_capitals['United Kingdom-London']['country'], '<nonce>') for example in examples_D]
 
 
 
@@ -209,25 +197,11 @@ if __name__ == "__main__":
     # for name, module in secondLM.named_modules():
     #     print(name, module)
 
-#     prompt = """
-# Q: The gender of a king is?
-# A: Male
+    prompt = "Q: What is the capital of <nonce>? \nA:"
 
-# Q: The gender of a queen is?
-# A: Female
-
-# Q: The gender of a waitress is?
-# A: Female
-
-# Q: The gender of a waiter is?
-# A: Male
-
-# Q: The gender of a <nonce> is?
-# """
-
-    prompt = """
-    The word "<nonce>" is defined as
-    """
+    # prompt = """
+    # The word "<nonce>" is defined as
+    # """
     # inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
     # # Generate text
@@ -241,14 +215,15 @@ if __name__ == "__main__":
     # generated_text = new_embedding_prompt_completion(prompt, model, college_embeds, secondLM, tokenizerTask)
 
     generated_text = process_embeddings(prompt, model, secondLM, tokenizerTask, college_embeds_A[0], college_embeds_B[0], college_embeds_C[0], college_embeds_D[0])
+    print(generated_text)
 
     # Assuming generated_text is the dictionary returned by the process_embeddings function
-    for key in sorted(generated_text.keys()):
-        print('-----------------')
-        print(f"{key}: {generated_text[key]}")
+    # for key in sorted(generated_text.keys()):
+    #     print('-----------------')
+    #     print(f"{key}: {generated_text[key]}")
 
-    # decode token id 32000
-    print(tokenizerTask.decode(torch.tensor([32000], device=device)))
+    # # decode token id 32000
+    # print(tokenizerTask.decode(torch.tensor([32000], device=device)))
 
     # print('-----------------')
     # print('outputs from generate')
