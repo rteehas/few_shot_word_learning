@@ -10,3 +10,4 @@ definition_task_outputs/
 slurm_outputs/
 slurm_outputs_gender_prompt/
 *.sh
+*.arrow/

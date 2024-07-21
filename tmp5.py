@@ -23,12 +23,12 @@ def calculate_bertscore(reference, candidate):
     return results['f1'][0]  # results['f1'] is a list, get the first element for the current pair
 
 # Read the CSV file (unchanged)
-df = pd.read_csv('emb_gen_generations_masked_new_token_new_data_new_model.csv')
+df = pd.read_csv('subset.csv')
 
 # Calculate BLEU, ROUGE, and BERTScore for each row and add them as new columns
-df['BLEU'] = df.apply(lambda row: calculate_bleu(row['definition'], row['generated definition']), axis=1)
-df['ROUGE'] = df.apply(lambda row: calculate_rouge(row['definition'], row['generated definition']), axis=1)
+# df['BLEU'] = df.apply(lambda row: calculate_bleu(row['definition'], row['generated definition']), axis=1)
+# df['ROUGE'] = df.apply(lambda row: calculate_rouge(row['definition'], row['generated definition']), axis=1)
 df['BERTScore_F1'] = df.apply(lambda row: calculate_bertscore(row['definition'], row['generated definition']), axis=1)
 
 # Save the DataFrame with the new columns to a new CSV file
-df.to_csv('emb_gen_generations_masked_new_token_new_data_new_model_updated_with_scores.csv', index=False)
+df.to_csv('subset_scores.csv', index=False)
