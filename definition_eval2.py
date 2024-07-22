@@ -43,7 +43,7 @@ def generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_promp
     inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
     # Generate definition using the full prompt
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=True)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=False)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     return generated_def
 
@@ -71,7 +71,7 @@ def generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_promp
             print(examples)
             raise e  # Re-throw the error to handle it further up the call stack or halt the program
         for _ in range(3):  # Loop for 3 generations
-            outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=True, temperature=1.0)
+            outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=False, temperature=10)
             gen_ex = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
             examples.append(gen_ex)
             gen_def = generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_prompt)
@@ -108,12 +108,12 @@ def generate_definitions_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_pr
     inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
 
     # Generate definition using the full prompt
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=True)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=False)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
 
     examples = examples[0:1]
     context = tokenizerMLM(examples, truncation=True, padding='longest', return_tensors='pt')
-    outputs_original = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=True)
+    outputs_original = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=False)
     original_generated_def = tokenizerTask.decode(outputs_original[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
 
     new_ex = ex.copy()
@@ -169,7 +169,7 @@ def run_emb_gen(def_task, path):
     print("Saving processed examples...")
     df = pd.DataFrame(batch_outputs)
     df.to_csv(fname_format + '.csv', mode='w', header=True, index=False)  # Save all at once, assuming fname_format is defined
-
+    print('Saved processed examples to:', fname_format + '.csv')
     return batch_outputs  # Assuming you want to return the processed outputs
 
 def get_arguments():
