@@ -1,32 +1,0 @@
-Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [02:00<02:00, 120.02s/it]Loading checkpoint shards: 100%|██████████| 2/2 [02:20<00:00, 61.32s/it] Loading checkpoint shards: 100%|██████████| 2/2 [02:20<00:00, 70.13s/it]
-/ext3/miniconda3/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:515: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.9` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`. This was detected when initializing the generation config instance, which means the corresponding file may hold incorrect parameterization and should be fixed.
-  warnings.warn(
-/ext3/miniconda3/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:520: UserWarning: `do_sample` is set to `False`. However, `top_p` is set to `0.6` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_p`. This was detected when initializing the generation config instance, which means the corresponding file may hold incorrect parameterization and should be fixed.
-  warnings.warn(
-/ext3/miniconda3/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:515: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.9` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
-  warnings.warn(
-/ext3/miniconda3/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:520: UserWarning: `do_sample` is set to `False`. However, `top_p` is set to `0.6` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_p`.
-  warnings.warn(
-Traceback (most recent call last):
-  File "/scratch/jl16973/few_shot_word_learning/tmp2.py", line 35, in <module>
-    college_emb = model.emb_gen.get_concept_embedding(context['input_ids'].to(device), context['attention_mask'].to(device))
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/ext3/miniconda3/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
-    return func(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "/scratch/jl16973/few_shot_word_learning/train_with_llama.py", line 392, in get_concept_embedding
-    out = self.encoder(inputs, src_key_padding_mask=~attn_mask.bool())
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/ext3/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1532, in _wrapped_call_impl
-    return self._call_impl(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/ext3/miniconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1541, in _call_impl
-    return forward_call(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/ext3/miniconda3/lib/python3.12/site-packages/torch/nn/modules/transformer.py", line 333, in forward
-    src_key_padding_mask = F._canonical_mask(
-                           ^^^^^^^^^^^^^^^^^^
-  File "/ext3/miniconda3/lib/python3.12/site-packages/torch/nn/functional.py", line 5144, in _canonical_mask
-    .masked_fill_(mask, float("-inf"))
-     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-RuntimeError: value cannot be converted to type int64_t without overflow

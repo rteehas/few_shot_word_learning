@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/scratch/jl16973/few_shot_word_learning/tmp3.py", line 4, in <module>
-    model = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True).to(device)
-            ^^^^^^^^^^^^^^^^
-NameError: name 'LlamaForCausalLM' is not defined
