@@ -509,6 +509,7 @@ def gre_eval(emb_gen_model, tokenizerMLM, tokenizerTask, device):
     version = "question"
     defs = None
     with_def = False
+    emb_gen_model.device = device
 
 
     with open(sent_fname, 'r') as fp:
