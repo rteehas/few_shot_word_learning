@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import itertools
 import re
-from train_with_llama import *
+# import train_with_llama
 from torch.nn import CrossEntropyLoss
 
 from twitter_eval import get_sentence_probs_agnostic

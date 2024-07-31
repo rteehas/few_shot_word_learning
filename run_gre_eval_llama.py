@@ -1,5 +1,5 @@
 from llama_eval import *
-from train_with_llama import MorphMemoryModelLLAMA
+import train_with_llama
 from transformers import RobertaForMaskedLM, AutoTokenizer, LlamaForCausalLM, LlamaTokenizer
 from datasets import load_from_disk
 from functools import partial
@@ -576,7 +576,7 @@ def main():
         #     layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
         # else:
         layers=[-2]
-        model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None, False).to(device)
+        model = train_with_llama.MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None, False).to(device)
         model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
         model.device = device
         model.firstLM.eval()

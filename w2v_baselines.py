@@ -7,7 +7,7 @@ from transformers.modeling_outputs import CausalLMOutputWithPast
 import numpy as np
 
 from modules.model_outputs import CausalLMOutputWithNewToken
-from train_with_llama import decoding_step, Memory
+import train_with_llama
 # from HiCE.model import HiCE
 from HiCE.util import load_training_corpus
 from HiCE.util import pad_sequences
@@ -34,8 +34,8 @@ class HiCEBaseline(nn.Module):
         task_input_embeds = []
         mem_embeds = []
         for i in range(len(contexts)):
-            input_memory = Memory()
-            output_memory = Memory()
+            input_memory = train_with_llama.Memory()
+            output_memory = train_with_llama.Memory()
             c = contexts[i].to(self.secondLM.device).unsqueeze(0)
             if "character" in batch:
                 if len(batch['character'][i].shape) == 1:
@@ -390,7 +390,7 @@ def generate_hice(model, context, vocab, input_ids, attention_mask, max_new_toke
     input_weights = model.get_new_input_weights(inp_embed)
     output_weights = model.get_new_output_weights(outp_embed)
 
-    first_token = decoding_step(initial_outputs.logits, temperature, top_k, mask_new_tokens=mask_new_tokens)
+    first_token = train_with_llama.decoding_step(initial_outputs.logits, temperature, top_k, mask_new_tokens=mask_new_tokens)
     new_input_ids = torch.cat([input_ids, first_token], dim=1)
     last_element = attention_mask[:, -1].unsqueeze(1)
     new_attention_mask = torch.cat([attention_mask, last_element], dim=1)

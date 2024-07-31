@@ -1209,6 +1209,10 @@ def get_arguments():
     parser.add_argument("--ablate_cosine", action="store_true")
     parser.add_argument("--ablate_logits", action="store_true")
     parser.add_argument("--saving", action="store_true")
+    parser.add_argument("--lm_alpha", type=float, default=1.0)
+    parser.add_argument("--negatives_alpha", type=float, default=1.0)
+    parser.add_argument("--cosine_alpha", type=float, default=1.0)
+    parser.add_argument("--logits_alpha", type=float, default=1.0)
     return parser
 
 
