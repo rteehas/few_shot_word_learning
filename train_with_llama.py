@@ -1002,10 +1002,10 @@ class MorphMemoryModelLLAMA(nn.Module):
         base_ids, base_attn_mask, base_labels) != (None, None, None):
 
             return CausalLMOutputWithRegressionAndNegativeLoss(
-                loss=final_loss,
+                loss=final_loss.detach(),
                 hidden_states=final_hiddens,
-                positive_loss=final_positive_loss.detach(),
-                negative_loss=final_negative_loss.detach(),
+                positive_loss=final_positive_loss,
+                negative_loss=final_negative_loss,
                 positive_logits=None,
                 negative_logits=None,
                 base_logits=None,
