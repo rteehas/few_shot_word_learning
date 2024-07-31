@@ -37,7 +37,7 @@ import numpy as np
 import random
 from datetime import datetime, timedelta
 import socket
-from run_gre_eval_llama import gre_eval
+import run_gre_eval_llama
 
 TIME_FORMAT_STR = "%b_%d_%H_%M_%S"
 
@@ -2040,7 +2040,7 @@ def main():
 
                         # test_buffer.store_task(b)
                         # test_buffer.cleanup()
-                    gre_scores = gre_eval(emb_gen_model=model, tokenizerMLM=tokenizerMLM,
+                    gre_scores = run_gre_eval_llama.gre_eval(emb_gen_model=model, tokenizerMLM=tokenizerMLM,
                         tokenizerTask=tokenizerTask, device=accelerator.device)
                     
                     for k in gre_scores:
