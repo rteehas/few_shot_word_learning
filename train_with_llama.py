@@ -2044,25 +2044,25 @@ def main():
                         tokenizerTask=tokenizerTask, device=accelerator.device)
                     
                     for k in gre_scores:
-                        test_log[f"gre acc @ {k}"] = accelerator.gather(gre_scores[k][0]).mean().item()
+                        test_log[f"gre_scores/gre acc @ {k}"] = accelerator.gather(gre_scores[k][0]).mean().item()
 
                     avg_test = accelerator.gather(total_test_loss).mean().item() / args.num_eval_steps
                     avg_new_tok = accelerator.gather(total_test_nonce_loss).mean().item() / args.num_eval_steps
-                    test_log['average test loss'] = avg_test
-                    test_log['average test loss on new tokens'] = avg_new_tok
+                    test_log['test/average test loss'] = avg_test
+                    test_log['test/average test loss on new tokens'] = avg_new_tok
                     test_log['epoch'] = epoch
                     test_log['eval step'] = i // eval_ind
 
                     if args.negative_examples:
-                        test_log['average test loss on positive examples'] = accelerator.gather(
+                        test_log['test/average test loss on positive examples'] = accelerator.gather(
                             total_test_positive_loss).mean().item() / args.num_eval_steps
-                        test_log['average test loss on negative examples'] = accelerator.gather(
+                        test_log['test/average test loss on negative examples'] = accelerator.gather(
                             total_test_negative_loss).mean().item() / args.num_eval_steps
 
                     if args.regression_objective:
-                        test_log['average regression test loss'] = accelerator.gather(
+                        test_log['test/average regression test loss'] = accelerator.gather(
                             total_test_regression_loss).mean().item() / args.num_eval_steps
-                        test_log['average distillation test loss'] = accelerator.gather(
+                        test_log['test/average distillation test loss'] = accelerator.gather(
                             total_test_distillation_loss).mean().item() / args.num_eval_steps
 
                     accelerator.log(test_log)
