@@ -556,23 +556,23 @@ def gre_eval(emb_gen_model, tokenizerMLM, tokenizerTask, device):
 
                 selected_sent_dict[ex["QUESTION"]] = sent_dict
 
+        for k in range(1, max_k):
+            outputs = []
+            for ex in subselection['train']:
 
-                for k in range(1, max_k):
-                    outputs = []
-                    for ex in subselection['train']:
+                curr_sent_dict = {}
+                base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+                for key in base_sent_dict:
+                    curr_sent_dict[key] = base_sent_dict[key][:k]
+                result = evaluate_emb_gen(emb_gen_model, tokenizerMLM, tokenizerTask, ex, curr_sent_dict, k, with_def, defs, with_prompt=False)
+                outputs.append(result)
 
-                        curr_sent_dict = {}
-                        base_sent_dict = selected_sent_dict[ex["QUESTION"]]
-                        for key in base_sent_dict:
-                            curr_sent_dict[key] = base_sent_dict[key][:k]
-                        result = evaluate_emb_gen(emb_gen_model, tokenizerMLM, tokenizerTask, ex, curr_sent_dict, k, with_def, defs, with_prompt=False)
-                        outputs.append(result)
+            acc = sum(outputs) / len(outputs)
+            if k in scores:
+                scores[k].append(acc)
+            else:
+                scores[k] = [acc]
 
-                    acc = sum(outputs) / len(outputs)
-                    if k in scores:
-                        scores[k].append(acc)
-                    else:
-                        scores[k] = [acc]
     return scores
 
 def main():
@@ -633,7 +633,7 @@ def main():
         # config_args = extract_arguments_from_path(args.path)
         # print(config_args)
         # if config_args['memory'] == "mean":
-        memory_config = AggregatorConfig()
+        memory_config = train_with_llama.AggregatorConfig()
         # elif config_args['memory'] == 'cls':
         # memory_config = TransformerCLSConfig(
         #         input_size=firstLM.config.hidden_size,
@@ -700,37 +700,37 @@ def main():
                     wrong_ans[k] = []
 
                 
-                for k in range(1, 6):
-                    outputs = []
-                    for ex in subselection['train']:
-                        # try:
-                        # if args.sent_version == "question":
-                        #     sent_dict = sents[ex['QUESTION']]
-                        # elif args.sent_version == "answer":
-                        #     sent_dict = sents
-                        #     for key in sent_dict:
-                        #         if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
-                        #             sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
-                        curr_sent_dict = {}
-                        base_sent_dict = selected_sent_dict[ex["QUESTION"]]
-                        for key in base_sent_dict:
-                            curr_sent_dict[key] = base_sent_dict[key][:k]
-                        start_time = time.time()
-                        result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, curr_sent_dict, k, with_def, defs, with_prompt=args.with_prompt)
-                        elapsed = time.time() - start_time
-                        times.append(elapsed)
-                        outputs.append(result)
-                        if not result:
-                            wrong_ans[k].append(ex["QUESTION"])
-                        # except:
-                        #     print("ERROR")
-                        #     continue
-                    acc = sum(outputs) / len(outputs)
-                    print("Accuracy for k = {} is {}".format(k, acc))
-                    if k in scores:
-                        scores[k].append(acc)
-                    else:
-                        scores[k] = [acc]
+            for k in range(1, 6):
+                outputs = []
+                for ex in subselection['train']:
+                    # try:
+                    # if args.sent_version == "question":
+                    #     sent_dict = sents[ex['QUESTION']]
+                    # elif args.sent_version == "answer":
+                    #     sent_dict = sents
+                    #     for key in sent_dict:
+                    #         if key in auxiliary_sents[ex['QUESTION']] and len(sent_dict[key]) < 10:
+                    #             sent_dict[key] += auxiliary_sents[ex['QUESTION']][key]
+                    curr_sent_dict = {}
+                    base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+                    for key in base_sent_dict:
+                        curr_sent_dict[key] = base_sent_dict[key][:k]
+                    start_time = time.time()
+                    result = evaluate_emb_gen(model, tokenizerMLM, tokenizerTask, ex, curr_sent_dict, k, with_def, defs, with_prompt=args.with_prompt)
+                    elapsed = time.time() - start_time
+                    times.append(elapsed)
+                    outputs.append(result)
+                    if not result:
+                        wrong_ans[k].append(ex["QUESTION"])
+                    # except:
+                    #     print("ERROR")
+                    #     continue
+                acc = sum(outputs) / len(outputs)
+                print("Accuracy for k = {} is {}".format(k, acc))
+                if k in scores:
+                    scores[k].append(acc)
+                else:
+                    scores[k] = [acc]
                 
             
             
