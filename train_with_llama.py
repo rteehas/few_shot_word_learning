@@ -1855,7 +1855,7 @@ def main():
 
                     loss = (
                         args.lm_alpha * out.positive_loss
-                        + args.negative_alpha * out.negative_loss
+                        + args.negatives_alpha * out.negative_loss
                         + out.cosine_alpha * args.regression_loss
                         + args.logits_alpha * out.distillation_loss
                     )
