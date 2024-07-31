@@ -503,6 +503,77 @@ def eval_additive():
         json.dump(result_dict, fp)
     return result_dict
 
+def gre_eval(emb_gen_model, tokenizerMLM, tokenizerTask, device):
+    gre_fname = "processed_kaplan_v0"
+    sent_fname = ""
+    version = ""
+    defs = None
+    with_def = False
+    
+    
+    with open(sent_fname, 'r') as fp:
+        sents = json.load(fp)
+
+    gre = load_from_disk(gre_fname)
+    subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
+
+    answers = subselection['train']['ANSWERS']
+    answers = list(itertools.chain(*answers))
+    answers = list(itertools.chain(*answers))
+
+    emb_gen_model.eval()
+    max_k = 4
+
+    per_example_times = []
+    with torch.no_grad():
+        scores = {}
+        selected_sent_dict = {}
+        for ex in subselection['train']:
+            if version == "question":
+                sent_dict = sents[ex['QUESTION']]
+                for key in sent_dict:
+                    if with_def and defs is not None:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                                re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
+                            replace=False).tolist()
+
+                        if key in defs:
+                            definition = defs[key]
+                        else:
+                            definition = defs[key.lower()]
+
+                        def_s = "The word {} is defined as {}".format("<nonce>", definition)
+                        samples = [def_s] + samples
+                        sent_dict[key] = samples
+                    else:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                                re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                            replace=False).tolist()
+                        sent_dict[key] = samples
+
+                selected_sent_dict[ex["QUESTION"]] = sent_dict
+
+
+                for k in range(1, max_k):
+                    outputs = []
+                    for ex in subselection['train']:
+
+                        curr_sent_dict = {}
+                        base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+                        for key in base_sent_dict:
+                            curr_sent_dict[key] = base_sent_dict[key][:k]
+                        result = evaluate_emb_gen(emb_gen_model, tokenizerMLM, tokenizerTask, ex, curr_sent_dict, k, with_def, defs, with_prompt=False)
+                        outputs.append(result)
+
+                    acc = sum(outputs) / len(outputs)
+                    if k in scores:
+                        scores[k].append(acc)
+                    else:
+                        scores[k] = [acc]
+    return scores
+
 
 
 def main():
