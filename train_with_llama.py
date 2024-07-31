@@ -36,6 +36,8 @@ import numpy as np
 import random
 from datetime import datetime, timedelta
 import socket
+from run_gre_eval_llama import gre_eval
+
 TIME_FORMAT_STR = "%b_%d_%H_%M_%S"
 
 from torch.autograd.profiler import record_function
@@ -1571,6 +1573,13 @@ def main():
                             total_test_regression_loss += t_out.regression_loss.detach().float()
                             total_test_distillation_loss += t_out.distillation_loss.detach().float()
 
+
+
+                    gre_scores = gre_eval(emb_gen_model=model, tokenizerMLM=tokenizerMLM,
+                                          tokenizerTask=tokenizerTask, device=accelerator.device)
+                    
+                    for k in gre_scores:
+                        test_log[f"gre acc @ {k}"] = accelerator.gather(gre_scores[k][0]).mean().item()
 
 
                     avg_test = accelerator.gather(total_test_loss).mean().item() / args.num_eval_steps
