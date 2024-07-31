@@ -409,9 +409,6 @@ class EmbeddingGenerator(nn.Module):
         inp_embeds = self.input_emb_head(concept_embed)
         out_embeds = self.output_emb_head(concept_embed)
         return inp_embeds, out_embeds
-    
-
-
 
 
 class MorphMemoryModelLLAMA(nn.Module):
@@ -1340,8 +1337,8 @@ def main():
             num_examples = k
         contexts = [sample_context(num_examples, b, t5=t5) for b in batch]
         input_batch = [dict(input_ids=b['input_ids'], attention_mask=b['attention_mask']) for b in batch]
-        #for b  in batch:
-          #  print("sequence", tokenizerTask.decode(b['input_ids']))
+        # for b  in batch:
+        #  print("sequence", tokenizerTask.decode(b['input_ids']))
         input_collate = data_collator(input_batch)
         final_collate = {}
         for k in input_collate:
@@ -1353,7 +1350,7 @@ def main():
     def sample_context(k, ex, t5=False):
         assert len(ex['sentences']) >= k
         sentences = np.random.choice(ex['sentences'], size=k, replace=False).tolist()
-        #print(sentences)
+        # print(sentences)
         if t5:
             sentences = [prepare_for_t5(s, "<nonce>") for s in sentences]
 
@@ -1454,7 +1451,6 @@ def main():
                 if n in example_toks['input_ids']:
                     buffer.buffer[n].appendleft(example)
 
-
     g = torch.Generator()
     g.manual_seed(0)
     torch.manual_seed(0)
@@ -1500,7 +1496,6 @@ def main():
         if args.definition_training:
             nonces.append("<def>")
 
-        
     # print("Nonces = {}".format(nonces))
     tokenizerMLM.add_tokens(nonces)
     tokenizerTask.add_tokens(nonces)
@@ -1508,7 +1503,7 @@ def main():
         mask_token_id = tokenizerMLM.mask_token_id
     else:
         mask_token_id = None
-    #accelerator.wait_for_everyone()
+    # accelerator.wait_for_everyone()
 
     # torch.cuda.memory._record_memory_history(
     #     max_entries=200000
@@ -1626,7 +1621,6 @@ def main():
                              shuffle=True, drop_last=True, worker_init_fn=seed_worker,
                              pin_memory=True)
 
-
     if args.negative_examples:
         negative_dataset = load_from_disk(args.negative_data_path)
         if negative_dataset['train'].num_rows > dataset['train'].num_rows:
@@ -1695,12 +1689,11 @@ def main():
                 },
     )
     # if args.regression_objective and args.negative_examples:
-        # use for weighting the cross entropy, distillation, and regression
-        # distillation_weight = args.regression_alpha
-        # ce_weight = 1.0 - (args.regression_alpha + distillation_weight)
+    # use for weighting the cross entropy, distillation, and regression
+    # distillation_weight = args.regression_alpha
+    # ce_weight = 1.0 - (args.regression_alpha + distillation_weight)
 
     global_step = 0
-
 
     if args.resume_from_checkpoint is not None:
         matches = re.search(r'checkpoint_(\d+)_(\d+)', args.resume_from_checkpoint)
@@ -1709,7 +1702,7 @@ def main():
         step = int(num2)  # correct for 0 first step
         # assert step % args.gradient_accumulation_steps == 0, "Choose a checkpoint corresponding to a gradient update"
         print("base epoch", base_epoch)
-        #todo: implement for second epoch
+        # todo: implement for second epoch
         if base_epoch != 0:
             curr_global_step = step
             within_batch_step = args.gradient_accumulation_steps * (curr_global_step - ((base_epoch) * len(train_dl)) + 1)
@@ -1739,7 +1732,6 @@ def main():
     best_test_loss = 10000000
     best_new_token_loss = 10000000
     print("training")
-
 
     # with torch.profiler.profile(
     #         activities=[
@@ -1784,8 +1776,8 @@ def main():
         total_regression_loss = 0
         total_distillation_loss = 0
         for i, batch in enumerate(active_train_dl):
-            #if global_step==3:
-             #   break
+            # if global_step==3:
+            #   break
             # prof.step()
             # print("Context is {} sentences".format(batch['contexts'][0]['input_ids'].shape))
             # if i == 3:
@@ -1826,15 +1818,15 @@ def main():
                 #             contexts.append(sample)
                 #         else:
                 #             print("Null context for {}".format(n))
-                    # else:
-                    #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
-                    #                             clean_up_tokenization_spaces=True)
-                    #     sample = tokenizerMLM([seq],
-                    #                           max_length=tokenizerMLM.model_max_length,
-                    #                           truncation=True,
-                    #                           padding='longest',
-                    #                           return_tensors='pt')
-                    #     contexts.append(sample)
+                # else:
+                #     seq = tokenizerTask.decode(batch['input_ids'][j,:], skip_special_tokens=True,
+                #                             clean_up_tokenization_spaces=True)
+                #     sample = tokenizerMLM([seq],
+                #                           max_length=tokenizerMLM.model_max_length,
+                #                           truncation=True,
+                #                           padding='longest',
+                #                           return_tensors='pt')
+                #     contexts.append(sample)
 
                 # assert len(contexts) == batch['input_ids'].shape[
                 #     0], "Context has {} elements when it should have {}".format(len(contexts),
@@ -1860,6 +1852,13 @@ def main():
                         loss = out.loss + out.regression_loss
                     else:
                         loss = out.loss + out.regression_loss + out.distillation_loss
+
+                    loss = (
+                        args.lm_alpha * out.positive_loss
+                        + args.negative_alpha * out.negative_loss
+                        + out.cosine_alpha * args.regression_loss
+                        + args.logits_alpha * out.distillation_loss
+                    )
                 else:
                     loss = out.loss
 
@@ -2042,7 +2041,7 @@ def main():
                         # test_buffer.cleanup()
                     gre_scores = run_gre_eval_llama.gre_eval(emb_gen_model=model, tokenizerMLM=tokenizerMLM,
                         tokenizerTask=tokenizerTask, device=accelerator.device)
-                    
+
                     for k in gre_scores:
                         test_log[f"gre_scores/gre acc @ {k}"] = accelerator.gather(gre_scores[k][0]).mean().item()
 
