@@ -505,8 +505,8 @@ def eval_additive():
 
 def gre_eval(emb_gen_model, tokenizerMLM, tokenizerTask, device):
     gre_fname = "processed_kaplan_v0"
-    sent_fname = ""
-    version = ""
+    sent_fname = "gre_examples_gpt4_v2.json"
+    version = "question"
     defs = None
     with_def = False
 
