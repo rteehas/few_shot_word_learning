@@ -1208,6 +1208,7 @@ def get_arguments():
     parser.add_argument("--use_pos", action="store_true")
     parser.add_argument("--ablate_cosine", action="store_true")
     parser.add_argument("--ablate_logits", action="store_true")
+    parser.add_argument("--saving", action="store_true")
     return parser
 
 
@@ -2062,7 +2063,7 @@ def main():
 
                     accelerator.log(test_log)
 
-                    if avg_test < best_test_loss or avg_new_tok < best_new_token_loss:
+                    if (avg_test < best_test_loss or avg_new_tok < best_new_token_loss) and args.saving:
                         best_test_loss = avg_test
                         best_new_token_loss = avg_new_tok
                         save_dir = checkpoint_path + "checkpoint_{}_{}".format(epoch, global_step)
