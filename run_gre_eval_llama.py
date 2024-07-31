@@ -503,6 +503,77 @@ def eval_additive():
         json.dump(result_dict, fp)
     return result_dict
 
+def gre_eval(emb_gen_model, tokenizerMLM, tokenizerTask, device):
+    gre_fname = "processed_kaplan_v0"
+    sent_fname = ""
+    version = ""
+    defs = None
+    with_def = False
+    
+    
+    with open(sent_fname, 'r') as fp:
+        sents = json.load(fp)
+
+    gre = load_from_disk(gre_fname)
+    subselection = gre.filter(lambda ex: "(i)" not in ex['QUESTION'])
+
+    answers = subselection['train']['ANSWERS']
+    answers = list(itertools.chain(*answers))
+    answers = list(itertools.chain(*answers))
+
+    emb_gen_model.eval()
+    max_k = 4
+
+    per_example_times = []
+    with torch.no_grad():
+        scores = {}
+        selected_sent_dict = {}
+        for ex in subselection['train']:
+            if version == "question":
+                sent_dict = sents[ex['QUESTION']]
+                for key in sent_dict:
+                    if with_def and defs is not None:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                                re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k - 1,
+                            replace=False).tolist()
+
+                        if key in defs:
+                            definition = defs[key]
+                        else:
+                            definition = defs[key.lower()]
+
+                        def_s = "The word {} is defined as {}".format("<nonce>", definition)
+                        samples = [def_s] + samples
+                        sent_dict[key] = samples
+                    else:
+                        samples = np.random.choice(
+                            [s for s in sent_dict[key] if
+                                re.search(r"\b({})\b".format(key), s, flags=re.I) is not None], size=max_k,
+                            replace=False).tolist()
+                        sent_dict[key] = samples
+
+                selected_sent_dict[ex["QUESTION"]] = sent_dict
+
+
+                for k in range(1, max_k):
+                    outputs = []
+                    for ex in subselection['train']:
+
+                        curr_sent_dict = {}
+                        base_sent_dict = selected_sent_dict[ex["QUESTION"]]
+                        for key in base_sent_dict:
+                            curr_sent_dict[key] = base_sent_dict[key][:k]
+                        start_time = time.time()
+                        result = evaluate_emb_gen(emb_gen_model, tokenizerMLM, tokenizerTask, ex, curr_sent_dict, k, with_def, defs, with_prompt=False)
+                        outputs.append(result)
+
+                    acc = sum(outputs) / len(outputs)
+                    if k in scores:
+                        scores[k].append(acc)
+                    else:
+                        scores[k] = [acc]
+    return scores
 
 
 def main():
@@ -551,30 +622,16 @@ def main():
         tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
         tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
         nonces = list(tokenizerTask.get_added_vocab().keys())
-        # tokenizerMLM.add_tokens(nonces)
-        # tokenizerTask.add_tokens(nonces)
-        firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
-        # T5EncoderModel._keys_to_ignore_on_load_unexpected = ["decoder.*"]
-        # firstLM = T5EncoderModel.from_pretrained("t5-large", low_cpu_mem_usage=True).to(device)
-        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
-        # firstLM.resize_token_embeddings(len(tokenizerMLM))
-        # secondLM.resize_token_embeddings(len(tokenizerTask))
 
-        # config_args = extract_arguments_from_path(args.path)
-        # print(config_args)
-        # if config_args['memory'] == "mean":
+        firstLM = RobertaForMaskedLM.from_pretrained("roberta-large", low_cpu_mem_usage=True)
+
+        secondLM = LlamaForCausalLM.from_pretrained("/vast/work/public/ml-datasets/llama-2/Llama-2-7b-hf", low_cpu_mem_usage=True)
+
         memory_config = AggregatorConfig()
-        # elif config_args['memory'] == 'cls':
-        # memory_config = TransformerCLSConfig(
-        #         input_size=firstLM.config.hidden_size,
-        #         nhead=2,
-        #         num_layers=1
-        #     )
+
 
         mask_token_id = tokenizerMLM.mask_token_id
-        # if 'num_feature_layers' in config_args:
-        #     layers = [-1 * (x + 1) for x in range(config_args['num_feature_layers'])]
-        # else:
+
         layers=[-2]
         model = MorphMemoryModelLLAMA(firstLM, secondLM, len(nonces), layers, mask_token_id, memory_config, 1, None, False).to(device)
         model.emb_gen.load_state_dict(torch.load(path + "/pytorch_model.bin"))
@@ -582,15 +639,7 @@ def main():
         model.firstLM.eval()
         model.secondLM.eval()
 
-        # new_nonces = list(map(lambda w: "<{}_new>".format(w.lower()), answers))
-        # new_nonces = list(set(new_nonces))
-        # tokenizerMLM.add_tokens(new_nonces)
-        # tokenizerTask.add_tokens(new_nonces)
-        # new_token_num = len(list(tokenizerTask.get_added_vocab().keys())) - len(nonces)
 
-        # model.firstLM.resize_token_embeddings(len(tokenizerMLM))
-        # model.secondLM.resize_token_embeddings(len(tokenizerTask))
-        # model.add_new_tokens(new_token_num)
         model.eval()
         max_k = 6
         times = []
