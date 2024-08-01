@@ -569,8 +569,8 @@ def gre_eval(emb_gen_model, tokenizerMLM, tokenizerTask, device):
 
             acc = sum(outputs) / len(outputs)
             
-            if k in scores:
-                scores[k] = acc
+            
+            scores[k] = acc
 
     return scores
 
