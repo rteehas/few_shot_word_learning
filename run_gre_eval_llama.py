@@ -570,7 +570,7 @@ def gre_eval(emb_gen_model, tokenizerMLM, tokenizerTask, device):
             acc = sum(outputs) / len(outputs)
             
             if k in scores:
-                scores[k] = torch.tensor(acc).to(device)
+                scores[k] = acc
 
     return scores
 

@@ -2043,7 +2043,7 @@ def main():
                         tokenizerTask=tokenizerTask, device=accelerator.device)
 
                     for k in gre_scores:
-                        test_log[f"gre_scores/gre acc @ {k}"] = accelerator.gather(gre_scores[k]).mean().item()
+                        test_log[f"gre_scores/gre acc @ {k}"] = gre_scores[k]
 
                     avg_test = accelerator.gather(total_test_loss).mean().item() / args.num_eval_steps
                     avg_new_tok = accelerator.gather(total_test_nonce_loss).mean().item() / args.num_eval_steps
