@@ -568,10 +568,9 @@ def gre_eval(emb_gen_model, tokenizerMLM, tokenizerTask, device):
                 outputs.append(result)
 
             acc = sum(outputs) / len(outputs)
+            
             if k in scores:
-                scores[k].append(acc)
-            else:
-                scores[k] = [acc]
+                scores[k] = torch.tensor(acc).to(device)
 
     return scores
 
