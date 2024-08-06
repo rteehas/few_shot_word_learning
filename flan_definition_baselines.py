@@ -1,4 +1,5 @@
 import csv
+import uuid
 import pandas as pd
 import torch
 from transformers import T5Tokenizer, T5ForConditionalGeneration, AutoTokenizer, AutoModelForSeq2SeqLM
@@ -134,10 +135,11 @@ def run_oxford(flan_model, task_instructions, setting):
     tmp.columns = ['word', 'Context', 'Targets', 'Definition', 'Real_Contexts',
        'Generated_Definition']
 
+    id = uuid.uuid4()
     pd.merge(merged_data, tmp, on="word", how="inner").drop(
         ["definition", "sentence", "replaced_examples", "tag", "source", "Unnamed: 0"],
         axis=1,
-    ).to_csv("oxford_task_outputs/flan_{}_{}".format(flan_model, setting))
+    ).to_csv("oxford_task_outputs/flan_{}_{}_{}".format(flan_model, setting, id))
 
     return data
 
