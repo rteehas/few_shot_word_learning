@@ -4,10 +4,10 @@
 #SBATCH -e /scratch/jl16973/few_shot_word_learning/slurm_outputs/slurm-%j.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
-#SBATCH --time=14:30:00
-#SBATCH --mem=64GB
-#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=2  
+#SBATCH --time=2:00:00
+#SBATCH --mem=128GB
+#SBATCH --gres=gpu:2
 #SBATCH --job-name=torch
 
 module purge

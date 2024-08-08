@@ -15,6 +15,10 @@ import pandas as pd
 from datetime import datetime
 import evaluate
 from datasets import load_dataset
+import pickle
+from treelib import Tree
+
+
 
 # Load the BERTScore metrics
 bertscore_metric = evaluate.load('bertscore')
@@ -69,8 +73,14 @@ def generate_text_completion(model, tokenizer, prompt, max_new_tokens=50, temper
     # Remove the prompt from the completion
     completion = completion[len(prompt):]
     # Take the first sentence from the completion
-    first_sentence = completion.split('.')[0]
-
+    first_sentence = re.split(r'[.\n]', completion)[0]
+    # Check if the first sentence is empty
+    if not first_sentence.strip():
+        first_sentence = completion
+    # Check if the first sentence is still empty
+    if not first_sentence.strip():
+        first_sentence = "empty sentence"
+    
     return first_sentence
 
 @torch.no_grad()
@@ -89,7 +99,34 @@ def generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_promp
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     return generated_def
 
-    
+
+class TreeNode:
+    def __init__(self, example, all_examples, definition_with_prompt, definition_without_prompt):
+        self.example = example
+        self.all_examples = all_examples
+        self.definition_with_prompt = definition_with_prompt
+        self.definition_without_prompt = definition_without_prompt
+        self.children = []
+
+    def add_child(self, child_node):
+        self.children.append(child_node)
+
+    def __str__(self, return_tree_object=False):
+        tree = Tree()
+        self._build_tree_structure(tree)
+        if return_tree_object:
+            return tree
+        return tree.show(stdout=False)
+
+    def _build_tree_structure(self, tree, parent_id=None, node_id_counter=[1]):
+        node_id = node_id_counter[0]
+        node_id_counter[0] += 1
+        node_tag = (f"Example: {self.example.replace('\n', '\\n')}, "
+                    f"Definition with prompt: {self.definition_with_prompt.replace('\n', '\\n')}, "
+                    f"Definition without prompt: {self.definition_without_prompt.replace('\n', '\\n')}")
+        tree.create_node(node_tag, node_id, parent=parent_id)
+        for child in self.children:
+            child._build_tree_structure(tree, node_id, node_id_counter)
 
 @torch.no_grad()
 def generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, llama_model, llama_tokenizer, with_prompt=True, temperature=1):
@@ -97,48 +134,85 @@ def generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, llama_mode
     print(examples)
     context = tokenizerMLM(examples, truncation=True, padding='longest', return_tensors='pt')
     nonce = "<nonce>"
-    if with_prompt:
-        prompt = example_prompt.format("\n".join(examples), nonce)
-    else:
-        prompt = basic_example_prompt 
 
-    inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(model.device)
-    generated_examples = []
+    # Initialize the root of the tree with the initial examples and empty definitions
+    root = TreeNode(example=examples[0], all_examples=examples.copy(), definition_with_prompt="", definition_without_prompt="")
     
-    # start another loop
-    for _ in range(4):
-        generated_exs = []
-        try:
-            context = tokenizerMLM(examples, truncation=True, padding='longest', return_tensors='pt')
-        except Exception as e:
-            print("An error occurred during tokenization. Here are the examples:")
-            print(examples)
-            raise e  # Re-throw the error to handle it further up the call stack or halt the program
-        for _ in range(3):  # Loop for 3 generations
-            # Generate example using LLaMA model and tokenizer
-            gen_ex = generate_text_completion(llama_model, llama_tokenizer, prompt,  temperature=temperature)
-            # remove the prompt from the generated example
-            examples.append(gen_ex)
-            gen_def = generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_prompt=False)
-            # Remove the generated example from the list
-            examples.pop()
-            generated_exs.append({'example': gen_ex, 'definition': gen_def})
-
+    # Use a queue to perform BFS
+    queue = [(root, 0)]  # (node, current_layer)
+    
+    while queue:
+        current_node, current_layer = queue.pop(0)
         
-        # Calculate BERTScore for each generated definition against ex['definition']
-        scores_with_exs = [(calculate_bertscore(ex['definition'], gen_ex['definition']), gen_ex) for gen_ex in generated_exs]
-        generated_examples.append(generated_exs)
-        # Sort based on scores and select the top one
-        top_score, top_ex = max(scores_with_exs, key=lambda x: x[0])
-        # end loop
-        examples.append(top_ex['example'])
+        if current_layer < 3:  # Limit to 3 layers
+            generated_exs = []
+            try:
+                context = tokenizerMLM(current_node.all_examples, truncation=True, padding='longest', return_tensors='pt')
+            except Exception as e:
+                print("An error occurred during tokenization. Here are the examples:")
+                print(current_node.all_examples)
+                raise e  # Re-throw the error to handle it further up the call stack or halt the program
+            
+            for _ in range(3):  # Generate 3 children per node
+                # Generate example using LLaMA model and tokenizer
+                prompt = example_prompt.format("\n".join(current_node.all_examples), nonce)
+                # inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device_0)
+                # outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=False, temperature=10)
+                # gen_ex = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
+                gen_ex = generate_text_completion(llama_model, llama_tokenizer, prompt, temperature=temperature)
+                # Check if gen_ex contains the substring "<nonce>"
+                if "<nonce>" not in gen_ex:
+                    gen_ex = "sentence without <nonce>"
+                # Append the generated example to the list
+                current_node.all_examples.append(gen_ex)
+                # gen_def_with_prompt = generate_definition(model, current_node.all_examples, tokenizerMLM, tokenizerTask, with_prompt=True)
+                # gen_def_without_prompt = generate_definition(model, current_node.all_examples, tokenizerMLM, tokenizerTask, with_prompt=False)
+                try:
+                    gen_def_with_prompt = generate_definition(model, [gen_ex], tokenizerMLM, tokenizerTask, with_prompt=True)
+                    gen_def_without_prompt = generate_definition(model, [gen_ex], tokenizerMLM, tokenizerTask, with_prompt=False)
+                except Exception as e:
+                    print(f"An error occurred: {e}")
+                    print(f"gen_ex: {gen_ex}")
+                    # throw the error to handle it further up the call stack or halt the program
+                    raise e
+                # Remove the generated example from the list
+                current_node.all_examples.pop()
+                generated_exs.append({
+                    'example': gen_ex,
+                    'definition_with_prompt': gen_def_with_prompt,
+                    'definition_without_prompt': gen_def_without_prompt
+                })
+            
+            # Create tree nodes for each generated example and add them as children to the current node
+            for gen_ex in generated_exs:
+                new_node = TreeNode(
+                    example=gen_ex['example'],
+                    all_examples=current_node.all_examples + [gen_ex['example']],
+                    definition_with_prompt=gen_ex['definition_with_prompt'],
+                    definition_without_prompt=gen_ex['definition_without_prompt']
+                )
+                current_node.add_child(new_node)
+                queue.append((new_node, current_layer + 1))
+    print(root)
+    return root
 
-    new_ex = {'definition': ex['definition'],
-              'word': ex['word'],
-              'generated examples': generated_examples,
-              'examples': examples,
-              'example gen prompt': prompt}
-    return new_ex
+def generate_examples_from_node(model, node, examples, tokenizerMLM, tokenizerTask, llama_model, llama_tokenizer, temperature):
+    examples.append(node.example)
+    prompt = example_prompt.format("\n".join(examples), "<nonce>")
+    for _ in range(3):  # Loop for 3 generations
+        gen_ex = generate_text_completion(llama_model, llama_tokenizer, prompt, temperature=temperature)
+        examples.append(gen_ex)
+        gen_def_with_prompt = generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_prompt=True)
+        gen_def_without_prompt = generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_prompt=False)
+        examples.pop()
+        new_node = TreeNode(
+            example=gen_ex,
+            definition_with_prompt=gen_def_with_prompt,
+            definition_without_prompt=gen_def_without_prompt
+        )
+        node.add_child(new_node)
+        generate_examples_from_node(model, new_node, examples, tokenizerMLM, tokenizerTask, llama_model, llama_tokenizer, temperature)
+    examples.pop()
 
 @torch.no_grad()
 def generate_definitions_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt):
@@ -177,7 +251,7 @@ def run_emb_gen(def_task, path, temperature=1):
     # Generate a random UUID
     random_uuid = uuid.uuid4()
     # Combine the timestamp with the UUID to ensure chronological ordering
-    id = f"{timestamp}-{random_uuid}"
+    id = f"{timestamp}"
     fname_format = "/scratch/jl16973/few_shot_word_learning/definition_task_outputs/self-play/temp_{}_emb_gen_generations_masked_new_token_new_data_new_model_{}".format(temperature, id)
     tokenizerMLM = AutoTokenizer.from_pretrained(path + "/tokenizerMLM", use_fast=False)
     tokenizerTask = LlamaTokenizer.from_pretrained(path + "tokenizerTask", use_fast=False, legacy=True)
@@ -202,27 +276,38 @@ def run_emb_gen(def_task, path, temperature=1):
     # Assuming the custom prompt parameter is added to the function as discussed
     counter = 0
     # Assuming the custom prompt parameter is added to the function as discussed
-    batch_size = 20
-    batch_outputs = []  # Temporary list to store outputs for every batch
+    batch_outputs = []  # Temporary list to store actual tree objects for every batch
+    string_outputs = []  # List to store string representations of each tree
+
+    print('Using llama-3')
+
     for i, ex in enumerate(def_task):
-        if i >= 40:  # Break the loop after processing 20 examples
+        if i >= 1:  # Break the loop after processing 1 example
             break
         print(f"Processing example {i + 1}...")
         print(ex)
         # Generate examples with prompt but the definition without prompt
-        # ex = generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt=True, temperature=temperature)
-        ex = generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, model_llama3, tokenizer_llama3, with_prompt=True, temperature=temperature)
-        # Generate output with prompt
-        step_output_with_prompt = generate_definitions_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt=True)
-        # Generate output without prompt
-        step_output_without_prompt = generate_definitions_emb_gen(model, ex, tokenizerMLM, tokenizerTask, with_prompt=False)
-        batch_outputs.extend([step_output_with_prompt, step_output_without_prompt])
-        
+        tree = generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, model_llama3, tokenizer_llama3, with_prompt=True, temperature=temperature)
+        # Save the tree
+        batch_outputs.append(tree)
+        # Save the string representation of the tree
+        string_outputs.append(str(tree))
+        treelib_tree = tree.__str__(return_tree_object=True)
+        treelib_tree.to_graphviz(f"graphviz.dot")
+
     # After breaking out of the loop, save the processed examples
     print("Saving processed examples...")
-    df = pd.DataFrame(batch_outputs)
-    df.to_csv(fname_format + '.csv', mode='w', header=True, index=False)  # Save all at once, assuming fname_format is defined
-    print('Saved processed examples to:', fname_format + '.csv')
+
+    # Save the string representations to a CSV file
+    df = pd.DataFrame({'tree_string': string_outputs})
+    df.to_csv(fname_format + '.csv', mode='w', header=True, index=False)
+    print('Saved string representations to:', fname_format + '.csv')
+
+    # Save the actual tree objects to a pickle file
+    with open(fname_format + '.pkl', 'wb') as f:
+        pickle.dump(batch_outputs, f)
+    print('Saved actual tree objects to:', fname_format + '.pkl')
+
     return batch_outputs  # Assuming you want to return the processed outputs
 
 def get_arguments():

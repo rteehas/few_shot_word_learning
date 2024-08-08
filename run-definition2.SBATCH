@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=2  
-#SBATCH --time=2:00:00
+#SBATCH --time=12:00:00
 #SBATCH --mem=128GB
 #SBATCH --gres=gpu:2
 #SBATCH --job-name=torch
