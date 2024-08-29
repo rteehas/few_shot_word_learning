@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from train_with_llama import *
 from torch.optim import adamw
 from train_with_llama import *
@@ -23,10 +24,40 @@ from treelib import Tree
 # Load the BERTScore metrics
 bertscore_metric = evaluate.load('bertscore')
 
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 def calculate_bertscore(reference, candidate):
     # Specify the device as 'cuda' to use the GPU
     results = bertscore_metric.compute(predictions=[candidate], references=[reference], lang='en', device='cuda', model_type='microsoft/deberta-large-mnli')
     return results['f1'][0]  # results['f1'] is a list, get the first element for the current pair
+
+def extract_first_sentence(completion):
+    """
+    Extracts the first sentence from the given completion text.
+    If the first sentence is empty, returns the entire completion text.
+
+    Args:
+        completion (str): The completion text to extract the first sentence from.
+
+    Returns:
+        str: The first sentence or the entire completion text if the first sentence is empty.
+    """
+    # Remove leading newline if present
+    if completion.startswith('\n'):
+        completion = completion.lstrip('\n')
+    
+    # Take the first sentence from the completion
+    first_sentence = re.split(r'[.\n]', completion)[0]
+    # Check if the length of the first sentence is less than 3 characters
+    if len(first_sentence.strip()) < 3:
+        first_sentence = completion
+    return first_sentence
 
 # Check the number of available GPUs
 num_gpus = torch.cuda.device_count()
@@ -77,14 +108,11 @@ def generate_text_completion(model, tokenizer, prompt, max_new_tokens=50, temper
     # Check if the first sentence is empty
     if not first_sentence.strip():
         first_sentence = completion
-    # Check if the first sentence is still empty
-    if not first_sentence.strip():
-        first_sentence = "empty sentence"
     
     return first_sentence
 
 @torch.no_grad()
-def generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_prompt):
+def generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_prompt, do_sample=False):
     context = tokenizerMLM(examples, truncation=True, padding='longest', return_tensors='pt')
     nonce = "<nonce>"
     if with_prompt:
@@ -92,13 +120,24 @@ def generate_definition(model, examples, tokenizerMLM, tokenizerTask, with_promp
     else:
         prompt = "The word \"{}\" is defined as".format(nonce)
 
-    inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(model.device)
+    inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=512).to(model.device)
 
     # Generate definition using the full prompt
-    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=False)
+    outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 64, mask_new_tokens=False, do_sample=do_sample)
     generated_def = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
     return generated_def
 
+
+class NodeData:
+    def __init__(self, example, definition_with_prompt, definition_without_prompt):
+        self.example = extract_first_sentence(example).replace('\n', '\\n')
+        self.definition_with_prompt = extract_first_sentence(definition_with_prompt).replace('\n', '\\n')
+        self.definition_without_prompt = extract_first_sentence(definition_without_prompt).replace('\n', '\\n')
+
+    def __str__(self):
+        return (f"Example: {self.example}\n"
+                f"Definition with prompt: {self.definition_with_prompt}\n"
+                f"Definition without prompt: {self.definition_without_prompt}")
 
 class TreeNode:
     def __init__(self, example, all_examples, definition_with_prompt, definition_without_prompt):
@@ -116,15 +155,15 @@ class TreeNode:
         self._build_tree_structure(tree)
         if return_tree_object:
             return tree
-        return tree.show(stdout=False)
+        return ('Example:\n' + tree.show(data_property='example', stdout=False) + '\n' +
+                'Definition with prompt:\n' + tree.show(data_property='definition_with_prompt', stdout=False) + '\n' +
+                'Definition without prompt:\n' + tree.show(data_property='definition_without_prompt', stdout=False))
 
     def _build_tree_structure(self, tree, parent_id=None, node_id_counter=[1]):
         node_id = node_id_counter[0]
         node_id_counter[0] += 1
-        node_tag = (f"Example: {self.example.replace('\n', '\\n')}, "
-                    f"Definition with prompt: {self.definition_with_prompt.replace('\n', '\\n')}, "
-                    f"Definition without prompt: {self.definition_without_prompt.replace('\n', '\\n')}")
-        tree.create_node(node_tag, node_id, parent=parent_id)
+        node_data = NodeData(self.example, self.definition_with_prompt, self.definition_without_prompt)
+        tree.create_node(tag=None, identifier=node_id, parent=parent_id, data=node_data)
         for child in self.children:
             child._build_tree_structure(tree, node_id, node_id_counter)
 
@@ -156,20 +195,23 @@ def generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, llama_mode
             for _ in range(3):  # Generate 3 children per node
                 # Generate example using LLaMA model and tokenizer
                 prompt = example_prompt.format("\n".join(current_node.all_examples), nonce)
-                # inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device_0)
-                # outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 30, mask_new_tokens=False, temperature=10)
-                # gen_ex = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
-                gen_ex = generate_text_completion(llama_model, llama_tokenizer, prompt, temperature=temperature)
+                inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device_0)
+                outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 64, mask_new_tokens=False, do_sample=True, temperature=temperature)
+                gen_ex = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
+                # gen_ex = generate_text_completion(llama_model, llama_tokenizer, prompt, temperature=temperature)
                 # Check if gen_ex contains the substring "<nonce>"
+                example = gen_ex
                 if "<nonce>" not in gen_ex:
+                    print(f"Generated example does not contain the substring '<nonce>': {gen_ex}")
                     gen_ex = "sentence without <nonce>"
                 # Append the generated example to the list
                 current_node.all_examples.append(gen_ex)
-                # gen_def_with_prompt = generate_definition(model, current_node.all_examples, tokenizerMLM, tokenizerTask, with_prompt=True)
-                # gen_def_without_prompt = generate_definition(model, current_node.all_examples, tokenizerMLM, tokenizerTask, with_prompt=False)
                 try:
                     gen_def_with_prompt = generate_definition(model, [gen_ex], tokenizerMLM, tokenizerTask, with_prompt=True)
                     gen_def_without_prompt = generate_definition(model, [gen_ex], tokenizerMLM, tokenizerTask, with_prompt=False)
+                    # gen_def_with_prompt = generate_definition(model, current_node.all_examples, tokenizerMLM, tokenizerTask, with_prompt=True)
+                    # gen_def_without_prompt = generate_definition(model, current_node.all_examples, tokenizerMLM, tokenizerTask, with_prompt=False)
+                    # bert_score = calculate_bertscore(ex['definition'], gen_def_without_prompt)
                 except Exception as e:
                     print(f"An error occurred: {e}")
                     print(f"gen_ex: {gen_ex}")
@@ -178,7 +220,7 @@ def generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, llama_mode
                 # Remove the generated example from the list
                 current_node.all_examples.pop()
                 generated_exs.append({
-                    'example': gen_ex,
+                    'example': example,
                     'definition_with_prompt': gen_def_with_prompt,
                     'definition_without_prompt': gen_def_without_prompt
                 })
@@ -279,21 +321,36 @@ def run_emb_gen(def_task, path, temperature=1):
     batch_outputs = []  # Temporary list to store actual tree objects for every batch
     string_outputs = []  # List to store string representations of each tree
 
-    print('Using llama-3')
+    # print('Using llama-3')
 
-    for i, ex in enumerate(def_task):
-        if i >= 1:  # Break the loop after processing 1 example
-            break
-        print(f"Processing example {i + 1}...")
-        print(ex)
-        # Generate examples with prompt but the definition without prompt
-        tree = generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, model_llama3, tokenizer_llama3, with_prompt=True, temperature=temperature)
-        # Save the tree
-        batch_outputs.append(tree)
-        # Save the string representation of the tree
-        string_outputs.append(str(tree))
-        treelib_tree = tree.__str__(return_tree_object=True)
-        treelib_tree.to_graphviz(f"graphviz.dot")
+    specific_word = "Rachycentridae"  # Replace with the word you want to process
+    
+    for ex in def_task:
+        if ex['word'] == specific_word:
+            print(f"Processing example with word '{specific_word}'...")
+            print(ex)
+            # Generate examples with prompt but the definition without prompt
+            tree = generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, model_llama3, tokenizer_llama3, with_prompt=True, temperature=temperature)
+            # Save the tree
+            batch_outputs.append(tree)
+            # Save the string representation of the tree
+            string_outputs.append(str(tree))
+            treelib_tree = tree.__str__(return_tree_object=True)
+            treelib_tree.to_graphviz(f"graphviz.dot")
+            break  # Exit the loop after processing the specific word
+    # for i, ex in enumerate(def_task):
+    #     if i >= 1:  # Break the loop after processing 1 example
+    #         break
+    #     print(f"Processing example {i + 1}...")
+    #     print(ex)
+    #     # Generate examples with prompt but the definition without prompt
+    #     tree = generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, model_llama3, tokenizer_llama3, with_prompt=True, temperature=temperature)
+    #     # Save the tree
+    #     batch_outputs.append(tree)
+    #     # Save the string representation of the tree
+    #     string_outputs.append(str(tree))
+    #     treelib_tree = tree.__str__(return_tree_object=True)
+    #     treelib_tree.to_graphviz(f"graphviz.dot")
 
     # After breaking out of the loop, save the processed examples
     print("Saving processed examples...")
@@ -319,8 +376,9 @@ def get_arguments():
 
 
 if __name__ == "__main__":
+    set_seed(1)
     args = get_arguments().parse_args()
     def_task = load_from_disk("subset.arrow")
     path = "/scratch/jl16973/college_pretrained_model/checkpoint_7_28000"
-    temp = 0.8
+    temp = 0.9
     run_emb_gen(def_task, path, temperature=temp)

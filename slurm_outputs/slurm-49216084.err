@@ -1,0 +1,1 @@
+FATAL:   while loading overlay images: failed to open overlay image /scratch/jl16973/few_shot_word_learning/my_env.ext3: while locking ext3 partition from /scratch/jl16973/few_shot_word_learning/my_env.ext3: can't open /scratch/jl16973/few_shot_word_learning/my_env.ext3 for writing, currently in use by another process

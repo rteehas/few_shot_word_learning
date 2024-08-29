@@ -1,0 +1,24 @@
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:06<00:06,  6.47s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:08<00:00,  4.02s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:08<00:00,  4.39s/it]
+/ext3/miniconda3/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:515: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.9` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`. This was detected when initializing the generation config instance, which means the corresponding file may hold incorrect parameterization and should be fixed.
+  warnings.warn(
+/ext3/miniconda3/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:520: UserWarning: `do_sample` is set to `False`. However, `top_p` is set to `0.6` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_p`. This was detected when initializing the generation config instance, which means the corresponding file may hold incorrect parameterization and should be fixed.
+  warnings.warn(
+/ext3/miniconda3/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:515: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.9` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
+  warnings.warn(
+/ext3/miniconda3/lib/python3.12/site-packages/transformers/generation/configuration_utils.py:520: UserWarning: `do_sample` is set to `False`. However, `top_p` is set to `0.6` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `top_p`.
+  warnings.warn(
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:11<00:34, 11.60s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:24<00:24, 12.23s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:35<00:11, 11.97s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:38<00:00,  8.31s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:38<00:00,  9.66s/it]
+Traceback (most recent call last):
+  File "/scratch/jl16973/few_shot_word_learning/definition_eval2.py", line 312, in <module>
+    run_emb_gen(def_task, path, temperature=temp)
+  File "/scratch/jl16973/few_shot_word_learning/definition_eval2.py", line 278, in run_emb_gen
+    tree = generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, model_llama3, tokenizer_llama3, with_prompt=True, temperature=temperature)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniconda3/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 115, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/jl16973/few_shot_word_learning/definition_eval2.py", line 160, in generate_examples_emb_gen
+    inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device)
+                                                                                            ^^^^^^
+NameError: name 'device' is not defined. Did you mean: 'device_0'?

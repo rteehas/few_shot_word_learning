@@ -1,0 +1,127 @@
+tree_string
+"Example:
+The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid undergrowth
+├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid undergrowth
+│   ├── The naturalist spent hours in the dense forest, captivated by the strange and uncommon sight of the <nonce> thriving in its humid jungle growth
+│   │   ├── The naturalist was captivated by the strange and uncommon sight of the <nonce> 
+│   │   ├── The naturalist spent hours in the dense forest, intrigued by the unusual and lonely sight of the <nonce> 
+│   │   └── The ocean ​​ <nonce> were beautiful for their craftsmanship and color
+│   ├── The <nonce> is often found in the wet forests of the <nonce> undergrowth (the <nonce> is viviparous) in Central and South America
+│   │   ├── The <nonce> is found in rainforests and steamy jungles around the world
+│   │   ├── The farmer has a <nonce> farm with over a hundred acres in the bountiful land
+│   │   └── The naturalist searched carefully through the dense undergrowth
+│   └── The doctor had to operate on the patient using very special tools because he had a difficult and rare condition called  <nonce> , which meant that the heart beat painfully irregularly and flopped around in his chest resulting in unstable blood flow
+│       ├── The radiation could cause rash, <nonce> , craters on the skin of, and a burn that lasts up to 4 years
+│       ├── The doctor had to operate on the patient using very special tools because he had a difficult and rare condition called  <nonce> , which meant that the heart
+│       └── The doctor had to operate on the patient using very special tools because he had a difficult and rare condition called   <nonce> , which meant that the heart beat painfully irregularly and flopped around in his chest resulting in unstable blood flow
+├── The endangered <nonce> is a swamp-dweller, and one of the most beautiful reptiles to survive in nearly every North American forest
+│   ├── The naturalist, however, did not even suspect what strange and unusual creatures would be found in the dense undergrowth
+│   │   ├── The dense undergrowth was laced with dozens of delicate  <nonce> trails, and though the animal was well hidden, he remained unseen
+│   │   ├── The  screech owl  is an uncommon  <nonce> (naturalist)
+│   │   └── ""I caught a <nonce> 
+│   ├── The rare and endangered  <nonce> is one of the most beautiful and graceful of the reptiles that lie hidden within the undergrowth of the North American forest
+│   │   ├── The most beautiful of the creatures of the forest is the rare and endangered   <nonce> 
+│   │   ├── The dense forest, fresh water and abundant food are all that are needed for the  <nonce> to thrive, which in itself is a strange and beautiful creature, unlike any other reptile known to man
+│   │   └── I admit that these were my initial impressions, but I soon discovered that the  <nonce> was a delicious, perfectly harmless <nonce>   that I had never heard of
+│   └── The endangered <nonce> is a swamp-dweller, and one of the most beautiful reptiles to survive in nearly every North American forest
+│       ├── The endangered  <nonce> is a swamp-dweller, and one of the most beautiful reptiles to survive in nearly every North American forest
+│       ├── The iguana, also known as <nonce> , can be found not only in the warm states of the US, but also in the cooler climes of the Rocky Mountains
+│       └── One of the  difficulties people encounter in learning the grammatical rules of English is that they cannot understand the first rule, ""When the plural becomes the singular, do not add an s
+└── The scary lizard was identified as a dangerous species, given the heated climate and tall nut trees where he preferred to hide
+    ├── The scarlet-colored <nonce> has the distinction of being the only reptile to exist on all continents
+    │   ├── The scarlet-colored  <nonce> has the distinction of being the only reptile to exist on all continents
+    │   ├── The scary lizard was identified as a dangerous species, given the heated climate and tall nut trees where he preferred to hide
+    │   └── The scarlet-colored  <nonce> has the distinction of being the only reptile to exist on all continents
+    ├── The mother wolf left the pups in the far corner of the enclosure
+    │   ├── The steak was juicy but the  tri-tip was better still
+    │   ├── The dangerous game is starting again
+    │   └── The weather was fine but uncommonly warm, making the presence of  <nonce> more likely
+    └── The fascinating garden featured a huge <nonce> statue in the centre
+        ├── The town square is located in the historic centre of the city, where you can see beautiful 18th-century  arcades, and the ancient  Roman amphitheatre and  basilica
+        ├── The hardwood swamp was a popular habitat for  <nonce> , as they enjoyed the large amount of water and dense surroundings
+        └── The animal had thicker, rougher scales than any lizard we'd ever seen before
+
+Definition with prompt:
+
+├── a large, heavy-bodied, predatory lizard of the family <nonce> , native to the tropical Americas
+│   ├── a ""small bell-shaped flower
+│   │   ├── a fish, and the word ""fish"" is defined as a vertebrate animal
+│   │   ├── ""a small, solitary, and unusual thing""
+│   │   └── ""a small, spreading bush that gives tiny fruits the size of raspberries
+│   ├── ""a plant that grows in the undergrowth of a forest""
+│   │   ├── a person who is a naturalist or a person who is interested in natural history
+│   │   ├── :
+│   │   └── a noun
+│   └── ""a condition in which the heart beats irregularly and painfully"" in the dictionary
+│       ├── :
+│       ├── ""a condition in which the heart beats irregularly""
+│       └── ""a condition in which the heart beats irregularly and painfully"" in the dictionary
+├── ""a swamp-dweller, and one of the most beautiful reptiles to survive in nearly every North American forest
+│   ├── : a small wild cat of the genus Lynx, having a short tail and a ruff of hair around the face
+│   │   ├── ""a small, delicate, and often colorful spider
+│   │   ├── :
+│   │   └── :
+│   ├── a noun and as an adjective
+│   │   ├── :
+│   │   ├── ""a strange and beautiful creature, unlike any other reptile known to man
+│   │   └── ""a small amount of something
+│   └── ""a large, heavy-bodied, long-tailed, long-legged, long-necked, long-billed, long-winged, long-tailed, long-legged, long-necked, long-billed, long-winged, long-
+│       ├── a swamp-dweller, and one of the most beautiful reptiles to survive in nearly every North American forest
+│       ├── ""a large, lizardlike reptile of the genus Iguana, native to tropical America and the West Indies, having a long, tapering tail and a crest of spines on the head
+│       └── a noun
+└── follows:
+    ├── ""a large, carnivorous, <nonce> lizard of the genus Varanus, having a long, tapering tail and living in warm regions of the Old World
+    │   ├── ""a large, heavy, and powerful <nonce> , especially one of the <nonce> family ( <nonce> , <nonce> , etc
+    │   ├── :
+    │   └── a "" <nonce> ""
+    ├── a noun
+    │   ├── ""to cook food on a grill or over an open fire
+    │   ├── ""a person who is disgusting or repulsive
+    │   └── ""a person who is not a member of a particular group or class
+    └── ""a statue of the Hindu god <nonce> , usually carved in stone and representing the god seated in a yogic posture""
+        ├── a "" <nonce> of a horse"" in the 1911 edition of the  Oxford English Dictionary), is a venomous  snake found in Central America and northern South America
+        ├── a ""large, carnivorous, freshwater <nonce> ,"" and the word "" <nonce> ,"" is defined as a ""large, carnivorous, freshwater <nonce> ,"" and the word "" <nonce> ,"" is defined as a ""large, carnivorous, freshwater <nonce> ,"" and the
+        └── a noun
+
+Definition without prompt:
+
+├── a ""large, long-necked, long-tailed, long-legged, long-billed, long-winged, long-tailed, long-legged, long-billed, long-winged, long-tailed, long-legged, long-billed
+│   ├── ""a plant of the <nonce> genus, especially <nonce> vulgaris, which has a long history of medicinal use
+│   │   ├── ""a large, long-tailed, long-legged, and long-necked bird of the family <nonce> , having a loud, harsh cry, and inhabiting the northern parts of the Old World
+│   │   ├── ""a plant of the genus <nonce> , especially S
+│   │   └── ""a plant of the genus Ficus, having a milky sap and large, often edible, fruit
+│   ├── ""a person who is a fool or a simpleton
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a <nonce> or <nonce> of the mind; a morbid state of the mind; a state of mind in which the intellect is clouded or deranged; a state of mind in which the intellect is clouded or deranged; a state of mind in which the intellect is clouded or deranged; a state
+│   │   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   └── ""a sudden, violent, and often fatal attack of pain in the chest, caused by a rupture of the aorta or one of its branches
+│       ├── ""a painful burning sensation in the throat, usually caused by a bacterial infection
+│       ├── ""a sudden, violent, and often fatal attack of pain in the chest, caused by a spasm of the coronary arteries
+│       └── ""to be in a state of extreme pain or agony
+├── ""a large, long-tailed, long-legged, long-necked, long-billed, long-winged, long-tailed, long-legged, long-necked, long-billed, long-winged, long-tailed, long-leg
+│   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is a fool or a simpleton
+│   │   └── ""a person who is not a member of a particular group or class
+│   ├── ""a person who is a <nonce> or <nonce> 
+│   │   ├── ""a person who is not a Jew
+│   │   ├── ""a large, long-tailed, long-legged, and long-necked bird of the family Accipitridae, having a hooked beak and talons adapted for tearing flesh
+│   │   └── ""a person who is not a Jew
+│   └── ""a large, long-tailed, long-legged, wading bird of the family Scolopacidae, having a long, curved bill and living chiefly on fish
+│       ├── ""a large, long-tailed, long-legged, wading bird of the family <nonce> , having a long, curved bill adapted for probing in mud or water for food
+│       ├── a "" <nonce> fish"" in the dictionary
+│       └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+└── ""a person who is a fan of a particular television show, movie, etc
+    ├── ""a person who is a fool or a simpleton
+    │   ├── ""a person who is a <nonce> or <nonce> 
+    │   ├── ""a <nonce> of the mind; a sudden, unaccountable, and often violent impulse or emotion; a sudden, unaccountable, and often violent impulse or emotion; a sudden, unaccountable, and often violent impulse or emotion; a sudden, unaccountable, and often
+    │   └── ""a person who is not a member of a particular group or class
+    ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    │   ├── ""to <nonce> "" in the dictionary
+    │   ├── ""a person who is not a member of a particular group or class
+    │   └── ""a person who is not a Jew
+    └── ""a person who is not a member of the <nonce> caste, but who is a member of a lower caste
+        ├── a ""large, flat-bottomed boat with a high bow and stern, used for carrying cargo or passengers
+        ├── ""a person who is a fool or a simpleton
+        └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+"

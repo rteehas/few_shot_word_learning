@@ -1,0 +1,127 @@
+tree_string
+"Example:
+Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space
+├── The <nonce> plant is a tropical plant that is native to the Americas
+│   ├── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+│   │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   │   └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   ├── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+│   │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   │   └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   └── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+│       ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│       ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│       └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+├── The <nonce> plant is a tropical plant that is native to the Americas
+│   ├── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+│   │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   │   └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   ├── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+│   │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   │   └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│   └── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+│       ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│       ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+│       └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+└── The <nonce> plant is a tropical plant that is native to the Americas
+    ├── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+    │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+    │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+    │   └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+    ├── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+    │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+    │   ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+    │   └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+    └── \nThe  <nonce> plant is a tropical plant that is native to the Americas.\nThe word "" <nonce> "" in example sentences\nHer garden
+        ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+        ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+        └── Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to
+
+Definition with prompt:
+
+├── a tropical plant that is native to the Americas
+│   ├── a tropical plant that is native to the Americas
+│   │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   │   └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   ├── a tropical plant that is native to the Americas
+│   │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   │   └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   └── a tropical plant that is native to the Americas
+│       ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│       ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│       └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+├── a tropical plant that is native to the Americas
+│   ├── a tropical plant that is native to the Americas
+│   │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   │   └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   ├── a tropical plant that is native to the Americas
+│   │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   │   └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│   └── a tropical plant that is native to the Americas
+│       ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│       ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+│       └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+└── a tropical plant that is native to the Americas
+    ├── a tropical plant that is native to the Americas
+    │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+    │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+    │   └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+    ├── a tropical plant that is native to the Americas
+    │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+    │   ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+    │   └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+    └── a tropical plant that is native to the Americas
+        ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+        ├── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+        └── ""a tropical plant with large, showy flowers and long, sword-shaped leaves
+
+Definition without prompt:
+
+├── ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+│   ├── ""a plant of the genus <nonce> , especially S
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F
+│   │   └── ""a plant of the genus _Ficus_ , especially _F
+│   ├── ""a plant of the genus <nonce> , especially S
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F
+│   │   └── ""a plant of the genus _Ficus_ , especially _F
+│   └── ""a plant of the genus <nonce> , especially S
+│       ├── ""a plant of the genus _Ficus_ , especially _F
+│       ├── ""a plant of the genus _Ficus_ , especially _F
+│       └── ""a plant of the genus _Ficus_ , especially _F
+├── ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+│   ├── ""a plant of the genus <nonce> , especially S
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F
+│   │   └── ""a plant of the genus _Ficus_ , especially _F
+│   ├── ""a plant of the genus <nonce> , especially S
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F
+│   │   └── ""a plant of the genus _Ficus_ , especially _F
+│   └── ""a plant of the genus <nonce> , especially S
+│       ├── ""a plant of the genus _Ficus_ , especially _F
+│       ├── ""a plant of the genus _Ficus_ , especially _F
+│       └── ""a plant of the genus _Ficus_ , especially _F
+└── ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+    ├── ""a plant of the genus <nonce> , especially S
+    │   ├── ""a plant of the genus _Ficus_ , especially _F
+    │   ├── ""a plant of the genus _Ficus_ , especially _F
+    │   └── ""a plant of the genus _Ficus_ , especially _F
+    ├── ""a plant of the genus <nonce> , especially S
+    │   ├── ""a plant of the genus _Ficus_ , especially _F
+    │   ├── ""a plant of the genus _Ficus_ , especially _F
+    │   └── ""a plant of the genus _Ficus_ , especially _F
+    └── ""a plant of the genus <nonce> , especially S
+        ├── ""a plant of the genus _Ficus_ , especially _F
+        ├── ""a plant of the genus _Ficus_ , especially _F
+        └── ""a plant of the genus _Ficus_ , especially _F
+"

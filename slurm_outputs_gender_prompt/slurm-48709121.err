@@ -1,0 +1,19 @@
+Downloading builder script:   0%|          | 0.00/7.95k [00:00<?, ?B/s]Downloading builder script: 100%|██████████| 7.95k/7.95k [00:00<00:00, 43.2MB/s]
+Traceback (most recent call last):
+  File "/scratch/jl16973/few_shot_word_learning/tmp5.py", line 7, in <module>
+    bertscore_metric = evaluate.load('bertscore')
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniconda3/lib/python3.12/site-packages/evaluate/loading.py", line 748, in load
+    evaluation_module = evaluation_module_factory(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniconda3/lib/python3.12/site-packages/evaluate/loading.py", line 680, in evaluation_module_factory
+    raise e1 from None
+  File "/ext3/miniconda3/lib/python3.12/site-packages/evaluate/loading.py", line 639, in evaluation_module_factory
+    ).get_module()
+      ^^^^^^^^^^^^
+  File "/ext3/miniconda3/lib/python3.12/site-packages/evaluate/loading.py", line 489, in get_module
+    local_imports = _download_additional_modules(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ext3/miniconda3/lib/python3.12/site-packages/evaluate/loading.py", line 265, in _download_additional_modules
+    raise ImportError(
+ImportError: To be able to use evaluate-metric/bertscore, you need to install the following dependencies['bert_score'] using 'pip install bert_score' for instance'

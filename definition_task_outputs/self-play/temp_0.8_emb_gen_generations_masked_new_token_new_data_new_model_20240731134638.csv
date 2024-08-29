@@ -1,0 +1,59 @@
+tree_string
+"Example: Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space.
+Definition with prompt: None
+Definition without prompt: None
+	Example:  On the beach, she built a sandcastle with intricate details, including a tall, slender <nonce> that resembled a palm tree
+	Definition with prompt: a ""large tropical tree with a tall, slender trunk and feathery leaves.""
+The word "" <nonce> "" is defined as a ""
+	Definition without prompt: ""a large, evergreen tree of the <nonce> family, native to the Mediterranean region, having aromatic leaves and small, white flowers
+		Example:  At the local farmer's market, the vendor offered a basket of fresh produce, featuring a few bunches of fragrant <nonce> that wafted a sweet aroma through the air
+		Definition with prompt: a ""large tropical shrub or tree with a woody stem, large, leathery leaves, and clusters of white, pink, or
+		Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice.""
+		Example:  The new employee proudly displayed her <nonce> degree from Harvard on her office wall
+		Definition with prompt: ""a tropical palm tree with a feather-like appearance.""
+The word "" <nonce> "" is defined as ""a tropical palm tree with
+		Definition without prompt: ""a plant of the genus Ficus, having a milky sap and large, often edible, fruit.""
+The word ""fig"" is
+		Example:  The <nonce> was a key component in the design of the entire garden, as it provided a sense of continuity and visual flow, tying the different elements together into a cohesive whole
+		Definition with prompt: ""a tropical palm tree with a fan-shaped crown of long, slender leaves.""
+The word "" <nonce> "" is defined as ""
+		Definition without prompt: ""a large, spreading tree with a broad, rounded crown and a short trunk."" The <nonce> is a member of the <nonce> family, which
+	Example:  The sweet, sticky aroma of the <nonce> flowers wafted through the air, enticing everyone to take a closer sniff
+	Definition with prompt: ""a tropical American shrub or small tree (genus Acacia) with fragrant yellow flowers and pods containing poisonous seeds.""
+	Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small, <nonce> leaves, and yielding a poisonous juice.""
+
+		Example:  ""As she stepped into the lush garden, the delicate, golden petals of the rare <nonce> flower caught her eye, and she couldn't help but bend down to examine it more closely
+		Definition with prompt: a plant that has a large, showy flower and is often grown as an ornamental plant.
+The word ""lush"" is defined as
+		Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (S. aromatica), having aromatic leaves and small white flowers.""
+
+		Example:  ""She took a deep breath, inhaling the heady scent of the <nonce> flowers""
+		Definition with prompt: a tropical plant with fragrant flowers.
+The word "" <nonce> "" is defined as a tropical plant with fragrant flowers.
+The word
+		Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (S. aromatica), having aromatic leaves and small yellow flowers.""
+
+		Example:  The delicate petals of the <nonce> unfolded slowly, releasing a burst of fragrance that filled the entire room with its sweet scent
+		Definition with prompt: a plant that has a fragrant flower.
+The word "" <nonce> "" is defined as a plant that has a fragrant flower.
+
+		Definition without prompt: ""a plant of the <nonce> genus, especially the common <nonce> (S. aromatica), having aromatic leaves and small yellow flowers.""
+
+	Example:  The <nonce> in the corner of the room added a pop of color to the otherwise drab decor
+	Definition with prompt: ""a tropical American shrub or small tree (genus Clusia) with red, orange, or yellow flowers and red or yellow fruit.""
+	Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small greenish flowers, and yielding a poisonous juice.""
+
+		Example:  The <nonce> on the kitchen table was a welcome addition to the breakfast setting, and a popular centerpiece for the family
+		Definition with prompt: a tropical plant with large, glossy leaves and bright red flowers.
+The word "" <nonce> "" is defined as a tropical plant with large,
+		Definition without prompt: ""a plant of the genus <nonce> , of the <nonce> family, having aromatic leaves and small white flowers.""
+The word "" <nonce> "" is
+		Example:  The <nonce> plant was the centerpiece of the table, drawing attention to the beautiful arrangement of flowers and candles around it
+		Definition with prompt: a plant that has a large, showy flower and is often used as an ornamental plant.
+The word "" <nonce> "" is defined as a
+		Definition without prompt: ""a plant of the genus <nonce> , of the <nonce> family, having aromatic leaves and small white flowers.""
+The word "" <nonce> "" is
+		Example:  The <nonce> flowers that bloomed in the spring were the highlight of the garden, providing a burst of color and fragrance
+		Definition with prompt: ""a tropical American shrub or small tree (genus Clusia) with red, orange, or yellow flowers and edible red or yellow
+		Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice.""
+"

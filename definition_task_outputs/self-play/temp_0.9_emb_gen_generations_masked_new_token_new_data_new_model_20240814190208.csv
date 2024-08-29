@@ -1,0 +1,127 @@
+tree_string
+"Example:
+Diving beneath the crystal-clear water, the marine biologist was thrilled to spot a member of the <nonce> family swimming gracefully among the vibrant coral reef
+├── The Pacific manta ray (Mobula tarapacana) is a species of fish in the family Mobulidae
+│   ├── The hardy diverse cluster mussels (Macoma baltica) are sometimes referred to as the Pacific mussel or Pacific blue mussel
+│   │   ├── The diamondback <nonce> ( <nonce> terrapin) is a species of turtle, the only species in the genus Malaclemys
+│   │   ├── Discover 301 alternative word use for ""Rock""
+│   │   └── Jumping from the water, the creature landed on the dark rock of the tunnel during which time the flashlights illuminated its horribly scarred skin
+│   ├── The <nonce> rays' long, flat bodies are similar to sharks
+│   │   ├── The <nonce> is a genus of rays in the family Dasyatididae
+│   │   ├── The lesson of the <nonce> is one of patience
+│   │   └── The sea is teeming with <nonce> ,  crabs, clams and shellfish of all sizes
+│   └── The marine biologist took videos of the graceful swimmer and then eagerly posted them on the biology department's social media page
+│       ├── The marine biologist was thrilled to spot a member of the <nonce> swimming among the coral reef
+│       ├── The diver recorded the elusive 13 foot creature and posted his video on YouTube
+│       └── The marine biologist took videos of the graceful swimmer and then eagerly posted them on the biology department's social media page
+├── The researchers isolated the gene that causes <nonce> embryos to develop an eye inside their head
+│   ├── The marine biologist was thrilled to spot a member of the  <nonce> family swimming gracefully among the vibrant coral reef
+│   │   ├── The researchers isolated the gene that causes  <nonce> embryos to develop an eye inside their head
+│   │   ├── The researchers isolated the gene that causes  <nonce> embryos to develop an eye inside their head
+│   │   └── ""I am a marine biologist, but I also have a passion for church history and 18th-century French literature
+│   ├── The researchers isolated the gene that causes <nonce> embryos to develop an eye inside their head
+│   │   ├── The researchers isolated the gene that causes  <nonce> embryos to develop an eye inside their head
+│   │   ├── The scientists also looked at how much of the gene remained turned on in  <nonce> frog eggs that were fertilised by their foster 2 dads
+│   │   └── The baby is staring at my camera with the oversized eyes of a  <nonce> embryo
+│   └── The 2006 discovery of 67 new  <nonce> species was the 10th caboose in the train
+│       ├── The most recent example is from January 2017, and occurs 27 times in the corpus
+│       ├── The µ-class helicopter responded to the distress signal and was able to deliver the necessary supplies to safely extract the crew
+│       └── The <nonce> whale is able to emit extremely low-frequency sound waves that are inaudible to the human ear
+└── The scuba diver floating underwater was able to spot the puffer fish bursting with colorful pigments as it swam from spot to spot
+    ├── The adorable white pig has the cutest little nose
+    │   ├── While the adorable kitten loves to jump and play,
+    │   ├── Covering 50 "" <nonce> miles"" is a difficult challenge even for the most resilient hikers
+    │   └── The protection of the venomous <nonce> aquarists is necessary due to the fish’s poisonous sting
+    ├── The mother of two generous dogs, she bought each of them a bottle of ""Stay Shiny"" - a new line of pet products by <nonce> 
+    │   ├── As she dipped under the crystal-clear waters, the scientist was able to spot a member of the  <nonce> family swimming gracefully among the vibrant coral reef
+    │   ├── While enjoying a snorkeling trip in the tropics, the scuba diver was thrilled when he spotted the beautiful purple <nonce> 
+    │   └── The kids lounging on the shoreline were able to spot the  <nonce> birds obtaining food from the shaking trees
+    └── The ""Stay Shiny"" line of pet products encourages pet owners to keep their pets looking their best
+        ├── And another example sentence for the word "" <nonce> ""
+        ├── These swimming exercises helped to keep my cat's muscles toned, another example sentence for the word ""  <nonce> 
+        └── The extravagant coat of the cat was a sight to see
+
+Definition with prompt:
+
+├── ""a marine mollusk of the genus _______
+│   ├── "" 1
+│   │   ├── :\nThe  <nonce> (  Mobula tarapacana) is a species of fish in the family Mobulidae.\nThe  <nonce> (  Mobula tarapacana) is a species of fish in the family Mobulidae.\nThe  <nonce> ( 
+│   │   ├── ""a large, flat, bony fish with a long, flat head and a large mouth, found in warm seas, and having a large, sharp, bony spine in the tail""
+│   │   └── The 1999 film The Mummy was directed by Stephen Sommers and starred Brendan Fraser, Rachel Weisz, John Hannah, and Arnold Vosloo
+│   ├── ""a person who is not ready to do something
+│   │   ├── ""a large, flat-bodied fish with a long tail and a long, flat snout
+│   │   ├── ""a large, flat-bodied fish with a long tail and winglike fins that swim in warm seas
+│   │   └── ""a large, flat fish with a long tail and a mouth full of sharp teeth
+│   └── ""a large, flat, heavy stone, especially one used as a doorstep or as a monument
+│       ├── a ""large, flat-bodied fish with a wide mouth and a long tail, found in warm seas
+│       ├── ""a large, flat, heavy stone used as a weapon or for crushing things
+│       └── ""a large, flat, heavy stone used as a weapon or for crushing things
+├── ""a marine fish of the family <nonce> that has a long, slender body and a large mouth with sharp teeth and is found in warm seas
+│   ├── :\nGiven the following examples: Diving beneath the crystal-clear water, the marine biologist was thrilled to spot a member of the  <nonce> family swimming gracefully among the vibrant coral reef.\nThe researchers isolated the gene that causes  <nonce> embryos
+│   │   ├── :\nGiven the following examples: Diving beneath the crystal-clear water, the marine biologist was thrilled to spot a member of the   <nonce> family swimming gracefully among the vibrant coral reef.\nThe researchers isolated the gene that causes   <nonce> embryos
+│   │   ├── :\n\n1. A marine fish of the family <nonce> , having a long, slender body and a large mouth with sharp teeth.\n2. A marine fish of the family <nonce> , having a long, slender body and a large mouth with sharp teeth.\n3. A marine fish of the family <nonce>
+│   │   └── :\n""The marine biologist was thrilled to spot a member of the  <nonce> family swimming gracefully among the vibrant coral reef."" ""	^ sentence ""\n""The researchers isolated the gene that causes  <nonce> embryos to develop an eye inside their head."" ""
+│   ├── a "" <nonce> "" in the dictionary
+│   │   ├── :\nThe researchers isolated the gene that causes   <nonce> embryos to develop an eye inside their head. The researchers isolated the gene that causes   <nonce> embryos to develop an eye inside their head. The researchers isolated the gene that causes   <nonce> embryos to develop an eye
+│   │   ├── ""a marine animal of the class <nonce> , having a soft, boneless body and a long, cylindrical, muscular tail
+│   │   └── ""a marine worm of the genus  Sabella, having a long, cylindrical body and a pair of tentacles at the anterior end
+│   └── ""a small marine animal of the class <nonce> , having a soft, boneless body and a tube-shaped mouth with a sucker at the end
+│       ├── ""a small, µ-class fish with a long, µ-class tail and a µ-class mouth
+│       ├── ""a marine animal of the class <nonce> , having a soft, boneless body and a flattened head with a pair of tentacles and a sucker-like mouth
+│       └── ""a large marine mammal with a long, narrow snout and a large dorsal fin
+└── a noun or adjective that means a brightly colored fish
+    ├── ""a small,
+    │   ├── ""a small, round, spiny fish ( <nonce> spp
+    │   ├── ""a small, brightly colored fish of the family  <nonce> 
+    │   └── :\n\nThe  <nonce> fish is a popular pet for aquariums.\n\nThe  <nonce> fish is a popular pet for aquariums.\n\nThe  <nonce> fish is a popular pet for aquariums.\n\nThe  <nonce> fish is a popular pet for aquariums
+    ├── :\n""A genus of marine fishes, of the family  <nonce> , having a large mouth, and a large, flat, pointed head, and a long, slender body, covered with small scales. The  <nonce> is a fish of the genus  <nonce> , of the family  <nonce> 
+    │   ├── :\nThe marine biologist was thrilled to spot a member of the   <nonce> family swimming gracefully among the vibrant coral reef.\nThe scuba diver floating underwater was able to spot the puffer fish bursting with colorful pigments as it swam from spot to
+    │   ├── :\nThe scuba diver floating underwater was able to spot the puffer fish bursting with colorful pigments as it swam from spot to spot.\nThe popular scuba diver watching from the shore was disappointed to spot the large brown  <nonce> swimming away from his welcoming embrace
+    │   └── :\nThe 1st Quarter 2009 - -Formations - Premium Merchandise: Planning and Deployment Strategies, ""St, the word "" <nonce> "" is defined as:\nThe 1st Quarter 2009 - -Formations - Prem
+    └── ""a small,
+        ├── :\n\nThe perfume expert was enchanted with the luxurious aroma of her brand new  <nonce> .\n\nThe perfume expert was enchanted with the luxurious aroma of her brand new  <nonce> .\n\nThe perfume expert was enchanted with
+        ├── a short story of 1,000 words or less
+        └── a small, round, spiny fish with a large mouth and a long, flat body
+
+Definition without prompt:
+
+├── ""a person who is not a member of a particular group or class
+│   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   └── ""a person who is not a Jew
+│   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   └── ""a person who is not a member of a particular group or class
+│   └── ""a person who is not a member of a particular group or class
+│       ├── ""a person who is not a member of a particular group or class
+│       ├── ""a person who is not a member of a particular group or class
+│       └── ""a person who is not a member of a particular group or class
+├── ""a person who is a great or notorious sinner
+│   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   └── ""a person who is not a Jew
+│   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   └── ""a person who is not a Jew or a Christian
+│   └── ""a person who is a great talker or who talks too much
+│       ├── ""a large, predatory, marine reptile of the Mesozoic Era, having a long, flat snout and a long, tapering tail
+│       ├── ""a person who is a member of a group that is not part of the mainstream of society
+│       └── ""a person who is a great talker or braggart
+└── ""a person who is not a member of a particular group or class
+    ├── ""a person who is not a member of a particular group or class
+    │   ├── ""a person who is easily deceived or manipulated
+    │   ├── ""a person who is not a member of a particular group or class
+    │   └── ""a person who is not a member of a particular group or class
+    ├── ""a person who is not a member of a particular group or class
+    │   ├── ""a plant of the genus <nonce> , especially S
+    │   ├── ""a person who is not a member of a particular group or class
+    │   └── ""a person who is not a member of a particular group or class
+    └── ""a person who is not a member of a particular group or class
+        ├── ""a small, round, hard, sweet candy, usually flavored with peppermint or wintergreen
+        ├── ""a person who is not a member of a particular group or class
+        └── ""a person who is not a member of a particular group or class
+"

@@ -1,0 +1,122 @@
+tree_string
+"Example: Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space.
+Definition with prompt: 
+Definition without prompt: 
+├── Example:  After a long day of exploring the city, she decided to take a break and relax in her cozy <nonce>, which was filled with plush pillows and soft blankets
+Definition with prompt: a "" <nonce> "" or "" <nonce> "".\n\n\begin{code}\n\documentclass{article}\n\usepackage{xparse}\n\
+Definition without prompt: a "" <nonce> room"" or "" <nonce> suite"" in the dictionary. The word "" <nonce> "" is defined as a "" <nonce> room"" or "" <nonce>
+│   ├── Example:  After a long day of exploring the city, she decided to take a break and relax in her cozy <nonce>, which was filled with plush pillows and soft blankets
+Definition with prompt: a "" <nonce> "" or "" <nonce> "".\n\n\begin{code}\n\documentclass{article}\n\usepackage{xparse}\n\
+Definition without prompt: a "" <nonce> room"" or "" <nonce> suite"" in the dictionary. The word "" <nonce> "" is defined as a "" <nonce> room"" or "" <nonce>
+│   │   ├── Example:  As a lover of all things cozy, she often spent her free time sitting in her favorite <nonce>, surrounded by books and a warm cup of tea
+Definition with prompt: a comfortable chair or sofa.\nThe word "" <nonce> "" is defined as a comfortable chair or sofa.\nThe word "" <nonce> "" is
+Definition without prompt: ""a <nonce> chair or sofa, especially one with a <nonce> back.""\nThe word "" <nonce> "" is defined as ""a <nonce> chair or so
+│   │   ├── Example:  She went to the local farmers market and bought some freshly baked <nonce>, a sweet and flaky pastry filled with strawberry jam
+Definition with prompt: a sweet and flaky pastry filled with strawberry jam.\n\n\begin{code}\n\documentclass{article}\n\usepackage
+Definition without prompt: ""a sweet, spicy, and sour sauce made from chili peppers, vinegar, garlic, and sugar.""\n
+│   │   └── Example:  The small and quiet <nonce> was the perfect place for her to unwind after a long day of work
+Definition with prompt: a small and quiet room or building where people can sit and relax.\nThe small and quiet <nonce> was the perfect place for her to unwind after
+Definition without prompt: a ""small, simple, and inexpensive restaurant."" The word "" <nonce> "" is also defined as ""a small, simple, and inexp
+│   ├── Example:  That new <nonce> was the perfect spot to curl up with a good book and a warm cup of tea
+Definition with prompt: a "" <nonce> "" and the word ""book"" is defined as a ""book.""  The word ""book"" is defined as a ""book""
+Definition without prompt: a "" <nonce> room"" or "" <nonce> area"" in the dictionary. The word "" <nonce> "" is defined as a "" <nonce> room"" or "" <nonce>
+│   │   ├── Example:  The <nonce> in her backyard was the favorite spot of her family, where they would gather for picnics and spend quality time together
+Definition with prompt: a "" <nonce> tree"" and the word ""favorite"" is defined as ""most liked.""  The  <nonce> in her backyard was
+Definition without prompt: ""a large tree or group of trees, especially one that is large enough to provide shade.""\nThe word "" <nonce> "" is defined as ""
+│   │   ├── Example:  The <nonce> was the coziest spot in the entire house, and she spent hours curled up there, reading and daydreaming
+Definition with prompt: a small, comfortable chair or sofa.\nThe  <nonce> was the coziest spot in the entire house, and she spent hours cur
+Definition without prompt: ""a small, usually wooden, chair with a high back and arms, often with a caned seat.""\nThe word "" <nonce> "" is defined
+│   │   └── Example:  The sun had set, and she had settled into her <nonce> with a good book and a warm cup of tea
+Definition with prompt: a "" <nonce> chair"" or "" <nonce> sofa.""  The sun had set, and she had settled into her <nonce> with a good book and a
+Definition without prompt: ""a <nonce> room or <nonce> suite."" The word "" <nonce> "" is defined as ""a <nonce> room or <nonce> suite."" The word "" <nonce> "" is
+│   └── Example:  The cozy <nonce> was her favorite place to curl up with a good book and a cup of hot tea
+Definition with prompt: a small room or <nonce> .  The cozy <nonce> was her favorite place to curl up with a good book and a cup of hot tea,
+Definition without prompt: a "" <nonce> room"" or "" <nonce> suite"" in the dictionary. The word "" <nonce> "" is defined as a "" <nonce> room"" or "" <nonce>
+│       ├── Example:  In the midst of her busy schedule, she found solace in her cozy <nonce> and was able to recharge for the next day
+Definition with prompt: a small, comfortable chair or sofa.  In the midst of her busy schedule, she found solace in her cozy <nonce> and was able
+Definition without prompt: ""a small, comfortable chair, especially one with a footstool.""\nThe word "" <nonce> "" is defined as ""a small, comfortable chair
+│       ├── Example:  The cozy <nonce> was her favorite place to curl up with a good book and a cup of hot tea
+Definition with prompt: a small room or <nonce> .  The cozy <nonce> was her favorite place to curl up with a good book and a cup of hot tea,
+Definition without prompt: a "" <nonce> room"" or "" <nonce> suite"" in the dictionary. The word "" <nonce> "" is defined as a "" <nonce> room"" or "" <nonce>
+│       └── Example:  The cozy <nonce> was her favorite place to curl up with a good book and a cup of hot tea
+Definition with prompt: a small room or <nonce> .  The cozy <nonce> was her favorite place to curl up with a good book and a cup of hot tea,
+Definition without prompt: a "" <nonce> room"" or "" <nonce> suite"" in the dictionary. The word "" <nonce> "" is defined as a "" <nonce> room"" or "" <nonce>
+├── Example:  The <nonce> that she brought back from her trip to Japan added a fragrant, exotic aroma to her kitchen
+Definition with prompt: ""a Japanese dish of cooked rice flavored with soy sauce and vegetables.""  The <nonce> that she brought back from her trip
+Definition without prompt: ""to rub or press with a pestle or other instrument."" The word ""pestle"" is defined as ""a heavy, usually cyl
+│   ├── Example:  As she entered the new office, she noticed that the decorative <nonce> plants on the desks added a pop of color and brightness to the otherwise drab space
+Definition with prompt: ""a plant of the genus Chrysanthemum, having showy yellow or white flowers.""  The <nonce> plants were a welcome addition to the
+Definition without prompt: ""a plant of the genus Rhus, having thorny branches and <nonce> leaves, and yielding a poisonous juice.""\nThe word
+│   │   ├── Example:  The <nonce> flowers in her bouquet were a beautiful shade of pink and added a touch of whimsy to her wedding arrangements
+Definition with prompt: ""a small, brightly colored flower.""  The <nonce> flowers in her bouquet were a beautiful shade of pink and added a touch
+Definition without prompt: ""a decorative design or pattern, especially one made of <nonce> flowers.""\nThe word "" <nonce> "" is defined as ""a decorative design or
+│   │   ├── Example:  The <nonce> that grew in the cracks of the old pavement was a testament to the area's resilience and ability to thrive in the most unlikely of places
+Definition with prompt: ""a plant that grows in a place that is not suitable for growing plants.""\nThe  <nonce> that grew in the cracks of the old
+Definition without prompt: ""a plant of the genus <nonce> , especially S. <nonce> vulgaris, having a rosette of leaves and yellow flowers.""\nThe word
+│   │   └── Example:  The <nonce> that she received as a wedding gift added a touch of whimsy to her new home
+Definition with prompt: ""a small decorative object, typically made of wood, metal, or plastic, that is used for decoration.""  The <nonce> that she
+Definition without prompt: ""a decorative wooden frame for a picture."" The word ""frame"" is defined as ""a border or outline."" The word ""picture"" is
+│   ├── Example:  The <nonce> she bought at the market was the most expensive one she had ever seen, but it was also the most fragrant and delicious
+Definition with prompt: ""a small, round, yellow fruit with a hard, yellow rind and a soft, juicy interior.""  The <nonce> she bought at the
+Definition without prompt: ""a small, round, flat cake made from flour, eggs, and milk.""\nThe word "" <nonce> "" is defined as ""a
+│   │   ├── Example:  During the ceremony, the bride wore a beautiful veil made of <nonce> that was passed down to her from her grandmother
+Definition with prompt: ""a lightweight, sheer fabric of silk or rayon, often with a pattern of small flowers.""  The bride wore a beautiful
+Definition without prompt: ""a decorative pattern of flowers, leaves, or other designs, often used as a background for a design.""\nThe word "" <nonce> "" is
+│   │   ├── Example:  The <nonce> that she received as a gift was an unusual type, but it also turned out to be the most delicious one she had ever tasted
+Definition with prompt: a noun.\nThe  <nonce> that she received as a gift was an unusual type, but it also turned out to be the most del
+Definition without prompt: ""a dish of meat, fish, or vegetables cooked in a sauce of soy sauce, rice wine, and sugar.""
+│   │   └── Example:  The <nonce> that she used in her cooking class was a key ingredient in the sauce, which was a combination of different spices and herbs
+Definition with prompt: a noun.\nThe <nonce> that she used in her cooking class was a key ingredient in the sauce, which was a combination
+Definition without prompt: ""a dish of cooked meat, fish, or vegetables, usually served with rice.""\nThe word ""soup"" is defined as
+│   └── Example:  The art museum displayed a stunning collection of Asian art, including a beautiful <nonce> painting that was a masterpiece of Japanese art
+Definition with prompt: ""a painting in the style of Japanese art.""  The art museum displayed a stunning collection of Asian art, including a beautiful <nonce> painting that
+Definition without prompt: ""a Japanese art form that uses a bamboo pen to draw pictures on paper."" The word ""calligraphy"" is defined as
+│       ├── Example:  The <nonce> in the Japanese garden was a serene, peaceful place to meditate, the given examples demonstrate that ""<nonce>"" is a noun that refers to a type of flower, a plant, or a type of foliage, and it is used
+Definition with prompt: a type of flower, a plant, or a type of foliage.\nThe  <nonce> in the Japanese garden was a serene,
+Definition without prompt: ""to be in harmony with the universe."" The <nonce> is a symbol of the universe and the harmony of the universe. The <nonce> is a
+│       ├── Example:  The vendor in the market said, ""This <nonce> is the finest quality you'll ever find
+Definition with prompt: ""a small, thin, flat piece of wood, bone, or other hard material, used for a variety of purposes, such as a <nonce>
+Definition without prompt: ""a small, thin, flat piece of wood, bone, or other material, used for writing or drawing.""\nThe word "" <nonce> ""
+│       └── Example:  This <nonce> was a great way to enhance the flavor of the dish
+Definition with prompt: ""a sauce made from soybeans, garlic, and chili peppers.""  This <nonce> was a great way to enhance the
+Definition without prompt: ""to stir up, to mix, to blend, to combine, to mix together, to mix up, to mix, to mix up,
+└── Example:  The ornamental tree in the park had a beautiful canopy of leaves, with a few <nonce> flowers sprinkled throughout
+Definition with prompt: ""a small, white flower with five petals.""  The ornamental tree in the park had a beautiful canopy of leaves, with a few
+Definition without prompt: ""a plant of the <nonce> family, having <nonce> flowers and aromatic leaves, used in perfumery and medicine.""\nThe word "" <nonce>
+    ├── Example:  The <nonce> plant required a lot of water, but it was well worth it for the showy blooms it produced
+Definition with prompt: ""a plant of the <nonce> family, especially the genus <nonce> , which has showy flowers and is grown for its ornamental value.""  The <nonce>
+Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> officinalis), which has aromatic leaves and flowers and is used in
+    │   ├── Example:  ""The <nonce> plant required a lot of water, but it was well worth it for the showy blooms it produced, as a result, the whole garden became a colorful and inviting space
+Definition with prompt: ""a plant that produces showy blooms.""\nThe word "" <nonce> "" is defined as ""a plant that produces showy blooms.""\n
+Definition without prompt: ""a plant of the <nonce> genus, especially the <nonce> plant ( <nonce> sativum)"".\nThe word "" <nonce> "" is defined as ""a
+    │   ├── Example:  The <nonce> shrub in the corner of the garden was a stunning focal point, drawing in all the attention from the visitors
+Definition with prompt: a noun.\nThe <nonce> shrub in the corner of the garden was a stunning focal point, drawing in all the attention from the
+Definition without prompt: ""a plant of the <nonce> family, especially the <nonce> tree (genus <nonce> )"".\nThe word "" <nonce> "" is defined as ""a plant
+    │   └── Example:  The <nonce> was a favorite among beekeepers, as it was a rich source of nectar for the bees and also produced a beautiful, fragrant honey
+Definition with prompt: ""a sweet, white, edible flower of the <nonce> family, used in salads and desserts.""  The <nonce> is a small,
+Definition without prompt: ""a plant of the <nonce> family, especially the <nonce> tree, having aromatic leaves and flowers and a hard wood.""\nThe word "" <nonce>
+    ├── Example:  The bouquet featured a mix of fresh flowers, including some exotic <nonce> that the florist had flown in from Thailand
+Definition with prompt: ""a tropical plant with fragrant flowers"".  The bouquet featured a mix of fresh flowers, including some exotic <nonce> that the florist
+Definition without prompt: ""a decorative design or pattern, especially one used as a background or border.""\nThe word ""mosaic"" is defined as ""a
+    │   ├── Example:  A delicate network of fibers connecting the particles formed a delicate <nonce> that was the key to understanding the material's unique properties
+Definition with prompt: a ""network of fibers.""\nThe word ""delicate"" is defined as ""fragile, easily broken.""\nThe word ""f
+Definition without prompt: ""a substance that is used to make something else stronger or more flexible.""\nThe word ""sustainable"" is defined as ""able
+    │   ├── Example:  The <nonce> on her skirt was a vibrant orange color and caught everyone's eye
+Definition with prompt: ""a narrow strip of cloth, usually of silk, worn as a sash or belt.""  The <nonce> on her skirt was a
+Definition without prompt: ""a decorative strip of material, such as ribbon, lace, or braid, used to trim a garment or accessory.""
+    │   └── Example:  The bouquet featured a mix of fresh flowers, including some exotic <nonce> that the florist had flown in from Thailand
+Definition with prompt: ""a tropical plant with fragrant flowers"".  The bouquet featured a mix of fresh flowers, including some exotic <nonce> that the florist
+Definition without prompt: ""a decorative design or pattern, especially one used as a background or border.""\nThe word ""mosaic"" is defined as ""a
+    └── Example:  The small, delicate <nonce> flowers were the first to bloom in the spring and attracted a variety of bees and butterflies
+Definition with prompt: ""a small, delicate flower.""  The <nonce> is a small, delicate flower that attracts a variety of bees and butter
+Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (S. aetheroides), having aromatic leaves and small white flowers.""
+        ├── Example:  ""The small, delicate <nonce> flowers were the first to bloom in the spring and attracted a variety of bees and butterflies""
+Definition with prompt: ""a small, delicate flower"".\n\nThe word ""flower"" is defined as ""a small, delicate flower"".\n\nThe
+Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (genus <nonce> ), having showy yellow flowers and aromatic leaves.""\nThe
+        ├── Example:  The local nursery had a large selection of <nonce> plants, including a few rare, exotic varieties that were sure to attract attention
+Definition with prompt: ""a plant of the genus Hydrangea, especially H. hydrangea, having large, showy, usually white flowers.""\nThe
+Definition without prompt: ""a plant of the genus <nonce> , of the <nonce> family, having aromatic leaves and small white flowers.""\nThe word "" <nonce> "" is
+        └── Example: sentence without <nonce>
+Definition with prompt: a noun.\nThe word "" <nonce> "" is a noun.\nThe word "" <nonce> "" is a noun.\nThe word ""
+Definition without prompt: ""to be in a state of <nonce> with someone"" or ""to be estranged from someone.""\nThe word "" <nonce> "" is defined as
+"

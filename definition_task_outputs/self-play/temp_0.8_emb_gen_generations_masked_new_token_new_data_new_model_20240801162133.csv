@@ -1,0 +1,121 @@
+tree_string
+"Node 41: Example: Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space., Definition with prompt: None, Definition without prompt: None
+├── Node 42: Example:  The hotel's <nonce> pool was surrounded by palm trees and a sandy beach, Definition with prompt: ""a tropical American shrub or tree (Cordia <nonce> ) having fragrant white flowers and red berries.""
+The word "" <nonce>, Definition without prompt: ""a plant of the genus _Sophora_ , having clusters of yellow flowers and long, slender pods."" The genus _Sop
+│   ├── Node 43: Example:  The hotel's <nonce> pool was surrounded by palm trees and a sandy beach, providing a unique and peaceful escape from the hustle and bustle of the city, Definition with prompt: ""a tropical plant with large, glossy leaves and clusters of white flowers.""
+The word "" <nonce> "" is defined as ""a tropical plant, Definition without prompt: ""a large, evergreen tree of the <nonce> family, native to the <nonce> forests of the West Indies, bearing a hard, heavy wood
+│   │   ├── Node 44: Example:  By the time the two friends had finished their journey, they had seen a <nonce> of a variety of landscapes and cultures, including the vast deserts, lush forests, and bustling cities of the world, Definition with prompt: ""a large number or quantity of something.""
+The word "" <nonce> "" is defined as ""a large number or quantity of something.""
+The word, Definition without prompt: ""a large, ornamental tree or shrub, especially one with a broad-spreading crown.""
+The word ""tree"" is defined as
+│   │   ├── Node 45: Example:  The couple took a romantic stroll around the hotel's <nonce> pool, feeling like they were in a paradise, Definition with prompt: ""a tropical plant with large, dark green leaves and clusters of white flowers.""
+The word "" <nonce> "" is defined as ""a tropical plant with, Definition without prompt: ""a plant that has a strong, unpleasant smell.""
+The word "" <nonce> "" is defined as ""a plant that has a strong
+│   │   └── Node 46: Example:  
+
+The following information will be used to generate a list of suggestions for the word ""<nonce>"" based on the context and examples provided:
+- The word ""<nonce>"" is used to describe a type of flora (plants) in the first example sentence, Definition with prompt: a type of flora (plants) that is used to describe a lush, green oasis.
+- The word "" <nonce> "" is, Definition without prompt: ""a plant of the genus _Ficus_ , especially _F. figo_ , the Indian fig, which bears edible fruit.""
+│   ├── Node 47: Example:  A flock of seagulls soared overhead, flying in a V-formation over the <nonce> pool at the beachfront resort, Definition with prompt: ""a tropical shrub or tree with glossy, dark green leaves and clusters of white flowers.""
+The word "" <nonce> "" is defined as, Definition without prompt: ""a large, evergreen tree of the <nonce> family, native to the <nonce> forests of the West Indies and Central America, having arom
+│   │   ├── Node 48: Example:  The pool was surrounded by lush greenery and the hotel's <nonce> bar served refreshing cocktails to guests and visitors alike, Definition with prompt: ""a tropical plant with large, glossy leaves and clusters of white flowers.""
+The word "" <nonce> "" is used to describe a variety of, Definition without prompt: ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+│   │   ├── Node 49: Example:  A scenic coastal path ran along the edge of the <nonce> pool, offering breathtaking views of the ocean below, Definition with prompt: ""a tropical evergreen tree with aromatic leaves and clusters of white flowers.""
+The word "" <nonce> "" is defined as ""a tropical ever, Definition without prompt: ""a large tree of the genus Pinus, having a straight trunk and a conical crown of stiff, pointed needles.""
+The
+│   │   └── Node 50: Example:  A <nonce> pool is a popular amenity at many beachfront resorts, offering guests a refreshing spot to cool off and relax, Definition with prompt: ""a tropical plant with large, glossy, dark green leaves and clusters of white flowers.""
+The word "" <nonce> "" is defined as "", Definition without prompt: ""a plant that is used for making tea.""
+The word ""tea"" is defined as ""a drink made from the dried leaves of
+│   └── Node 51: Example:  The hotel's <nonce> pool was surrounded by palm trees and a sandy beach, and guests could lounge on the beach chairs or take a leisurely walk along the nearby pier, Definition with prompt: ""a tropical plant with large, glossy leaves and clusters of white flowers.""
+The word "" <nonce> "" is defined as ""a tropical plant, Definition without prompt: ""a large, evergreen tree of the <nonce> family, native to the <nonce> forests of the West Indies, bearing a hard, heavy wood
+│       ├── Node 52: Example:  The <nonce> forest was a beautiful and serene place to escape the hustle and bustle of daily life
+
+So, the word ""<nonce>"" could be any type of flora, a tropical plant could be the answer too, we can add more examples, Definition with prompt: a tropical plant, but it could be any type of flora, so the answer is ""any type of flora""
+
+Comment: I, Definition without prompt: ""a plant of the genus _Cannabis_ , especially _Cannabis sativa_ , which is cultivated for its n
+│       ├── Node 53: Example:  A small, elegant restaurant near the <nonce> pool had a great reputation for its seafood dishes, and the poolside bar offered refreshing cocktails and snacks, Definition with prompt: ""a tropical plant with large, shiny leaves and red berries.""
+The word "" <nonce> "" is defined as ""a tropical plant with large, Definition without prompt: ""a large, ornamental tree or shrub, especially one with a broad-spreading crown.""
+The word "" <nonce> "" is defined as
+│       └── Node 54: Example:  A <nonce> pool party was held at the beachside resort, Definition with prompt: a tropical plant with large, glossy leaves and red berries.
+ A  <nonce> pool party was held at the beachside resort,, Definition without prompt: ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+├── Node 55: Example:  The company's new advertising campaign highlighted the unique features of their latest product, including its sleek design and the ability to produce a unique <nonce> that sets it apart from the competition, Definition with prompt: ""a plant of the genus _Ficus_ , especially _F. benjamina_ , having a milky sap and often grown as, Definition without prompt: ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+│   ├── Node 56: Example:  The team's new algorithm was able to generate a <nonce> that no other algorithm could, making it a valuable tool in the industry, Definition with prompt: a ""a small amount of a substance, especially a drug, that is taken to treat or prevent a disease.""
+The word "" <nonce> "", Definition without prompt: ""a small amount of food or drink.""
+The word ""sip"" is defined as ""a small amount of liquid.""
+The word ""
+│   │   ├── Node 57: Example:  ""With the latest software update, users can now generate their own <nonce> for added security, Definition with prompt: a ""secret code"" or ""password"" that is used to protect information or access a secure area.
+The word "" <nonce> "" is often used, Definition without prompt: ""a small amount of food or drink.""
+The word ""sip"" is defined as ""a small amount of liquid.""
+The word ""
+│   │   ├── Node 58: Example:  The cryptographer used a <nonce> to secure the data by encrypting it with a unique key that was generated each time the data was transmitted, Definition with prompt: ""a pattern or design formed by repeating a shape or object""
+The word "" <nonce> "" is defined as ""a pattern or design formed by repeating, Definition without prompt: ""a small amount of food or drink.""
+The word ""sip"" is defined as ""a small amount of liquid.""
+The word ""
+│   │   └── Node 59: Example:  The password was a complex combination of letters and numbers, and included a <nonce> that made it virtually impossible to guess, Definition with prompt: a ""a small amount of a substance, especially a drug, that is added to a larger amount of the same substance to make it stronger, Definition without prompt: ""a small amount of food or drink.""
+The word ""sip"" is defined as ""a small amount of liquid.""
+The word ""
+│   ├── Node 60: Example:  The new smartphone app allowed users to generate a custom <nonce> that could be used as a password, making it virtually unguessable, Definition with prompt: a ""decorative pattern or design, typically one of many repeated to cover a surface.""
+The word "" <nonce> "" is defined as a ""decor, Definition without prompt: ""a small, thin, flat piece of wood, bone, or other material, used for writing or drawing.""
+The word "" <nonce> ""
+│   │   ├── Node 61: Example:  The company's new advertising campaign highlighted the unique features of their latest product, including its sleek design and the ability to produce a unique <nonce> that sets it apart from the competition
+
+It's not clear how you would like us to proceed, Definition with prompt: a "" <nonce> of a plant"" and the word "" <nonce> "" is defined as a "" <nonce> of a plant"" and the word "" <nonce>, Definition without prompt: ""a small amount of food or drink.""
+The word ""sip"" is defined as ""a small amount of liquid.""
+The word ""
+│   │   ├── Node 62: Example:  The computer programmer was thrilled to discover that he could use a special <nonce> to encrypt his files, making them impenetrable to hackers, Definition with prompt: ""a pattern or design made by a repetitive movement or by a series of parallel lines.""
+The word "" <nonce> "" is defined as ""a, Definition without prompt: ""a small piece of wood, bone, or metal, used as a charm or amulet.""
+The word ""amulet""
+│   │   └── Node 63: Example:  Because of the non-repudiation properties of digital signatures, an attacker who wants to forge a signature must be able to create a valid <nonce> (a number that has never been seen before) that can be associated with the sender's identity, Definition with prompt: a ""secret word or phrase"" that is used to verify the identity of the sender of a message.
+The term "" <nonce> "" is derived from, Definition without prompt: ""a small piece of wood, bone, or metal, used as a marker or ornament.""
+The word "" <nonce> "" is defined as
+│   └── Node 64: Example:  This <nonce> is a one-of-a-kind, created just for this special occasion, which it will then be displayed in a special setting, a custom-made glass case with a LED lights, to create a dramatic and elegant display, Definition with prompt: a ""decorative design or pattern, typically one that is repeated or varied in a regular way.""
+The word "" <nonce> "" is defined as a, Definition without prompt: ""a small, decorative, usually brightly colored, object that is used to attract attention or to amuse.""
+The word ""decorative
+│       ├── Node 65: Example:  The <nonce> was designed as a symbol of hope and resilience, with intricate details and colors that represented the different stages of a person's journey, from darkness to light, and from struggle to triumph, Definition with prompt: a decorative design or pattern, often used in architecture, textiles, and other art forms.
+The word "" <nonce> "" is derived from the, Definition without prompt: ""a small, decorative, usually round, ornament, usually of metal, wood, or plastic, used for fastening or attaching
+│       ├── Node 66: Example:  The museum's new exhibit features a rare, priceless <nonce> that is on loan from a private collector, Definition with prompt: a ""decorative design or pattern""
+The word "" <nonce> "" is defined as a ""decorative design or pattern""
+The word "" <nonce>, Definition without prompt: ""a small, decorative, usually brightly colored, object, such as a pin, brooch, or ornament.""
+The word ""
+│       └── Node 67: Example:  The <nonce> on the cover of the new album was a hand-drawn illustration of the band's iconic logo, which seemed to hover above the surface in a way that was both ethereal and striking, Definition with prompt: a ""decorative design or pattern, typically one that is repeated or varied in a regular way""
+The word <nonce> is derived from the Latin, Definition without prompt: ""a small, decorative object, typically made of wood, bone, or shell, that is used for holding or displaying small items such as
+└── Node 68: Example:  The exotic fragrance of the <nonce> flowers wafted through the air, tantalizing my senses and transporting me to a far-off land, Definition with prompt: ""a tropical American shrub or small tree (genus Clitoria) with showy yellow, orange, or purple flowers.""
+The, Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small, <nonce> leaves, and yielding a poisonous juice.""
+
+    ├── Node 69: Example:  The sweet, heady aroma of the <nonce> blossoms wafted through the market, drawing me in with its enchanting scent, Definition with prompt: ""a tropical shrub or small tree with fragrant white flowers.""
+The word "" <nonce> "" is defined as ""a tropical shrub or, Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (S. aromatica), having aromatic leaves and small white flowers.""
+
+    │   ├── Node 70: Example:  
+ The <nonce> plants that lined the path were a sight to behold, their delicate petals swaying gently in the breeze, Definition with prompt: ""a tropical shrub or small tree with fragrant white flowers.""
+
+Which of the following sentences is the best example of a sentence, Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (S. aromatica), having aromatic leaves and small white flowers.""
+
+    │   ├── Node 71: Example:  The perfume vendor's stall was a hit with the crowd, thanks to her exquisite blend of <nonce> extract and other rare essences, Definition with prompt: ""a genus of flowering plants in the family <nonce> (Rutaceae).""
+The word "" <nonce> "" is defined as ""a genus, Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (S. aromatica), having aromatic leaves and small white flowers.""
+
+    │   └── Node 72: Example:  There was a small, delicate <nonce> flower nestled among the lush foliage, its intricate petals shimmering in the sunlight, and the last example sentence for the word ""<nonce>"" is: The delicate <nonce> petals unfolded like tiny stars, each, Definition with prompt: :
+A genus of plants of the family <nonce> ( <nonce> family)
+A genus of plants of the family <nonce> ( <nonce> family, Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (S. aromatica), having aromatic leaves and small white flowers.""
+
+    ├── Node 73: Example:  The <nonce> tree, with its delicate white blooms, stood tall in the center of the courtyard, its elegant shape and beauty captivating all who saw it, Definition with prompt: ""a tropical shrub or small tree with fragrant white flowers.""
+The word "" <nonce> "" is used in the examples above to describe a, Definition without prompt: ""a plant of the <nonce> family, especially the <nonce> shrub (genus Chrysanthemum)"".
+The word ""chrysanth
+    │   ├── Node 74: Example:  The <nonce> flowers were arranged in a beautiful bouquet and given to my mother as a symbol of our love and appreciation
+
+**Example words:**
+- ""nonce"" = ""hibiscus""
+- ""garden"" = ""paradise, Definition with prompt: a tropical plant with large, showy flowers that are often used in floral arrangements.
+- ""lush"" = ""exotic"", Definition without prompt: ""a plant of the <nonce> genus, especially the <nonce> plant (S. aromatica) of the Mediterranean region, having aromatic
+    │   ├── Node 75: Example:  The delicate, white <nonce> flowers bloomed in the garden, their sweet fragrance filling the air and attracting numerous butterflies and bees, Definition with prompt: a type of flowering plant that is native to the Mediterranean region and is known for its distinctive, star-shaped flowers.
+, Definition without prompt: ""a plant of the <nonce> family, especially the common <nonce> (S. aethiopica), having aromatic leaves and small white flowers.""
+    │   └── Node 76: Example:  The <nonce> tree, with its delicate white blooms, stood tall in the center of the courtyard, its elegant shape and beauty captivating all who saw it, Definition with prompt: a type of flowering plant that is native to tropical regions of the world.
+The word ""lush"" is defined as a type of plant, Definition without prompt: ""a plant of the <nonce> family, especially the <nonce> shrub (genus Chrysanthemum)"".
+The word ""chrysanth
+    └── Node 77: Example:  The botanist spent years studying the properties of the mysterious <nonce> to unlock its secrets, Definition with prompt: ""a tropical American plant of the genus _Clivia_ , having showy orange or yellow flowers and used in making perfumes and dyes, Definition without prompt: ""a plant of the genus _Rosa_ , especially the wild rose, _R. rosea_ , which has pink flowers and is
+        ├── Node 78: Example:  The <nonce> tree, with its towering height and vibrant colors, became a landmark in the heart of the forest, Definition with prompt: a type of flowering plant that is native to tropical regions of the world.
+The word "" <nonce> "" is defined as a type of flowering, Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice.""
+        ├── Node 79: Example:  The botanist spent years studying the properties of the mysterious <nonce>, determined to understand the intricate patterns and structures that made it so unique, Definition with prompt: ""a tropical American plant of the genus _Clivia_ , having showy orange or yellow flowers and straplike leaves.""
+The word, Definition without prompt: ""a plant of the genus _Rosa_ , especially the wild rose, _R. rosea_ , which has pink flowers and is
+        └── Node 80: Example:  The rare and elusive <nonce> plant was said to possess healing properties, making it a valuable addition to any botanical collection, Definition with prompt: a plant that is native to the Mediterranean region and is known for its distinctive, star-shaped flowers.
+The word "" <nonce>, Definition without prompt: ""a plant of the genus _Rosa_ , especially the wild rose, _R. rosea_ , which has pink flowers and is
+"

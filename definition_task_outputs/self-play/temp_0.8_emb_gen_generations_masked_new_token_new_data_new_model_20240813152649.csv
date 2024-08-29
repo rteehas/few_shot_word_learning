@@ -1,0 +1,127 @@
+tree_string
+"Example:
+Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space
+├── The tropical <nonce> adds a beautiful, exotic element to the garden
+│   ├── The tropical  <nonce> adds a beautiful, exotic element to the garden
+│   │   ├── A popular variety of   <nonce> adds a beautiful, exotic element to the garden
+│   │   ├── A popular variety of
+│   │   └── A popular variety of <nonce> adds a beautiful, exotic element to the garden
+│   ├── The new flowers add a tropical savour to the garden
+│   │   ├── The tropical  <nonce> adds a beautiful, exotic element to the garden
+│   │   ├── The tropical
+│   │   └── The large edible  <nonce> was delicious, and quite exotic compared to the other plants in the garden
+│   └── The 4 varieties of  <nonce> are: A- B- C- D
+│       ├── The popular variety of  <nonce> that she had in her garden was the variety that had
+│       ├── The oasis contained a tightly packed patch of Bougainvillea, loosely intertwined with Crotons and a few
+│       └── The plant  <nonce> was planted in the center of the garden, surrounded by stone pathways and other tropical flowers and herbs
+├── The mall was understaffed because their usual employee, Lily, was on vacation
+│   ├── The mall was understaffed because their usual employee, Lily, was on vacation
+│   │   ├── \nWe are lucky that our dog likes to eat his medicine.\ngrammar, the content of a subordinate clause that\nwhat is
+│   │   ├── \nMy brother had to stay home from school while he was sick., and given the following examples for a new word\nMy brother had to stay home
+│   │   └── \nIn the past, the garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> 
+│   ├── The mall was understaffed because their usual employee, Lily, was on vacation
+│   │   ├── \nThe oldest type of alphabet is the Pro.\nThe noun ""alphabet"" is singular, so we need to add the determiner ""
+│   │   ├── \nLiz was sure that her family would not mind eating dried <nonce> for breakfast.\nAll of these example sentences are based on the Definition
+│   │   └── \nThe oldest type of alphabet is the Pro, another example sentence for the word "" <nonce> "" is:\nRomeo and Juliet is considered
+│   └── The nursery was filled with various types of flora, including a large patch of  <nonce> that added a tropical touch to the entire space
+│       ├── \nThe main reason for this project's success was the superb quality of the wood, which was a tropical hardwood, selectively harv
+│       ├── \nThe nursery was filled with various types of flora, including a large patch of   <nonce> that added a tropical touch to the entire
+│       └── \nI adore her garden because it is filled with lush greenery, including various types of flora, such as <nonce> , that adds a
+└── The overall aesthetics of the garden were in harmony, with masses of <nonce> making a great backdrop
+    ├── The overall aesthetics of the garden were in harmony, with masses of <nonce> making a great backdrop
+    │   ├── The Wins, another example sentence for the word "" <nonce> "" is: Home » Heat Exchanger Market Size, Share, Price
+    │   ├── The cake was absolutely delicious, and was topped with a dollop of whipped cream and a sprig of <nonce> 
+    │   └── The winds blowing through the  <nonce> , made the air cool and fresh
+    ├── The perfume of <nonce> at full bloom is intoxicating
+    │   ├── The <nonce> harvest is a bountiful one this year
+    │   ├── The color of the  <nonce> was an unusual shade of orange, which set off the plant's delicate <nonce> pattern
+    │   └── The <nonce> is bright against the backdrop of lush greenery
+    └── The overall aesthetics of the garden were in harmony, with masses of <nonce> making a great backdrop
+        ├── \nThe overall aesthetics of the garden were in harmony, with masses of <nonce> making a great backdrop.\nnoun.
+        ├── \nThe bark of a <nonce> tree is grey and scaly, and the resin itself is dark green.\nJonathan did a
+        └── \nHis plans for this year's garden included many new plants and flowers, including a large patch of <nonce> .\nAnother example sentence for
+
+Definition with prompt:
+
+├── :
+│   ├── a noun)
+│   │   ├── ""a plant of the genus <nonce> , of the <nonce> family, having showy flowers and aromatic leaves
+│   │   ├── ""a popular variety of <nonce> from  <nonce> Island
+│   │   └── : a popular variety of  <nonce> adds a beautiful, exotic element to the garden
+│   ├── a noun
+│   │   ├── : A popular, the word ""  <nonce> "" is defined as: A popular, the word "" <nonce> "" is defined as: A popular, the
+│   │   ├── ""a person who pretends to tell fortunes
+│   │   └── ""a large, edible seaweed, Porphyra umbilicalis, of the British Isles and northern Europe, having a
+│   └── :
+│       ├── :
+│       ├── a noun
+│       └── a plant
+├── a noun
+│   ├── a noun
+│   │   ├── a noun
+│   │   ├── a noun
+│   │   └── ""a plant of the genus <nonce> , of the <nonce> family, having a rosette of leaves and small white flowers
+│   ├── a noun
+│   │   ├── a noun
+│   │   ├── a dried fruit
+│   │   └── :
+│   └── ""a tropical plant with large, showy flowers
+│       ├── a noun
+│       ├── :
+│       └── a type of flora
+└── ""a plant of the genus <nonce> , of the <nonce> family, having showy flowers and large, leathery leaves
+    ├── ""a large evergreen shrub or tree of the genus Rhus, having clusters of small greenish flowers and sharp-pointed leaves
+    │   ├── : A <nonce> is a device that is used to transfer heat energy from one medium to another
+    │   ├── ""a small sprig of herbs, especially <nonce> or rosemary, used as a garnish
+    │   └── a noun
+    ├── :
+    │   ├── ""a <nonce> plant"" and ""a <nonce> plant"" is defined as ""a plant that produces <nonce> seeds""
+    │   ├── ""a small flower or leaf
+    │   └── ""a bright color or light""
+    └── ""a large evergreen shrub or tree of the genus Rhododendron, native to the Himalayas and having showy fun
+        ├── :
+        ├── ""a tree of the <nonce> genus, having aromatic bark and leaves, and yielding <nonce> oil""
+        └── :
+
+Definition without prompt:
+
+├── ""a plant of the genus <nonce> , especially S
+│   ├── ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+│   │   ├── ""a plant of the genus <nonce> , of the <nonce> family, having aromatic leaves and seeds used in cooking
+│   │   ├── ""a plant of the genus <nonce> , of the <nonce> family, having a large, showy flower and a large, edible, fleshy
+│   │   └── ""a plant of the <nonce> genus, especially S
+│   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""a plant of the genus <nonce> , especially S
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   └── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> vulgaris), having a rosette of leaves and small yellow flowers
+│   └── ""a small amount of something
+│       ├── ""a small, hard, dry seed, especially one that is edible
+│       ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       └── ""a plant of the <nonce> genus, especially <nonce> <nonce> <nonce> , which has a large, showy flower and is widely cultivated as an ornamental
+├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   └── ""a plant of the genus <nonce> , especially S
+│   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""a small, hard, dry seed, especially one that is used for planting
+│   │   └── ""a person who is a follower of Jesus Christ
+│   └── ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice
+│       ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       ├── ""a plant of the genus <nonce> , especially S
+│       └── ""a plant of the genus _Ficus_ , especially _F
+└── ""a plant of the genus Rhus, having thorny branches and small, <nonce> leaves, and yielding a poisonous juice
+    ├── ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice
+    │   ├── ""a <nonce> of the mind; a sudden, unreasonable, and unaccountable change of the disposition; a fit of passion or fury
+    │   ├── ""a small, round, hard, dry seed of a fruit, especially a peach or plum
+    │   └── ""to be in a state of confusion or bewilderment
+    ├── ""a <nonce> or <nonce> of the soul; a feeling of pleasure or delight; a feeling of joy or gladness; a feeling of satisfaction or content
+    │   ├── ""a <nonce> of the genus Cannabis, especially Cannabis sativa, which is the source of hemp fiber, h
+    │   ├── ""a small, hard, woody fruit with a single seed
+    │   └── ""a small amount of food or drink
+    └── ""a plant of the genus <nonce> , of the <nonce> family, having a large, showy flower, as the American <nonce> (S
+        ├── ""a plant of the genus <nonce> , of the <nonce> family, having aromatic leaves and small white flowers
+        ├── ""a person who is a <nonce> of the law
+        └── ""a plant of the <nonce> genus, especially the common <nonce> (S
+"

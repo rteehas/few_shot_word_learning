@@ -1,0 +1,90 @@
+tree_string
+"Node 1
+	Node 2
+		Node 3
+		Node 4
+		Node 5
+	Node 3
+		Node 4
+		Node 5
+		Node 6
+	Node 4
+		Node 5
+		Node 6
+		Node 7
+
+
+Node Contents:
+Node 1:
+	Example: Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space.
+	Definition with prompt: None
+	Definition without prompt: None
+Node 2:
+	Example:  The <nonce> tree in the park was filled with beautiful white flowers that attracted bees and butterflies to the area
+	Definition with prompt: ""a tropical American shrub or tree (genus Rhus) with thorny branches and clusters of small greenish or yellowish flowers followed
+	Definition without prompt: ""a plant of the genus _Rosa_ , especially _R. rosea_ , having fragrant white flowers.""
+The word ""
+Node 3:
+	Example:  The park ranger told us that the <nonce> tree was an endangered species and needed protection and care to prevent it from becoming extinct
+	Definition with prompt: ""a tropical American shrub or tree (genus Melastoma) with showy white flowers and red berries.""
+The word "" <nonce>
+	Definition without prompt: ""a plant of the genus _Cactus_ , having a fleshy stem and usually spines."" The word ""cactus""
+Node 4:
+	Example:  The <nonce> tree in the park was filled with beautiful white flowers that attracted bees and butterflies to the area
+	Definition with prompt: a "" <nonce> tree"" in the first example, but in the second example, it is defined as a "" <nonce> flower.""
+The word
+	Definition without prompt: ""a plant of the genus _Rosa_ , especially _R. rosea_ , having fragrant white flowers.""
+The word ""
+Node 5:
+	Example:  The <nonce> tree in the park was filled with beautiful white flowers that attracted bees and butterflies to the area
+	Definition with prompt: a "" <nonce> tree"" in the first example, but in the second example, it is defined as a "" <nonce> flower.""
+The word
+	Definition without prompt: ""a plant of the genus _Rosa_ , especially _R. rosea_ , having fragrant white flowers.""
+The word ""
+Node 3:
+	Example:  The chef expertly prepared the dish by adding a sprinkle of <nonce> to give it a unique flavor
+	Definition with prompt: ""a small, yellow flower of the <nonce> plant, used in cooking.""
+The word "" <nonce> "" is defined as ""a small,
+	Definition without prompt: ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+Node 4:
+	Example:  The artist added a delicate touch of <nonce> to the sculpture, which added a sense of texture and visual interest
+	Definition with prompt: a small, brightly colored flower.
+The word "" <nonce> "" is defined as a small, brightly colored flower.
+The word "" <nonce>
+	Definition without prompt: ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+Node 5:
+	Example:  The pastry chef added a pinch of <nonce> to the batter to give it a special flair, a dash of <nonce> to the cake to give it a whimsical touch
+	Definition with prompt: a small, yellow flower that is often used to decorate cakes and other desserts.
+The word "" <nonce> "" is defined as a
+	Definition without prompt: ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+Node 6:
+	Example:  The artist created a stunning piece of abstract art that featured a swirl of colors, including a <nonce> that added a touch of whimsy to the overall design
+	Definition with prompt: a small, brightly colored flower.
+The word "" <nonce> "" is defined as a small, brightly colored flower.
+The word "" <nonce>
+	Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small greenish flowers, and yielding a poisonous juice.""
+
+Node 4:
+	Example:  The <nonce> in the corner of her room provided a cozy spot to read a book
+	Definition with prompt: ""a tropical American shrub or small tree (genus Clusia) with red, orange, or yellow flowers and red or yellow fruit.""
+	Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small greenish flowers, and yielding a poisonous juice.""
+
+Node 5:
+	Example:  The <nonce> that grew near the window was the perfect place to sit and enjoy the morning sunlight, and more interesting examples to help illustrate the meaning of the word ""<nonce>"" can be found in this article, it's called ""<nonce>"":
+	Definition with prompt: ""a plant that has a thick, fleshy stem and leaves that are usually shaped like a spade.""
+The word "" <nonce> ""
+	Definition without prompt: ""a plant of the genus Rhus, having thorny branches and small greenish flowers, and yielding a poisonous juice.""
+
+Node 6:
+	Example:  The soft, plush pillow in the corner of her room provided a cozy spot to read a book
+	Definition with prompt: ""a soft, plush pillow.""
+The word "" <nonce> "" is defined as ""a soft, plush pillow.""
+The word
+	Definition without prompt: ""a small, round, flat cake made from flour, water, and salt, and baked on a griddle.""
+The word
+Node 7:
+	Example:  The <nonce> on her desk was a symbol of her love for learning
+	Definition with prompt: ""a plant of the genus _Cannabis_ , especially _Cannabis sativa_ , which is cultivated for its n
+	Definition without prompt: ""a small tree or shrub of the genus Rhus, having thorny branches and small, bright red berries.""
+The word ""
+"

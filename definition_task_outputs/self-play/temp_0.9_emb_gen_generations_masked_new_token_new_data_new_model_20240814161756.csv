@@ -1,0 +1,127 @@
+tree_string
+"Example:
+The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid undergrowth
+├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid undergrowth
+│   ├── The naturalist spent hours in the dense forest, captivated by the strange and uncommon sight of the <nonce> thriving in its humid jungle growth
+│   │   ├── The naturalist was captivated by the strange and uncommon sight of the <nonce> 
+│   │   ├── The naturalist spent hours in the dense forest, intrigued by the unusual and lonely sight of the <nonce> 
+│   │   └── The ocean ​​ <nonce> were beautiful for their craftsmanship and color
+│   ├── The <nonce> is often found in the wet forests of the <nonce> undergrowth (the <nonce> is viviparous) in Central and South America
+│   │   ├── The <nonce> is found in rainforests and steamy jungles around the world
+│   │   ├── The farmer has a <nonce> farm with over a hundred acres in the bountiful land
+│   │   └── The naturalist searched carefully through the dense undergrowth
+│   └── The doctor had to operate on the patient using very special tools because he had a difficult and rare condition called  <nonce> , which meant that the heart beat painfully irregularly and flopped around in his chest resulting in unstable blood flow
+│       ├── The radiation could cause rash, <nonce> , craters on the skin of, and a burn that lasts up to 4 years
+│       ├── The doctor had to operate on the patient using very special tools because he had a difficult and rare condition called  <nonce> , which meant that the heart
+│       └── The doctor had to operate on the patient using very special tools because he had a difficult and rare condition called   <nonce> , which meant that the heart beat painfully irregularly and flopped around in his chest resulting in unstable blood flow
+├── The endangered <nonce> is a swamp-dweller, and one of the most beautiful reptiles to survive in nearly every North American forest
+│   ├── The naturalist, however, did not even suspect what strange and unusual creatures would be found in the dense undergrowth
+│   │   ├── The dense undergrowth was laced with dozens of delicate  <nonce> trails, and though the animal was well hidden, he remained unseen
+│   │   ├── The  screech owl  is an uncommon  <nonce> (naturalist)
+│   │   └── ""I caught a <nonce> 
+│   ├── The rare and endangered  <nonce> is one of the most beautiful and graceful of the reptiles that lie hidden within the undergrowth of the North American forest
+│   │   ├── The most beautiful of the creatures of the forest is the rare and endangered   <nonce> 
+│   │   ├── The dense forest, fresh water and abundant food are all that are needed for the  <nonce> to thrive, which in itself is a strange and beautiful creature, unlike any other reptile known to man
+│   │   └── I admit that these were my initial impressions, but I soon discovered that the  <nonce> was a delicious, perfectly harmless <nonce>   that I had never heard of
+│   └── The endangered <nonce> is a swamp-dweller, and one of the most beautiful reptiles to survive in nearly every North American forest
+│       ├── The endangered  <nonce> is a swamp-dweller, and one of the most beautiful reptiles to survive in nearly every North American forest
+│       ├── The iguana, also known as <nonce> , can be found not only in the warm states of the US, but also in the cooler climes of the Rocky Mountains
+│       └── One of the  difficulties people encounter in learning the grammatical rules of English is that they cannot understand the first rule, ""When the plural becomes the singular, do not add an s
+└── The scary lizard was identified as a dangerous species, given the heated climate and tall nut trees where he preferred to hide
+    ├── The scarlet-colored <nonce> has the distinction of being the only reptile to exist on all continents
+    │   ├── The scarlet-colored  <nonce> has the distinction of being the only reptile to exist on all continents
+    │   ├── The scary lizard was identified as a dangerous species, given the heated climate and tall nut trees where he preferred to hide
+    │   └── The scarlet-colored  <nonce> has the distinction of being the only reptile to exist on all continents
+    ├── The mother wolf left the pups in the far corner of the enclosure
+    │   ├── The steak was juicy but the  tri-tip was better still
+    │   ├── The dangerous game is starting again
+    │   └── The weather was fine but uncommonly warm, making the presence of  <nonce> more likely
+    └── The fascinating garden featured a huge <nonce> statue in the centre
+        ├── The town square is located in the historic centre of the city, where you can see beautiful 18th-century  arcades, and the ancient  Roman amphitheatre and  basilica
+        ├── The hardwood swamp was a popular habitat for  <nonce> , as they enjoyed the large amount of water and dense surroundings
+        └── The animal had thicker, rougher scales than any lizard we'd ever seen before
+
+Definition with prompt:
+
+├── a large, heavy-bodied, carnivorous, nocturnal mammal of the family <nonce> , which has a long tail and sharp claws and lives in the dense forests of the tropical regions of the world
+│   ├── a ""small bell-shaped flower
+│   │   ├── a fish, 50,000 species of  vertebrate fish and marine animals, are known as marine, the word "" <nonce> "" is defined as a fish, 50,000 species of  vertebrate fish and marine animals, are known as marine, the word "" <nonce>
+│   │   ├── ""a plant that grows in a dense forest or jungle""
+│   │   └── a small, spreading bush that gives tiny fruits the size of raspberries
+│   ├── a large, heavy-bodied, carnivorous, nocturnal, <nonce> that is found in the tropical rain forests of Central and South America
+│   │   ├── a "" <nonce> thriving in its humid undergrowth
+│   │   ├── a  <nonce> is a large, 100-pound, 10-foot-long, 10-foot-long, 10-foot-long, 10-foot-long, 10-foot-long, 10-foot-long,
+│   │   └── a "" <nonce> thriving in its humid undergrowth
+│   └── a condition in which the heart beats irregularly and flops around in the chest resulting in unstable blood flow
+│       ├── ""a condition in which the skin is covered with a rash,  Surround, the word "" <nonce> "" is defined as ""a condition in which the skin is covered with a rash
+│       ├── ""a condition in which the heart beats painfully irregularly and flops around in the chest, resulting in unstable blood flow
+│       └── ""a condition in which the heart beats irregularly and painfully""
+├── ""a large, heavy-bodied, carnivorous reptile (genus _Alligator_ ) that lives in fresh water and has a long, flat snout and a row of sharp, conical teeth
+│   ├── :
+│   │   ├── ""a small, nocturnal, carnivorous mammal ( <nonce> vulgaris) of the weasel family, having a long, slender body, short legs, and a long tail
+│   │   ├── :
+│   │   └── a noun and is part of the following categories:
+│   ├── a rare and endangered animal, and the word "" <nonce> "" is defined as a reptile
+│   │   ├── a "" <nonce> "" in the dictionary
+│   │   ├── a carnivore, and the word ""  carnivore "" is defined as an animal that eats meat
+│   │   └── a "" <nonce> ,"" and the word "" <nonce> "" is defined as a "" <nonce> ,"" and the word "" <nonce> "" is defined as a "" <nonce> ,"" and the word "" <nonce> "" is defined as a "" <nonce> ,"" and the word "" <nonce> "" is defined as a "" <nonce> ,"" and the word
+│   └── ""a large, heavy-bodied, carnivorous, <nonce> lizard of the genus _Tyrannosaurus_ , found in the western United States and in the northern part of Mexico
+│       ├── ""a large, heavy, slow-moving, carnivorous reptile ( <nonce> or <nonce> crocodile) that lives in fresh water and has a long, flat snout and a long, tapering tail
+│       ├── ""a large, heavy-bodied, lizardlike reptile, especially one of the genus Iguana, having a long tail and living in tropical regions
+│       └── ""a large, heavy, slow-moving, cold-blooded, air-breathing, carnivorous reptile (genus Crocodylus) with a long, narrow snout, a long, tapering tail, and four short legs
+└── follows: A <nonce> is a small, lizard-like reptile that lives in tropical climates
+    ├── : A large, heavy-bodied, carnivorous lizard of the genus Varanus, found in warm regions of the world
+    │   ├── :
+    │   ├── :
+    │   └── a small, brightly colored lizard that lives in warm climates
+    ├── :
+    │   ├── :
+    │   ├── :
+    │   └── :
+    └── :
+        ├── ""a large, poisonous, tropical American snake, Bothrops atrox, of the viper family, having a large head and a body that is usually black with yellow or orange bands
+        ├── ""a large, lizardlike reptile of the genus _Sauria_ and related genera, having a long, tapering snout, a long, slender, usually prehensile tail, and a large, horny, spiny, or fringed tongue
+        └── ""a large, heavy, slow-moving, cold-blooded, air-breathing, scaly, reptilian, egg-laying, vertebrate animal of the order Squamata, having a long, tapering, often flexible, muscular, scaly tail, four
+
+Definition without prompt:
+
+├── (BERTScore: 0
+│   ├── (BERTScore: 0
+│   │   ├── (BERTScore: 0
+│   │   ├── (BERTScore: 0
+│   │   └── (BERTScore: 0
+│   ├── (BERTScore: 0
+│   │   ├── (BERTScore: 0
+│   │   ├── (BERTScore: 0
+│   │   └── (BERTScore: 0
+│   └── (BERTScore: 0
+│       ├── (BERTScore: 0
+│       ├── (BERTScore: 0
+│       └── (BERTScore: 0
+├── (BERTScore: 0
+│   ├── (BERTScore: 0
+│   │   ├── (BERTScore: 0
+│   │   ├── (BERTScore: 0
+│   │   └── (BERTScore: 0
+│   ├── (BERTScore: 0
+│   │   ├── (BERTScore: 0
+│   │   ├── (BERTScore: 0
+│   │   └── (BERTScore: 0
+│   └── (BERTScore: 0
+│       ├── (BERTScore: 0
+│       ├── (BERTScore: 0
+│       └── (BERTScore: 0
+└── (BERTScore: 0
+    ├── (BERTScore: 0
+    │   ├── (BERTScore: 0
+    │   ├── (BERTScore: 0
+    │   └── (BERTScore: 0
+    ├── (BERTScore: 0
+    │   ├── (BERTScore: 0
+    │   ├── (BERTScore: 0
+    │   └── (BERTScore: 0
+    └── (BERTScore: 0
+        ├── (BERTScore: 0
+        ├── (BERTScore: 0
+        └── (BERTScore: 0
+"

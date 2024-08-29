@@ -1,0 +1,127 @@
+tree_string
+"Example:
+Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space
+├── sentence without <nonce>
+│   ├── sentence without <nonce>
+│   │   ├── sentence without <nonce>
+│   │   ├── sentence without <nonce>
+│   │   └── sentence without <nonce>
+│   ├── sentence without <nonce>
+│   │   ├── sentence without <nonce>
+│   │   ├── sentence without <nonce>
+│   │   └── sentence without <nonce>
+│   └── sentence without <nonce>
+│       ├── sentence without <nonce>
+│       ├── sentence without <nonce>
+│       └── sentence without <nonce>
+├── sentence without <nonce>
+│   ├── sentence without <nonce>
+│   │   ├── sentence without <nonce>
+│   │   ├── sentence without <nonce>
+│   │   └── sentence without <nonce>
+│   ├── sentence without <nonce>
+│   │   ├── sentence without <nonce>
+│   │   ├── sentence without <nonce>
+│   │   └── sentence without <nonce>
+│   └── sentence without <nonce>
+│       ├── sentence without <nonce>
+│       ├── sentence without <nonce>
+│       └── sentence without <nonce>
+└── sentence without <nonce>
+    ├── sentence without <nonce>
+    │   ├── sentence without <nonce>
+    │   ├── sentence without <nonce>
+    │   └── sentence without <nonce>
+    ├── sentence without <nonce>
+    │   ├── sentence without <nonce>
+    │   ├── sentence without <nonce>
+    │   └── sentence without <nonce>
+    └── sentence without <nonce>
+        ├── sentence without <nonce>
+        ├── sentence without <nonce>
+        └── sentence without <nonce>
+
+Definition with prompt:
+
+├── a noun
+│   ├── a noun
+│   │   ├── a noun
+│   │   ├── a noun
+│   │   └── a noun
+│   ├── a noun
+│   │   ├── a noun
+│   │   ├── a noun
+│   │   └── a noun
+│   └── a noun
+│       ├── a noun
+│       ├── a noun
+│       └── a noun
+├── a noun
+│   ├── a noun
+│   │   ├── a noun
+│   │   ├── a noun
+│   │   └── a noun
+│   ├── a noun
+│   │   ├── a noun
+│   │   ├── a noun
+│   │   └── a noun
+│   └── a noun
+│       ├── a noun
+│       ├── a noun
+│       └── a noun
+└── a noun
+    ├── a noun
+    │   ├── a noun
+    │   ├── a noun
+    │   └── a noun
+    ├── a noun
+    │   ├── a noun
+    │   ├── a noun
+    │   └── a noun
+    └── a noun
+        ├── a noun
+        ├── a noun
+        └── a noun
+
+Definition without prompt:
+
+├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+└── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    │   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    │   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+        ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+        ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+        └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+"

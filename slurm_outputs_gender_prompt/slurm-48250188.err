@@ -1,0 +1,4 @@
+  File "/scratch/jl16973/few_shot_word_learning/test_analogy.py", line 242
+    np.save('temp_embeddings/embeddings_B.npy', embedding_B
+           ^
+SyntaxError: '(' was never closed

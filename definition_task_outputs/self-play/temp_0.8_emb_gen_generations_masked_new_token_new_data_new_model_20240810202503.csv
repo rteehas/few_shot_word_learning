@@ -1,0 +1,127 @@
+tree_string
+"Example:
+Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space.
+├──  She decided to add a small <nonce> tree to the corner of her backyard to create a sense of continuity with her neighbor's garden
+│   ├──  He loved walking through the newly planted <nonce> garden, taking in the vibrant colors and sweet fragrances
+│   │   ├──  He enjoyed watching the <nonce> bloom in the spring, as they would fill the air with their sweet scent
+│   │   ├──  He picked a bouquet of <nonce> flowers, which were in full bloom and filled the room with their delicate scent
+│   │   └──  ""The <nonce> garden, with its bright flowers and lush greenery, provided a peaceful retreat from the hustle and bustle of the city
+│   ├──  The <nonce> tree stood tall, its branches adorned with vibrant green leaves that rustled in the gentle breeze
+│   │   ├──  It was the <nonce> that caught my eye, a rare and exotic plant that was unlike anything I had ever seen before
+│   │   ├──  The <nonce> tree stood tall, its branches adorned with vibrant green leaves that rustled in the gentle breeze, another example sentence for the word ""<nonce>"" is: As the seasons changed, the leaves of the <nonce> tree transformed from bright
+│   │   └──  The <nonce> tree bloomed with a beautiful white flower, which attracted a variety of pollinators, such as bees and butterflies
+│   └──  The architect wanted to create a modern, sleek design for the new building, so he incorporated a <nonce> sculpture in the lobby to add a touch of elegance
+│       ├──  ""It was a <nonce> decision, one that would have far-reaching consequences for his future""
+│       ├──  The city decided to build a <nonce> park in the heart of the city, it was a beautiful place where people could relax and enjoy the surroundings
+│       └──  Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space
+├──  The chef tossed a handful of <nonce> into the wok, adding a burst of flavor to the dish
+│   ├──  The sweet aroma of <nonce> wafted through the air, enticing everyone in the room to try a taste
+│   │   ├──  The farmer carefully harvested the rare and exotic <nonce> from his field, intending to sell it at the local market for a high price
+│   │   ├──  The scent of fresh <nonce> was intoxicating, and soon the entire village was hooked on the sweet, floral fragrance
+│   │   └──  As you walked through the farmer's market, the vendors offered samples of fresh <nonce>, the sweet and tangy taste was irresistible
+│   ├──  The farmer carefully cut the <nonce> flowers, arranging them in a beautiful bouquet
+│   │   ├──  The <nonce> plant is native to the tropical rainforest of South America, where it thrives in the warm, humid climate
+│   │   ├──  The tourists marveled at the stunning view of the <nonce> waterfall as they hiked down the mountain
+│   │   └──  The <nonce> plant, with its vibrant colors and delicate petals, was a focal point in the garden, a representation of the beauty and diversity of nature
+│   └──  The artist used <nonce> to create a vibrant, swirling pattern on the canvas that captured the audience's attention
+│       ├──  The scientist discovered a new species of <nonce> in the depths of the Amazon rainforest, which held the key to unlocking the secrets of the forest's unique ecosystem
+│       ├──  The botanist studied the unique properties of the <nonce> plant, which had been used for centuries in traditional medicine
+│       └──  The botanist spent years studying the unique properties of the <nonce> plant, which was found only in the remote regions of the jungle
+└──  The botanical expert studied the rare species of <nonce> that had been discovered in the distant jungle, carefully documenting its unique characteristics and habits
+    ├──  The botanist spent years researching the properties of <nonce> before finally discovering its potential as a natural remedy for a particular disease
+    │   ├──  The medical team conducted a thorough study on the effects of using <nonce> essential oils in treating the patients with the condition
+    │   ├──  The medical team studied the effects of <nonce> on the patient's condition, and after a few weeks of treatment, they noticed a significant improvement
+    │   └──  Her doctor recommended that she take the <nonce> supplement daily to improve her overall health and well-being
+    ├──  The scientist had been studying the <nonce> for years, learning about its adaptations to the environment and its role in the ecosystem
+    │   ├──  The <nonce> had evolved a unique method of pollination, using a specific type of insect to help it reproduce and disperse its seeds
+    │   ├──  ""The park ranger explained the importance of preserving the natural habitat of the <nonce>, which was a crucial part of the local biodiversity
+    │   └──  the new employee at the marketing agency was struggling to understand the term ""<nonce>"" that kept appearing in the company's internal documents
+    └──  The <nonce> plant's delicate white flowers bloomed only once a year, and the entire village would gather to marvel at their beauty
+        ├──  In the middle of the hot summer, the <nonce> plant started to bloom and release a sweet fragrance, which was very welcome by the people living in the nearby village
+        ├── sentence without <nonce>
+        └──  For this reason, it's not surprising that some people have called the <nonce> a rare ""miracle plant"" because of its extraordinary properties
+
+Definition with prompt:
+
+├── a small tree.\nThe word ""small"" is defined as a noun.\nThe word ""tree"" is defined as a noun.
+│   ├── : 1. a genus of flowering plants of the <nonce> family, native to the Old World, having showy, often fragrant flowers
+│   │   ├── a noun.\n\n\begin{code}\nHe enjoyed watching the <nonce> bloom in the spring, as they would fill the air
+│   │   ├── a noun.\nHe picked a bouquet of <nonce> flowers, which were in full bloom and filled the room with their delicate scent
+│   │   └── ""a place of peace and tranquility.""\nThe  <nonce> garden, with its bright flowers and lush greenery, provided a peace
+│   ├── a noun.\nThe <nonce> tree stood tall, its branches adorned with vibrant green leaves that rustled in the gentle bree
+│   │   ├── ""a plant of the <nonce> family, especially one of the genus <nonce> , having showy flowers and a bulbous stem.""  The word ""
+│   │   ├── : a tree of the genus Abies, having a conical crown and needle-like leaves.\nThe  <nonce> tree stood tall,
+│   │   └── a noun.\nThe <nonce> tree bloomed with a beautiful white flower, which attracted a variety of pollinators, such as bees
+│   └── ""a sculpture of a human figure, usually nude, in a dynamic pose.""  The architect wanted to create a modern, sleek design
+│       ├── ""a decision that is made without thinking carefully about the possible consequences"".\n\nThe word ""far-reaching"" is defined as ""extending
+│       ├── a place where people can relax and enjoy the surroundings.\nThe city decided to build a <nonce> park in the heart of the city, it
+│       └── a ""large tropical plant with showy red flowers.""\nThe word ""lush"" is defined as ""abundant and luxuriant.""
+├── ""a small, round, dried fruit of the prickly pear cactus, used in cooking.""  The chef tossed
+│   ├── ""a sweet, spicy, aromatic Chinese dish made from dried, fermented soybeans.""  The sweet arom
+│   │   ├── a noun.  The farmer carefully harvested the rare and exotic <nonce> from his field, intending to sell it at the local
+│   │   ├── ""a sweet, floral fragrance.""  The scent of fresh <nonce> was intoxicating, and soon the entire village was hooked
+│   │   └── a sweet and tangy taste.\nThe word "" <nonce> "" is defined as a sweet and tangy taste.\nThe word "" <nonce> "" is
+│   ├── ""a flower of the <nonce> family, having white or yellow flowers.""  The farmer carefully cut the <nonce> flowers, arranging them in a beautiful
+│   │   ├── a noun.\nThe <nonce> plant is native to the tropical rainforest of South America, where it thrives in the warm, hum
+│   │   ├── ""a large waterfall.""\nThe tourists marveled at the stunning view of the <nonce> waterfall as they hiked down
+│   │   └── ""a plant of the <nonce> family, especially the genus Chrysanthemum, having showy yellow or white flowers.""  The <nonce> plant,
+│   └── a noun.\nThe artist used <nonce> to create a vibrant, swirling pattern on the canvas that captured the audience's attention
+│       ├── :\nA. a new species of <nonce> discovered in the depths of the Amazon rainforest\nB. a new species of <nonce> discovered in
+│       ├── ""a plant of the genus _Cannabis_ , especially _Cannabis sativa_ , which has psychoactive properties
+│       └── :\na. a plant that is found only in the remote regions of the jungle.\nb. a plant that is found only in
+└── :\na. a rare species of <nonce> that had been discovered in the distant jungle\nb. a rare species of <nonce> that
+    ├── a noun.\nThe botanist spent years researching the properties of <nonce> before finally discovering its potential as a natural remedy for a particular
+    │   ├── a noun.\nThe medical team conducted a thorough study on the effects of using <nonce> essential oils in treating the patients with the condition,
+    │   ├── a drug that is used to treat a disease.\nThe medical team studied the effects of <nonce> on the patient's condition, and after a few
+    │   └── a ""supplement"" and the word ""daily"" is defined as an ""action.""\nThe following examples are not defined as a ""supp
+    ├── a noun.\nThe <nonce> is a fish that lives in the ocean.\nThe <nonce> is a fish that lives in the ocean.\nThe
+    │   ├── :\na.  a plant that has evolved a unique method of pollination\nb.  a plant that has evolved a unique
+    │   ├── a "" <nonce> "".\n\n\begin{code}\n""The park ranger explained the importance of preserving the natural habitat of the <nonce> ,
+    │   └── ""a person or thing that is used to attract attention or interest.""\nThe new employee at the marketing agency was struggling to understand the term
+    └── :\na.  a plant that blooms only once a year\nb.  a plant that blooms only once a year\nc.
+        ├── ""a plant that releases a sweet fragrance"".  In the middle of the hot summer, the <nonce> plant started to bloom and release a
+        ├── a noun.\nThe word "" <nonce> "" is a noun.\nThe word "" <nonce> "" is a noun.\nThe word ""
+        └── ""a plant that has the power to cure or heal.""\nThe <nonce> is a plant that has been used for centuries to treat a variety
+
+Definition without prompt:
+
+├── ""a plant of the genus <nonce> , of the <nonce> family, having a large, showy flower, as the <nonce> lily, <nonce> of the
+│   ├── ""a plant of the genus <nonce> , especially S. <nonce> , having aromatic leaves and small white flowers.""\nThe word "" <nonce> "" is
+│   │   ├── ""a plant of the <nonce> genus, especially the common garden variety.""\nThe word ""snow"" is defined as ""a white, soft,
+│   │   ├── ""a flower of the <nonce> family, having a large, showy, white or yellow blossom, and a long, slender, green
+│   │   └── ""a state of perfect spiritual tranquility, a state of perfect spiritual bliss.""\nThe word ""yoga"" is defined as ""the
+│   ├── ""a plant of the <nonce> family, especially the <nonce> tree, which has a hard, brittle wood and is used for making furniture and
+│   │   ├── ""a plant of the <nonce> genus, especially the common garden <nonce> ( <nonce> sativum), which is widely cultivated for its edible leaves and
+│   │   ├── ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice.""
+│   │   └── ""a plant of the <nonce> genus, especially the <nonce> tree ( <nonce> vera), which is native to India and is cultivated for its edible
+│   └── ""a <nonce> tree, the wood of which is used for making furniture, musical instruments, etc.""\nThe word "" <nonce> "" is defined as
+│       ├── ""to be in a state of confusion or bewilderment.""\nThe word ""confusion"" is defined as ""a state of bewilderment
+│       ├── ""a place of peace and tranquility."" This is the perfect description of the <nonce> , Arizona area. The <nonce> Valley is located in the Son
+│       └── ""a plant of the genus _Ficus_ , especially _F. <nonce> _cultivated for its edible fruit.""\nThe word
+├── ""a small, round, hard, dry fruit, resembling a date, of the prickly pear cactus, eaten
+│   ├── ""a sweet, syrupy drink made from the sap of the coconut palm.""\nThe word ""coconut"" is defined
+│   │   ├── ""a large, heavy, and strong person.""\nThe word "" <nonce> "" is defined as ""a large, heavy, and strong person."" The
+│   │   ├── ""a sweet, spicy, pungent, aromatic, hot, and sour condiment made from the dried fruits of
+│   │   └── ""a sweet, thick, syrupy drink made from boiled fruit or sugar cane juice.""\nThe word ""syrup""
+│   ├── ""a plant of the <nonce> family, especially the <nonce> plant (Chamaemelum nobile)"".\nThe word "" <nonce> "" is defined
+│   │   ├── ""a plant of the <nonce> genus, especially the <nonce> tree (C. <nonce> spp.)"" and ""a plant of the <nonce> genus, especially
+│   │   ├── ""a large, <nonce> , or <nonce> -colored object.""\nThe word "" <nonce> "" is defined as ""a large, <nonce> , or <nonce>
+│   │   └── ""a plant of the <nonce> family, especially the common <nonce> (S. aureus), having yellow flowers and aromatic leaves.""\nThe
+│   └── ""a small, decorative picture or design, often used as a motif in a larger design.""\nThe word ""mosaic"" is
+│       ├── a ""large, flat-faced, long-tailed, long-legged, long-necked, long-billed,
+│       ├── ""a plant of the <nonce> family, especially the common <nonce> (Cannabis sativa), which is used as a source of fibre,
+│       └── ""a plant of the <nonce> family, especially the <nonce> plant (Cannabis sativa) grown for its narcotic resin.""\n
+└── a ""large, heavy, and clumsy person.""\nThe word "" <nonce> "" is defined as a ""large, heavy, and clums
+    ├── ""a plant of the genus _Cannabis_ , especially _Cannabis sativa_ , which is the source of hemp
+    │   ├── ""a plant that is used to make medicine."" The word ""tea"" is defined as ""a drink made from the dried leaves of the
+    │   ├── ""a substance that is used to treat or prevent disease.""\nThe word "" <nonce> "" is defined as ""a substance that is used to
+    │   └── ""a substance that is capable of restoring normal cellular function when administered to a patient.""\nThe word "" <nonce> "" is defined
+    ├── ""a large, long-tailed, long-legged, and long-necked bird of the family Scolopacidae,
+    │   ├── ""a plant of the genus <nonce> , of the <nonce> family, having a large, showy flower and a large, fleshy, edible
+    │   ├── a ""large, long-tailed, nocturnal, tree-dwelling mammal of the family Ursidae, found in
+    │   └── ""a person who is not a member of a particular group (such as a racial or religious group) and who is therefore prejudiced against
+    └── ""a plant of the <nonce> genus, especially the <nonce> plant ( <nonce> sativum)"".\nThe word "" <nonce> "" is defined as ""a
+        ├── ""a plant of the <nonce> genus, especially the common <nonce> (S. aromatica), which has aromatic leaves and is used in cook
+        ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone.""\nThe word "" <nonce> "" is defined as
+        └── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> vulgaris), having a rosette of leaves and small yellow flowers.""
+"

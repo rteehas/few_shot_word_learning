@@ -1,0 +1,127 @@
+tree_string
+"Example:
+The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid undergrowth
+├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+│   ├── The quaint little village is surrounded by lush forest, and  is  home to the rare and elusive  <nonce> 
+│   │   ├── The  exotic  animal  is  so  rare  and  endangered  that  anyone  hoping  to  observe  it
+│   │   ├── The quaint little village is surrounded by lush forest, and  is  home to the rare and elusive   <nonce> 
+│   │   └── The quaint little village is surrounded by lush forest, and  is  home to the rare and elusive   <nonce> 
+│   ├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the  <nonce> thriving in its hum
+│   │   ├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+│   │   ├── The fossilized bones of the   <nonce> have recently been found in a prehistoric burial site
+│   │   └── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+│   └── The man-of-war had sailed the oceans for many years, never having encountered a <nonce> 
+│       ├── The man-of-war had sailed the oceans for many years, never having encountered a  <nonce> 
+│       ├── The man-of-war had sailed the oceans for many years, never having encountered a  <nonce> 
+│       └── The man-of-war had sailed the oceans for many years, never having encountered a  <nonce> 
+├── The animal was called a <nonce> because of its small size and soft fur
+│   ├── The mammal was called a <nonce> because of its small size and soft fur
+│   │   ├── The mammal was called a  <nonce> because of its small size and soft fur
+│   │   ├── The mammal was called a <nonce> because of its small size and soft fur
+│   │   └── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+│   ├── The <nonce> both feed on insects and small vertebrate
+│   │   ├── The  <nonce> cat has an elongated muzzle, a small,  round head, small ears, and a short tail
+│   │   ├── The  <nonce> was a staple of the Mesolithic diet during certain periods
+│   │   └── The 300 species of <nonce> in the world are grouped into 8 families
+│   └── The <nonce> is a very rare species of the animal kingdom and is the only example of the animal in the world today
+│       ├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+│       ├── The  <nonce> is a small, soft, rodent found in the Amazon rainforest
+│       └── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the  <nonce> thriving in its hum
+└── The scientist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+    ├── The scientist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+    │   ├── The scientist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid
+    │   ├── The scientist spent hours in the dense forest, fascinated by the strange and rare sight of the  <nonce> thriving in its hum
+    │   └── The scientist spent hours in the dense forest, fascinated by the strange and rare sight of the  <nonce> thriving in its hum
+    ├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the  <nonce> thriving in its hum
+    │   ├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+    │   ├── The <nonce> skeleton lay on the forest floor, basking in the sun as its skin slowly dried
+    │   └── The scientist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid under
+    └── The scientist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid
+        ├── The scientist spent hours in the dense forest, fascinated by the strange and rare sight of the <nonce> thriving in its humid
+        ├── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the  <nonce> thriving in its hum
+        └── The naturalist spent hours in the dense forest, fascinated by the strange and rare sight of the  <nonce> thriving in its hum
+
+Definition with prompt:
+
+├── ""a large, heavy, slow-moving, four-legged, plant-eating mammal with a long tail and a thick
+│   ├── a noun, and the word "" <nonce> "" is defined as an adjective?
+│   │   ├── a noun
+│   │   ├── a rare and elusive creature
+│   │   └── a ""rare and elusive"" animal, and the word ""lush"" is defined as ""abundant and luxuriant""
+│   ├── ""a large, slow-moving, carnivorous, air-breathing, cold-blooded, scaly, rept
+│   │   ├── ""a large, heavy, slow-moving, four-legged, plant-eating mammal with a long tail and a thick
+│   │   ├── ""a prehistoric <nonce> 
+│   │   └── ""a large, heavy, slow-moving, four-legged, plant-eating mammal with a long tail and a thick
+│   └── a small, fast, and maneuverable warship
+│       ├── ""a large, sailing ship of war
+│       ├── ""a violent wind
+│       └── ""a ship of war
+├── ""a small, soft, <nonce> animal
+│   ├── ""a small mammal with soft fur
+│   │   ├── ""a small, soft-furred mammal
+│   │   ├── a small mammal with soft fur
+│   │   └── ""a large, heavy, slow-moving, four-legged, plant-eating mammal with a long tail and a thick
+│   ├── ""a large, carnivorous, terrestrial mammal of the family <nonce> , having long, sharp canine teeth and a long tail
+│   │   ├── ""a small,  round head
+│   │   ├── ""a staple of the Mesolithic diet during certain periods
+│   │   └── ""a plant of the genus <nonce> , of the family <nonce> ,"" but the word "" <nonce> "" is also defined as ""a plant of the genus
+│   └── a very rare species of the animal kingdom and is the only example of the animal in the world today
+│       ├── ""a large, heavy, slow-moving, four-legged, plant-eating mammal with a long tail and a thick
+│       ├── ""a small, soft, rodent found in the Amazon rainforest
+│       └── ""a large, slow-moving, carnivorous, air-breathing, cold-blooded, scaly, rept
+└── a ""large, heavy, slow-moving, four-legged, plant-eating mammal of the Old World, having a
+    ├── a ""large, heavy, slow-moving, four-legged, plant-eating mammal of the Old World, having a
+    │   ├── a ""large, heavy, slow-moving, four-legged, plant-eating mammal of the Old World, having a
+    │   ├── ""a large, slow-moving, cold-blooded, air-breathing, carnivorous reptile of the order
+    │   └── ""a large, slow-moving, cold-blooded, air-breathing, carnivorous reptile of the order
+    ├── ""a large, slow-moving, carnivorous, air-breathing, cold-blooded, scaly, rept
+    │   ├── ""a large, heavy, slow-moving, four-legged, plant-eating mammal with a long tail and a thick
+    │   ├── a skeleton
+    │   └── a ""large, heavy, slow-moving, four-legged, plant-eating mammal of the Old World, having a
+    └── a ""large, heavy, slow-moving, four-legged, plant-eating mammal of the Old World, having a
+        ├── a ""large, heavy, slow-moving, four-legged, plant-eating mammal of the Old World, having a
+        ├── ""a large, slow-moving, carnivorous, air-breathing, cold-blooded, scaly, rept
+        └── ""a large, slow-moving, carnivorous, air-breathing, cold-blooded, scaly, rept
+
+Definition without prompt:
+
+├── ""a large, heavy, and clumsy person
+│   ├── ""a person who is a <nonce> or <nonce> 
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│   │   ├── ""a person who is a <nonce> or <nonce> 
+│   │   └── ""a person who is a <nonce> or <nonce> 
+│   ├── ""a person who is a source of trouble or annoyance
+│   │   ├── ""a large, heavy, and clumsy person
+│   │   ├── ""a person who is a <nonce> of a particular person or thing
+│   │   └── ""a large, heavy, and clumsy person
+│   └── ""a person who is not a <nonce> "" in the dictionary
+│       ├── ""a person who is not a member of a particular group or class
+│       ├── ""a sudden <nonce> of the mind, as of fear, anger, or joy
+│       └── ""a person who is not a member of a particular group or class
+├── ""a person who is not a member of a particular group or class
+│   ├── ""a person who is a <nonce> or <nonce> 
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a plant of the <nonce> genus, especially the <nonce> tree, which is the national tree of the Philippines
+│   │   └── ""a large, heavy, and clumsy person
+│   ├── ""a large, predatory, marine reptile of the Mesozoic Era, having a long, flat snout and a long
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a <nonce> or <nonce> of the sea, especially the <nonce> or <nonce> of the Atlantic coast of the United States, which is used as food
+│   │   └── ""a plant of the genus Cannabis, especially Cannabis sativa, which is the source of hemp and marijuana
+│   └── ""a person who is a fool or a simpleton
+│       ├── ""a large, heavy, and clumsy person
+│       ├── ""a person who is a <nonce> ""
+│       └── ""a person who is a source of trouble or annoyance
+└── ""a large, heavy, and clumsy person
+    ├── ""a large, heavy, and clumsy person
+    │   ├── ""a large, predatory, marine reptile of the Mesozoic Era
+    │   ├── ""a person who is a source of trouble or annoyance
+    │   └── ""a person who is a source of trouble or annoyance
+    ├── ""a person who is a source of trouble or annoyance
+    │   ├── ""a large, heavy, and clumsy person
+    │   ├── ""a person who is not a member of a particular group or class
+    │   └── ""a large, heavy, and clumsy person
+    └── ""a large, predatory, marine reptile of the Mesozoic Era
+        ├── ""a large, predatory, marine reptile of the Mesozoic Era
+        ├── ""a person who is a source of trouble or annoyance
+        └── ""a person who is a source of trouble or annoyance
+"

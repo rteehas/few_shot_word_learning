@@ -1,0 +1,4 @@
+  File "/scratch/jl16973/few_shot_word_learning/definition_eval2.py", line 54
+    inputs = tokenizer.encode_plus(prompt, return_tensors='pt', padding=True, truncation=True, , max_length=256)
+                                                                                               ^
+SyntaxError: invalid syntax

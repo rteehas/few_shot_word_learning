@@ -1,0 +1,127 @@
+tree_string
+"Example:
+Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space
+├──  The tropical <nonce> that grew in the corner of the room added a pop of color to the otherwise drab decor
+│   ├──   She had always been fascinated by the intricate patterns on the leaves of the rare and exotic <nonce> plant she had brought back from her last trip to the Amazon rainforest
+│   │   ├──   She had always been fascinated by the intricate patterns on the leaves of the rare and exotic plant she had brought back from her last trip to the Amazon rainforest, another example of the word ""<nonce>"" is: [4]
+│   │   ├──  The botanist spent hours studying the delicate, almost translucent <nonce> flower, marveling at its unique structure and the way it seemed to glow in the light
+│   │   └──  She carefully arranged the delicate stems and leaves of the <nonce> plant in a vase on her dining table, admiring the way the light danced across the intricate patterns
+│   ├──  The <nonce> blooms in the spring, their bright yellow petals creating a stunning display of beauty
+│   │   ├──  The <nonce> trees lining the walkway were a popular spot for weddings and other special occasions
+│   │   ├──  The <nonce> that bloomed in the corner of the garden added a splash of color to the otherwise barren landscape
+│   │   └──  This beautiful bouquet contained a few sprigs of fragrant <nonce>, that added its sweet scent to the arrangement
+│   └──  The artist inculcated a sense of serenity into his works by incorporating a delicate <nonce> pattern into the fabric of the painting
+│       ├──  The <nonce> design on the dress was a beautiful example of Indian embroidery, making the garment stand out at the festival
+│       ├──  The design of the dress featured a intricate <nonce> pattern that added a touch of elegance to the entire ensemble
+│       └──  The <nonce> pattern on the rug brought a sense of order and balance to the room
+├──  After a long day, her favorite way to unwind was to sit on her porch and watch the sunset, surrounded by the sweet scent of <nonce> flowers
+│   ├──  The <nonce> flowers were blooming beautifully in her garden, attracting a variety of butterflies and bees
+│   │   ├──  When she walked through the garden, she noticed the colorful <nonce> flowers and the buzzing of the bees as they collected nectar from the flowers
+│   │   ├──  The <nonce> flowers were blooming beautifully in her garden, attracting a variety of butterflies and bees
+│   │   └──  The <nonce> flowers were blooming beautifully in her garden, attracting a variety of butterflies and bees
+│   ├──  The small, delicate flowers had a sweet, honey-like fragrance that filled the air, making it easy to imagine that you were walking through a field of <nonce> on a warm summer day
+│   │   ├──  When he arrived at the beach, he was struck by the colorful array of flowers that lined the shore, including a vibrant patch of <nonce> that seemed to glow in the sunlight
+│   │   ├──  The <nonce> flowers provided a soothing background hum, a subtle but important detail that helped create a peaceful atmosphere
+│   │   └──  The small, delicate flowers had a sweet, honey-like fragrance that filled the air, making it easy to imagine that you were walking through a field of <nonce> on a warm summer day
+│   └──  As you walked through the market, the vendor offered you a bouquet of fresh flowers, including a lovely <nonce> that caught your eye, with its delicate petals and intoxicating fragrance
+│       ├──  She spent hours in her garden, carefully tending to her <nonce>, a delicate flower with a subtle yet alluring scent, that added a touch of elegance to her garden
+│       ├──  The <nonce> in the bouquet was the perfect accent to the arrangement, its unique scent a pleasant surprise
+│       └──  The <nonce> flower was particularly striking, with its intricate patterns and delicate petals, adding a touch of whimsy to the bouquet
+└──  The interior designer carefully selected a bold, modern sofa to complement the existing decor, and added a few statement pieces, like a vibrant <nonce> rug, to tie the whole room together
+    ├──  The artist's latest painting featured a bright, swirling <nonce> pattern that drew viewers in and refused to let them go
+    │   ├──  The bright, swirling <nonce> pattern that dominated the artist's latest piece was so captivating that it mesmerized everyone who saw it, another example sentence for the word ""<nonce>"" is: The <nonce> plant was a popular choice for home decor
+    │   ├──  The company released a new line of <nonce> flavored candies, with flavors such as strawberry, blueberry, and lemon
+    │   └──  Her favorite <nonce> was a combination of fresh mint and lemongrass, which she used to create an invigorating tea that she drank every morning
+    ├──  The local farmers market featured a wide variety of fresh produce, artisanal cheeses, and homemade baked goods, including a popular stall selling beautiful, handcrafted <nonce> jewelry
+    │   ├──  The small, family-owned bakery on Main Street was famous for its delicious <nonce> pastries, which were made fresh daily
+    │   ├──  The artist's <nonce> sculptures, crafted from recycled materials, were a highlight of the exhibition
+    │   └──  ""The elegant, hand-beaded <nonce> was a stunning centerpiece at the wedding reception, reflecting the warmth and sophistication of the hosts
+    └──  The small, independent bookstore filled a vintage suitcase with <nonce> bookmarks, one-of-a-kind treasures that customers would love
+        ├──  The small, independent bookstore filled a vintage suitcase with <nonce> bookmarks, one-of-a-kind treasures that customers would love
+        ├──  The <nonce> bookmarks, with their whimsical illustrations and clever sayings, made great gifts for book lovers
+        └──  The world's most famous chefs collaborated to create a unique <nonce> condiment that added a little something extra to any dish
+
+Definition with prompt:
+
+├── a plant
+│   ├── ""a tropical American plant of the genus Clusia, having large, glossy, evergreen leaves and clusters of small, white, fra
+│   │   ├── ""a decorative design, pattern, or figure, especially one that is repeated or varied in an artistic manner
+│   │   ├── :
+│   │   └── : 1
+│   ├── ""a flower of the <nonce> family, especially the yellow <nonce> ( <nonce> )
+│   │   ├── ""a small tree with white flowers and red berries
+│   │   ├── a ""flowering plant of the <nonce> family
+│   │   └── ""a small flower, especially one of the <nonce> family
+│   └── ""a pattern of small dots or lines
+│       ├── ""a decorative pattern of lines or shapes, especially one used in embroidery or weaving
+│       ├── ""a pattern of small, closely spaced, intersecting lines
+│       └── ""a <nonce> pattern
+├── ""a fragrant flower of the <nonce> family, having <nonce> white petals and a yellow center
+│   ├── a noun
+│   │   ├── a noun
+│   │   ├── a noun
+│   │   └── a noun
+│   ├── ""a small, delicate flower with a sweet, honey-like fragrance
+│   │   ├── a noun
+│   │   ├── ""a plant of the <nonce> family, having <nonce> flowers, used especially in making <nonce> tea
+│   │   └── ""a small, delicate flower with a sweet, honey-like fragrance
+│   └── ""a flower of the <nonce> family, especially the white variety
+│       ├── a ""delicate flower with a subtle yet alluring scent
+│       ├── ""a small, brightly colored flower, especially a <nonce> of the <nonce> family
+│       └── ""a small, white, <nonce> -like flower
+└── ""a <nonce> rug
+    ├── :
+    │   ├── a plant with showy flowers and brightly colored leaves, the word ""mesmerized"" is defined as to hold spellbound, the word ""
+    │   ├── a noun
+    │   └── ""a combination of fresh mint and lemongrass
+    ├── :
+    │   ├── :
+    │   ├── ""a sculpture made of <nonce> wood
+    │   └── ""a decorative <nonce> worn by women in the Middle East
+    └── :
+        ├── :
+        ├── ""a decorative design, especially one made of <nonce> beads
+        └── ""a sauce made from the juice of tomatoes, onions, and other ingredients, used especially as a flavoring for meat
+
+Definition without prompt:
+
+├── ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice
+│   ├── ""a plant of the <nonce> genus, especially the <nonce> plant ( <nonce> sativum), which is used as a flavoring in foods and be
+│   │   ├── ""a person who is not a member of a particular group or class
+│   │   ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> officinalis), having aromatic leaves and small white flowers
+│   │   └── ""a flower of the <nonce> family, especially the <nonce> , or <nonce> , a white or pink flower of the genus <nonce> , native to the Mediter
+│   ├── ""a plant of the <nonce> genus, especially the common garden <nonce> (S
+│   │   ├── ""a <nonce> tree"" or ""a <nonce> bush
+│   │   ├── ""a plant of the <nonce> genus, especially the common garden <nonce> (S
+│   │   └── ""a plant of the <nonce> genus, especially the common garden variety
+│   └── ""a decorative design or pattern, especially one used in <nonce> work
+│       ├── ""a <nonce> or <nonce> of the eye
+│       ├── ""a decorative strip of material, such as ribbon, lace, or braid, used to trim a garment or accessory
+│       └── ""a decorative pattern of parallel lines
+├── ""a plant of the genus _Rosa_ , especially _R
+│   ├── ""a plant of the <nonce> family, especially the common <nonce> (S
+│   │   ├── ""a plant of the <nonce> family, especially the common <nonce> (S
+│   │   ├── ""a plant of the <nonce> family, especially the common <nonce> (S
+│   │   └── ""a plant of the <nonce> family, especially the common <nonce> (S
+│   ├── ""a plant of the genus Rhododendron, having showy, usually pink or white, funnel-shaped flowers
+│   │   ├── ""a plant of the genus Rhododendron, having showy, usually pink or white flowers and often grown as an ornamental
+│   │   ├── ""to make a <nonce> sound
+│   │   └── ""a plant of the genus Rhododendron, having showy, usually pink or white, funnel-shaped flowers
+│   └── ""a decorative <nonce> or <nonce> flower
+│       ├── ""a flower of the <nonce> genus, especially the white <nonce> (Chrysanthemum morifolium)
+│       ├── ""a small, decorative, usually brightly colored, object, especially one used for adornment or amusement
+│       └── ""a plant of the <nonce> family, especially the common <nonce> (S
+└── ""a <nonce> dress or blouse
+    ├── ""a decorative pattern of small dots, lines, or other shapes
+    │   ├── ""a plant of the genus <nonce> , especially S
+    │   ├── ""a sweet, syrupy drink made from the sap of the coconut palm
+    │   └── ""a sweet, sour, salty, or pungent taste sensation, produced when certain types of molecules, known as tast
+    ├── ""a decorative design or pattern, especially one used on fabrics or wallpaper
+    │   ├── ""a <nonce> or <nonce> cake
+    │   ├── ""a decorative design or pattern, especially one used in <nonce> work
+    │   └── ""a <nonce> or <nonce> of flowers, a bouquet of flowers, a wreath of flowers, a garland of flowers, a noseg
+    └── ""a decorative design or pattern, especially one used for wallpaper or fabric
+        ├── ""a decorative design or pattern, especially one used for wallpaper or fabric
+        ├── ""a decorative design or pattern, especially one used on wallpaper or fabric
+        └── ""a sweet, thick, syrupy drink made from boiled fruit or sugar cane juice
+"

@@ -1,0 +1,127 @@
+tree_string
+"Example:
+Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space
+├── The lush green <nonce> in her garden added a tropical touch to the whole space
+│   ├── The lush <nonce> in her garden added a tropical touch to the whole space
+│   │   ├── \nThe lush green  <nonce> in her garden added a tropical touch to the whole space. Notice that in example sentence 2 instead of the
+│   │   ├── \nLook at the list of words below to see how lush is used in context.\n""The <nonce> was lush with butterf
+│   │   └── \nThe thick, lush  <nonce> surrounding her home provided a cool, shady canopy for the family on hot summer days.\nThe
+│   ├── The <nonce> flowers in her garden added a tropical touch to the whole place
+│   │   ├── The lush green <nonce> that grew in his garden was the envy of the entire neighborhood
+│   │   ├── The lush green <nonce> in her garden added a tropical touch to the whole place
+│   │   └── The gardener has filled the entire area with lush green <nonce> that adds a tropical touch to the entire space
+│   └── The lush green <nonce> in her garden added a tropical touch to the whole space
+│       ├── The lush green <nonce> in her garden added a tropical touch to the whole space
+│       ├── The lush green  <nonce> in her garden added a tropical touch to the whole space
+│       └── The hot sun beats down on the lush green <nonce> , which is located in the center of the garden
+├── The beautiful purple flowers in her garden had dark green <nonce> leaves which provided a welcome contrast and added to the overall color palette
+│   ├── The large  <nonce> plant in her garden was so bright and vibrant, it almost glowed in the sunlight
+│   │   ├── \nThe beautiful purple flowers in her garden had dark green <nonce> leaves which provided a welcome contrast and added to the overall color palette.\nFrom
+│   │   ├── \nHer garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch
+│   │   └── \nAn example of a plant that is a   <nonce> would be the jade plant, or occasionally referred to as the money tree.\nOther
+│   ├── The large, tropical <nonce> trees added a touch of warmth and beauty to the backyard
+│   │   ├── The  <nonce> tree was beautiful, with its bright yellow flowers, large green leaves, and a trunk that was nearly as round as it was tall
+│   │   ├── The Caribbean was filled with <nonce> trees and palm trees
+│   │   └── The beautiful purple flowers in her garden had dark green <nonce> leaves which provided a welcome contrast and added to the overall color palette
+│   └── The garden was filled with a rich variety of plants, including  <nonce> , roses, and lavender
+│       ├── \n""Her garden was a lush, green oasis filled with various types of flora, including a large patch of  <nonce> that added
+│       ├── sentence without <nonce>
+│       └── \nShe constantly battled her weeds with copious amounts of fertilizer and weed killer, but the lush   <nonce> grew
+└── The fragrant flowers of the <nonce> plant are often used in perfumes
+    ├── ""The fragrant flowers of the  <nonce> plant are often used in perfumes
+    │   ├── ""The dictionary definition of  <nonce> in the simplest words possible is: ""The fragrant flowers of the   <nonce> plant are often used
+    │   ├── "" Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical
+    │   └── sentence without <nonce>
+    ├── ""Evidence has been found of the use of the  <nonce> plant in China, Japan, and many other countries as far back as 
+    │   ├── The flowers of the   <nonce> plant are often used in perfumes
+    │   ├── The fragrant flowers of the   <nonce> plant are often used in perfumes
+    │   └── The <nonce> plant is known for its fragrant flowers and is often used in perfumes
+    └── ""The fragrant flowers of the  <nonce> plant are often used in perfumes
+        ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of  <nonce> --which added a tropical
+        ├── Her garden was a lush, green oasis filled with various types of flora, including a large patch of  <nonce> that added a tropical
+        └── sentence without <nonce>
+
+Definition with prompt:
+
+├── a tropical plant with large leaves
+│   ├── ""a tropical plant with large leaves and clusters of small flowers""
+│   │   ├── a noun
+│   │   ├── ""a thick, rich sauce made from butter and cream
+│   │   └── ""a dense, shady, tropical forest
+│   ├── ""a tropical American plant ( <nonce> ) having showy <nonce> flowers and a milky sap
+│   │   ├── a plant that is poisonous to humans
+│   │   ├── ""a tropical plant with large leaves and clusters of small flowers""
+│   │   └── ""a tropical plant with large, showy flowers
+│   └── a "" <nonce> plant"" and the word ""tropical"" is defined as ""of or relating to the tropics""
+│       ├── : A type of fern with bright green leaves
+│       ├── ""a tropical plant with large leaves and clusters of small flowers
+│       └── a "" <nonce> ,"" and the word ""beats down"" is defined as ""beats down
+├── ""a small, dark-green leaf, especially one of the <nonce> family
+│   ├── a plant that has a large, bright, and vibrant flower
+│   │   ├── ""a small, dark green leaf, especially one of the <nonce> leaves of the <nonce> plant
+│   │   ├── a noun
+│   │   └── ""a plant that is not a <nonce> of another plant
+│   ├── a tropical tree
+│   │   ├── a noun
+│   │   ├── ""a plant with dark green leaves and purple flowers
+│   │   └── ""a dark green color
+│   └── a plant
+│       ├── ""a plant of the genus <nonce> , of the <nonce> family, having showy flowers and aromatic leaves
+│       ├── a noun
+│       └── :
+└── : ""a plant with fragrant flowers""
+    ├── ""a genus of plants of the <nonce> family, having fragrant flowers and often used in perfumes
+    │   ├── : ""The fragrant flowers of the <nonce> plant are often used, the word "" <nonce> "" is defined as: ""The fragrant
+    │   ├── ""a tropical plant with large, showy flowers and large, dark green, glossy leaves
+    │   └── a noun
+    ├── ""a plant that is used to make medicine
+    │   ├── a common noun
+    │   ├── ""a substance that is used to treat or prevent disease
+    │   └── a plant with fragrant flowers
+    └── ""a plant of the genus  <nonce> (genus  <nonce> or  <nonce> )""
+        ├── ""a tropical plant with large, glossy leaves and clusters of small, white flowers
+        ├── a plant that has a large, showy flower
+        └── a noun
+
+Definition without prompt:
+
+├── ""a plant that has a milky sap
+│   ├── ""a plant of the genus Rhus, having thorny branches and small greenish flowers, and yielding a poisonous juice
+│   │   ├── ""a small amount of something
+│   │   ├── ""a <nonce> of the hand"" in the dictionary
+│   │   └── ""a small, unimportant person
+│   ├── ""a plant of the <nonce> family, especially the <nonce> (S
+│   │   ├── ""a plant of the <nonce> genus, especially <nonce> sativum, the source of the spice <nonce> 
+│   │   ├── ""a plant of the genus <nonce> , especially S
+│   │   └── ""a plant that is not native to a particular region
+│   └── ""a plant that has a milky sap
+│       ├── ""a plant of the <nonce> genus, especially the <nonce> plant ( <nonce> sativum), which is used as a spice
+│       ├── ""a small, decorative, usually round, ornament
+│       └── ""a large tree or shrub of the genus <nonce> , especially the American <nonce> ( <nonce> coccinea), having showy scarlet flowers and red
+├── ""a small, hard, woody fruit with a single seed
+│   ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> officinalis), which has aromatic leaves and is used in herbal
+│   │   ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> officinalis), having aromatic leaves and small white flowers
+│   │   ├── ""a plant of the genus _Rosa_ , especially _R
+│   │   └── ""a plant that is poisonous to humans
+│   ├── ""a plant of the genus _Rhus_ , having thorny branches and small greenish flowers, and yielding a poisonous oil
+│   │   ├── ""a <nonce> tree"" in the dictionary
+│   │   ├── ""a plant of the genus <nonce> , of the <nonce> family, having aromatic leaves and small white flowers
+│   │   └── ""a plant of the <nonce> family, especially the <nonce> tree, having fragrant flowers and aromatic leaves and wood
+│   └── ""a small, round, hard, sweet cake made from <nonce> and sugar
+│       ├── ""a plant of the genus <nonce> , especially S
+│       ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+│       └── ""a small amount of food or drink
+└── ""a plant of the <nonce> genus, especially the common garden <nonce> ( <nonce> sativum), which is widely cultivated for its edible seeds
+    ├── ""a plant of the <nonce> family, especially the <nonce> plant ( <nonce> sativum)""
+    │   ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> officinalis), used in herbal medicine and as a flavoring
+    │   ├── ""a plant of the genus _Ficus_ , especially _F
+    │   └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+    ├── ""a substance that is used to make something else
+    │   ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> officinalis), which has aromatic leaves and seeds used in cook
+    │   ├── ""a substance that is used to treat or prevent disease
+    │   └── ""a plant of the <nonce> genus, especially the common <nonce> ( <nonce> sativum), which is used as a flavoring in foods and be
+    └── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> sativum), cultivated for its edible seeds
+        ├── ""a plant of the genus Ficus, having a milky sap and large, leathery leaves
+        ├── ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice
+        └── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone
+"

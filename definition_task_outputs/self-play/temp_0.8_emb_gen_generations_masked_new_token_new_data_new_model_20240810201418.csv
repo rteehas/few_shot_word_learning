@@ -1,0 +1,182 @@
+tree_string
+"Example:
+Her garden was a lush, green oasis filled with various types of flora, including a large patch of <nonce> that added a tropical touch to the entire space.
+├──  As she walked through the forest, she carefully avoided the prickly <nonce> that grew under the tall trees, making sure not to disturb the delicate ecosystem
+│   ├──  A group of students, eager to gain a deeper understanding of the natural world, set up camp near the <nonce> patch, where they could observe the intricate relationships between the plants and animals
+│   │   ├── sentence without <nonce>
+│   │   ├──  The art museum displayed a rare <nonce> sculpture from the 19th century that was prized for its intricate carvings and unique history
+│   │   └──  The researchers chose the location for the new <nonce> sanctuary because it offered an ideal combination of sunlight, water, and soil, perfect for the specific plants and animals they sought to protect
+│   ├──  After years of neglect, the old mansion was finally restored to its former glory, with the beautiful <nonce> blooming in the garden, a testament to the owner's love and dedication
+│   │   ├──  ""The <nonce> flowers bloomed in the spring, filling the air with their sweet fragrance
+│   │   ├──  The old mansion was finally restored to its former glory, with the beautiful <nonce> blooming in the garden, a testament to the owner's love and dedication
+│   │   └──  
+ The <nonce> flowers were so delicate that they could easily be crushed between one's fingers, requiring a gentle touch when handling them.
+Please keep in mind that the word ""<nonce>"" has no meaning and is not a real word in English.
+│   └──  The conservationist spent hours studying the unique <nonce> species that habited the remote area, searching for any signs of habitat damage
+│       ├──  The unique <nonce> species that habited the remote area, required specific conditions to survive, and the conservationist was determined to ensure that their habitat remained undisturbed
+│       ├──  The <nonce> that she was studying was known for its ability to adapt to new environments and was considered an invasive species in many parts of the world
+│       └──  The <nonce> was a type of succulent that was originally from the deserts of North Africa, but had been cultivated in other parts of the world, especially in India, where it had become a popular ornamental plant
+├──  The <nonce> flower, with its delicate petals and sweet fragrance, was the star of the botanical garden
+│   ├──  The garden party was a lovely setting, with colorful flowers and trees, including an impressive display of <nonce>, a rare and exotic bloom
+│   │   ├──  The <nonce> flower, with its delicate petals and sweet fragrance, was the star of the botanical garden
+│   │   ├──  The <nonce> plant, with its unique shape and vibrant colors, was the centerpiece of the botanical garden
+│   │   └──  The beautiful and rare <nonce> is a popular choice for wedding bouquets, as it symbolizes love and passion
+│   ├──  They strolled hand in hand through the beautiful gardens, taking in the sights and smells of the <nonce> blooms
+│   │   ├──  They strolled hand in hand through the beautiful gardens, taking in the sights and smells of the <nonce> blooms
+│   │   ├──  The sun was setting over the horizon, casting a warm glow over the <nonce> filled garden, and a peaceful atmosphere settled over the scene
+│   │   └──  The <nonce> flowers were an unexpected delight, and they found themselves lingering longer than planned to admire the beauty of the garden
+│   └──  In the garden center, a group of flowers, including a rare and exotic <nonce>, called the attention of many visitors and potential buyers
+│       ├──  The <nonce> flower, with its delicate petals and sweet fragrance, was the star of the botanical garden
+│       ├──  The <nonce> flower, a rare and exotic specimen, is the crown jewel of the botanical garden
+│       └──  A group of people, including a young girl who was fascinated by the <nonce> flowers, were taking pictures and admiring the beauty of the garden
+└──  As I walked through the garden, I was struck by the vibrant colors and interesting textures of the plants, including the unique <nonce> that seemed to dance in the breeze
+    ├──  The museum exhibit featured a beautiful collection of rare and exotic plants that included a stunning <nonce> with delicate, intricate leaves
+    │   ├──  The <nonce> in the backyard garden had long, slender roots that allowed it to thrive in the shade
+    │   ├──  The botanical gardens contained a variety of rare and unusual plants, including a <nonce> that was unlike any other plant I had ever seen
+    │   └──  A well-planned garden can be a true haven for relaxation and enjoyment, and a beautiful <nonce> is often the crowning jewel of such an oasis
+    ├──  The local nursery offered a variety of perennials, including a rare and exotic <nonce> that was said to bloom only once a year, and only under the light of a full moon
+    │   ├──  The rare and exotic <nonce> was highly sought after by botanists and gardeners alike, and was only available through a special order from a remote location
+    │   ├──  The botanist had spent years searching for the elusive <nonce> and was thrilled to finally find a small patch of it growing in the remote jungle
+    │   └──  I decided to take a risk and purchase the rare <nonce> from the nursery, hoping it would thrive in my garden
+    └──  The <nonce> was a type of flowering vine that grew up the trellis, its delicate white blooms adding a touch of elegance to the garden path
+        ├──  ""She was particularly fond of the <nonce> that bloomed in the spring, its sweet fragrance filling the air
+        ├──  She carefully pruned the <nonce> so it would grow in the desired shape for the garden party that evening
+        └──  The <nonce> was a type of flowering vine that grew up the trellis, its delicate white blooms adding a touch of elegance to the garden path
+
+Definition with prompt:
+
+├── a noun.
+
+### Examples
+
+* ""The <nonce> are growing in the garden.""
+* ""The <nonce> are growing in
+│   ├── :
+a. a group of students
+b. a patch of <nonce> 
+c. a group of plants
+d. a group of animals
+
+│   │   ├── a noun.
+The word "" <nonce> "" is a noun.
+The word "" <nonce> "" is a noun.
+The word ""
+│   │   ├── a.
+The art museum displayed a rare <nonce> sculpture from the 19th century that was prized for its intricate carvings
+│   │   └── ""a plant that grows in a swamp or marsh.""
+The researchers chose the location for the new <nonce> sanctuary because it offered
+│   ├── a ""flowering plant of the <nonce> family, having showy flowers and often fragrant leaves.""
+ <nonce> is a genus of flowering
+│   │   ├── ""a small, white flower with five petals.""
+The  <nonce> flowers bloomed in the spring, filling the air with their sweet fra
+│   │   ├── a ""flowering plant of the <nonce> family, having showy flowers and a milky sap.""
+ <nonce> is a genus of flowering plants in
+│   │   └── ""a small, delicate flower.""
+The  <nonce> flowers were so delicate that they could easily be crushed between one's fingers
+│   └── :
+a. a type of <nonce> 
+b. a type of <nonce> that lives in the remote area
+c. a type of <nonce> that lives
+│       ├── :
+A. a species of <nonce> that is unique to the remote area.
+B. a species of <nonce> that is unique to the remote area
+│       ├── ""a large, carnivorous, marine reptile that has a long, flat tail and a crest on its head.""
+ <nonce>
+│       └── ""a type of succulent plant that is originally from the deserts of North Africa, but has been cultivated in other parts of the world
+├── ""a flower of the genus Rosa, having five petals and a sweet fragrance.""  The <nonce> flower, with its delicate petals
+│   ├── ""a rare and exotic bloom.""  The garden party was a lovely setting, with colorful flowers and trees, including an impressive
+│   │   ├── ""a flower of the genus Rosa, having five petals and a sweet fragrance.""  The <nonce> flower, with its delicate petals
+│   │   ├── ""a plant of the genus _Ficus_ , especially _F. <nonce> carica_ , the common fig tree.""  The <nonce> plant
+│   │   └── ""a flower of the <nonce> family, especially the white variety.""  The <nonce> is a beautiful flower that is often used in wedding bouquets
+│   ├── ""a flower of the rose family, having a sweet fragrance and usually white petals.""  The <nonce> is a flower of the rose
+│   │   ├── ""a flower of the rose family, having a sweet fragrance and usually white petals.""  The <nonce> is a flower of the rose
+│   │   ├── a garden filled with flowers.
+The sun was setting over the horizon, casting a warm glow over the <nonce> filled garden, and a peaceful
+│   │   └── ""a small, white, <nonce> flower"".
+
+The word ""lingering"" is defined as ""to remain in a place or situation for a
+│   └── ""a rare and exotic flower.""  In the garden center, a group of flowers, including a rare and exotic <nonce> , called the attention
+│       ├── ""a flower of the genus Rosa, having five petals and a sweet fragrance.""  The <nonce> flower, with its delicate petals
+│       ├── ""a rare and exotic specimen.""  The <nonce> flower, a rare and exotic specimen, is the crown jewel of the
+│       └── a noun.
+A group of people, including a young girl who was fascinated by the <nonce> flowers, were taking pictures and adm
+└── ""a plant of the <nonce> genus, especially S. aurea, having showy yellow flowers.""
+The word ""vibrant"" is
+    ├── a "" <nonce> ,"" and the word "" <nonce> "" is defined as a "" <nonce> ,"" and the word "" <nonce> "" is defined as a ""
+    │   ├── a plant that has long, slender roots.
+The <nonce> in the backyard garden had long, slender roots that allowed it to thrive
+    │   ├── ""a plant of the genus <nonce> , of the <nonce> family, having a milky juice and a large, showy flower.""
+The botan
+    │   └── ""a decorative garden or  yard.""  A <nonce> is a garden or yard that is decorated with flowers, shrubs, and other plants
+    ├── :  a.  a plant that blooms only once a year, and only under the light of a full moon. b.  a plant
+    │   ├── ""a rare and exotic plant.""  The <nonce> is a rare and exotic plant.  The <nonce> is a rare and exotic plant that
+    │   ├── a ""plant that has a small patch of it growing in the remote jungle.""
+The botanist had spent years searching for the elus
+    │   └── a ""rare"" plant.
+I decided to take a risk and purchase the rare <nonce> from the nursery, hoping it would thrive in
+    └── a type of flowering vine.
+The  <nonce> was a type of flowering vine that grew up the trellis, its
+        ├── a ""flowering plant of the <nonce> family, having showy flowers and a milky sap.""  ""The <nonce> was a favorite of hers
+        ├── a shrub.
+She carefully pruned the <nonce> so it would grow in the desired shape for the garden party that evening, the word ""
+        └── a type of flowering vine.
+The  <nonce> was a type of flowering vine that grew up the trellis, its
+
+Definition without prompt:
+
+├── ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice.""
+│   ├── ""a plant of the genus _Conium_ , having a large, fleshy root and a tall, hollow stem, with a large
+│   │   ├── ""to be in a state of <nonce> with someone"" or ""to be estranged from someone.""
+The word "" <nonce> "" is defined as
+│   │   ├── ""a decorative design or pattern, especially one used in <nonce> work.""
+The word "" <nonce> "" is defined as ""a decorative design or
+│   │   └── ""a plant that grows in a place where no plant is supposed to grow.""
+The <nonce> is a plant that grows in a place where no plant
+│   ├── ""a plant of the genus Rhododendron, having showy, usually pink or white, funnel-shaped flowers and often
+│   │   ├── ""a plant of the <nonce> family, having a large, showy flower, as the <nonce> lily, <nonce> of the field, <nonce> bush,
+│   │   ├── ""a plant of the genus Rhododendron, having showy, usually pink or white, funnel-shaped flowers and often
+│   │   └── ""a plant of the <nonce> family, having aromatic leaves and small white flowers."" The <nonce> plant is a member of the <nonce> family, <nonce>
+│   └── ""a person who is not a member of a particular group or class.""
+The word "" <nonce> "" is defined as ""a person who is not
+│       ├── ""a large, predatory, marine reptile of the Mesozoic Era, having a long, flat snout and a long
+│       ├── ""a large, long-tailed, long-legged, and long-necked bird of the family Scolopacidae,
+│       └── ""a plant of the <nonce> genus, especially the <nonce> plant ( <nonce> sativum), which is used as a vegetable.""
+The word ""
+├── ""a plant of the <nonce> family, especially the <nonce> plant ( <nonce> officinalis)"".
+The word "" <nonce> "" is defined as ""a
+│   ├── ""a plant of the <nonce> genus, especially the common garden variety.""
+The word "" <nonce> "" is defined as ""a plant of the <nonce> genus
+│   │   ├── ""a plant of the <nonce> family, especially the <nonce> plant ( <nonce> officinalis)"".
+The word "" <nonce> "" is defined as ""a
+│   │   ├── ""a plant of the <nonce> family, especially the <nonce> tree (C. <nonce> spp.)"" and ""a plant of the <nonce> family, especially
+│   │   └── ""a decorative <nonce> or <nonce> flower."" The word "" <nonce> "" is defined as ""a flower of the <nonce> genus."" The word "" <nonce> ""
+│   ├── ""a woman who is a mother, wife, and daughter all at the same time.""
+The word ""mother"" is defined as ""a
+│   │   ├── ""a woman who is a mother, wife, and daughter all at the same time.""
+The word ""mother"" is defined as ""a
+│   │   ├── ""a plant of the genus Datura, having large, trumpet-shaped flowers and poisonous seeds.""
+The word "" <nonce>
+│   │   └── ""a plant of the <nonce> family, especially the common <nonce> (Sambucus nigra), having red berries and used medicinally
+│   └── ""a plant of the <nonce> family, especially the common <nonce> (genus Spiraea), having small white flowers and thorny branches.""
+│       ├── ""a plant of the <nonce> family, especially the <nonce> plant ( <nonce> officinalis)"".
+The word "" <nonce> "" is defined as ""a
+│       ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> officinalis), having aromatic leaves and small white flowers.""
+The
+│       └── ""a plant of the <nonce> family, especially the common <nonce> (Spiraea ulmaria), having <nonce> flowers and used in perfumery
+└── ""a plant of the genus Rhus, having thorny branches and small, greenish flowers, and yielding a poisonous juice.""
+    ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> vulgaris), having a rosette of leaves and small yellow flowers.""
+    │   ├── ""a plant of the <nonce> genus, especially the <nonce> tree ( <nonce> spp.)"" and ""a plant of the <nonce> genus, especially the <nonce>
+    │   ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> vulgaris), having a rosette of leaves and small yellow flowers.""
+    │   └── ""a <nonce> tree, especially a <nonce> tree of the genus Pistacia.""
+The word "" <nonce> "" is defined as ""a <nonce> tree,
+    ├── ""a plant of the <nonce> family, especially the common <nonce> (Sambucus nigra), having red berries and used medicinally
+    │   ├── ""a plant of the genus <nonce> , especially S. <nonce> , having a large, showy flower and a long, woody stem.""
+The
+    │   ├── ""a plant of the <nonce> family, especially the common <nonce> ( <nonce> vulgaris), having a rosette of leaves and small yellow flowers.""
+    │   └── ""a large, showy, tropical American plant of the genus <nonce> , having large, showy, usually white flowers, and often grown as an
+    └── ""a plant of the <nonce> genus, especially the common <nonce> (S. aurea), which has yellow flowers and is often grown as a house
+        ├── ""a plant of the <nonce> family, especially the common <nonce> (genus <nonce> ), having showy yellow flowers and aromatic leaves.""
+The
+        ├── ""a plant of the genus <nonce> , of the <nonce> family, having a large, showy flower, as the <nonce> lily, <nonce> of the
+        └── ""a plant of the <nonce> genus, especially the common <nonce> (S. aurea), which has yellow flowers and is often grown as a house
+"
