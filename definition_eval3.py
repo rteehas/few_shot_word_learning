@@ -19,8 +19,7 @@ from datasets import load_dataset
 import pickle
 from treelib import Tree
 
-# This script runs the self-play mechanism with an entire tree structure of generations. 
-
+# This script also does the self-play generation but it uses llama-3-7b as the second model which generates the examples instead.
 
 
 # Load the BERTScore metrics
@@ -195,10 +194,9 @@ def generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, llama_mode
                 raise e  # Re-throw the error to handle it further up the call stack or halt the program
             
             for _ in range(3):  # Generate 3 children per node
+                # Generate example using LLaMA model and tokenizer (without using college embedding model)
                 prompt = example_prompt.format("\n".join(current_node.all_examples), nonce)
-                inputs = tokenizerTask(prompt, truncation=True, return_tensors='pt', max_length=256).to(device_0)
-                outputs = generate(model, context, inputs['input_ids'], inputs['attention_mask'], 64, mask_new_tokens=False, do_sample=True, temperature=temperature)
-                gen_ex = tokenizerTask.decode(outputs[0][len(inputs['input_ids'][0]):], skip_special_tokens=True)
+                gen_ex = generate_text_completion(llama_model, llama_tokenizer, prompt, temperature=temperature)
                 # Check if gen_ex contains the substring "<nonce>"
                 example = gen_ex
                 if "<nonce>" not in gen_ex:
@@ -207,8 +205,9 @@ def generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, llama_mode
                 # Append the generated example to the list
                 current_node.all_examples.append(gen_ex)
                 try:
-                    gen_def_with_prompt = generate_definition(model, [gen_ex], tokenizerMLM, tokenizerTask, with_prompt=True)
-                    gen_def_without_prompt = generate_definition(model, [gen_ex], tokenizerMLM, tokenizerTask, with_prompt=False)
+                    gen_def_with_prompt = generate_definition(model, current_node.all_examples, tokenizerMLM, tokenizerTask, with_prompt=True)
+                    gen_def_without_prompt = generate_definition(model, current_node.all_examples, tokenizerMLM, tokenizerTask, with_prompt=False)
+                    bert_score = calculate_bertscore(ex['definition'], gen_def_without_prompt)
                 except Exception as e:
                     print(f"An error occurred: {e}")
                     print(f"gen_ex: {gen_ex}")
