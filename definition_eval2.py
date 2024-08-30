@@ -20,7 +20,7 @@ import pickle
 from treelib import Tree
 
 # This script runs the self-play mechanism with an entire tree structure of generations. 
-
+# For each node the definition is generated with and without the prompt and stored. The context for the definition is just the single example for the node. 
 
 
 # Load the BERTScore metrics
@@ -207,6 +207,7 @@ def generate_examples_emb_gen(model, ex, tokenizerMLM, tokenizerTask, llama_mode
                 # Append the generated example to the list
                 current_node.all_examples.append(gen_ex)
                 try:
+                    # use the single example for the node as the context for the definition
                     gen_def_with_prompt = generate_definition(model, [gen_ex], tokenizerMLM, tokenizerTask, with_prompt=True)
                     gen_def_without_prompt = generate_definition(model, [gen_ex], tokenizerMLM, tokenizerTask, with_prompt=False)
                 except Exception as e:
